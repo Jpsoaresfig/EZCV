@@ -22,7 +22,7 @@ var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCou
 %>
 <aside class="sidenav">
   <a class="brand" href="/panel">
-    <span class="brand-mark">F</span>
+    <img class="brand-mark" src="/img/logo.svg?v=<%= assetV %>" alt="" width="28" height="28">
     <span>Fíchame</span>
   </a>
 
@@ -45,7 +45,7 @@ var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCou
 <header class="appbar">
   <div class="appbar-inner">
     <a class="brand" href="/panel">
-      <span class="brand-mark">F</span>
+      <img class="brand-mark" src="/img/logo.svg?v=<%= assetV %>" alt="" width="28" height="28">
       <span>Fíchame</span>
     </a>
     <span class="brand-sub"><%= typeof restaurantName !== 'undefined' ? restaurantName : '' %></span>

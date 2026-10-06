@@ -311,17 +311,14 @@ hr {
   flex-shrink: 0;
 }
 .brand:hover { text-decoration: none; }
+/* Símbolo da marca (public/img/logo.svg). O raio acompanha o do próprio
+   SVG (16/64) para a sombra não sair quadrada. */
 .brand-mark {
   width: 28px;
   height: 28px;
-  border-radius: 9px;
-  background: linear-gradient(145deg, var(--brand), var(--brand-active));
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-size: .95rem;
-  font-weight: 850;
-  letter-spacing: -.02em;
+  border-radius: 25%;
+  display: block;
+  flex-shrink: 0;
   box-shadow: var(--sh-1);
 }
 
@@ -1410,7 +1407,7 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
 .auth-card { width: 100%; max-width: 480px; margin: 0 auto; padding: 0 16px; }
 .auth-head { text-align: center; margin-bottom: 20px; }
 .auth-head .brand { justify-content: center; font-size: 1.3rem; }
-.auth-head .brand-mark { width: 32px; height: 32px; font-size: 1.05rem; }
+.auth-head .brand-mark { width: 34px; height: 34px; }
 .auth-head p { color: var(--ink-2); margin: 10px 0 0; font-size: .94rem; }
 .auth-alt { margin: 18px 0 0; }
 

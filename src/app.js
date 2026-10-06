@@ -60,7 +60,8 @@ function fmtSize(bytes) {
 function assetVersion() {
   const files = [
     path.join(__dirname, '..', 'public', 'css', 'style.css'),
-    path.join(__dirname, '..', 'public', 'js', 'app.js')
+    path.join(__dirname, '..', 'public', 'js', 'app.js'),
+    path.join(__dirname, '..', 'public', 'img', 'logo.svg')
   ];
 
   const hash = crypto.createHash('sha1');

@@ -361,6 +361,12 @@ async function main() {
     html = await text(res);
     check('/ sem sessão mostra a landing page',
       res.status === 200 && html.includes('lp-hero') && html.includes('href="/registro"'));
+    check('páginas ligam o logo e os favicons',
+      html.includes('/img/logo.svg') && html.includes('rel="icon"') && html.includes('apple-touch-icon'));
+    for (const asset of ['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/img/logo.svg']) {
+      res = await call('GET', asset);
+      check(`${asset} é servido`, res.status === 200);
+    }
 
     console.log('\n— Filtros e páginas do painel —');
     res = await call('GET', '/panel/restaurante', { jar: ownerJar });

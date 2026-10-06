@@ -10,6 +10,8 @@ Etiqueta NFC → /r/:slug → formulário + CV (PDF) → painel do restaurante �
 
 A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o dono grava-a na tag com qualquer app de escrita NFC (ex.: NFC Tools).
 
+> 🎨 Logo e cores da marca: [`brand/`](brand/README.md)
+>
 > 📄 Documentação técnica completa (rotas, fluxos, modelo de dados, segurança, testes): [`docs/DOCUMENTACAO.md`](docs/DOCUMENTACAO.md)
 
 ---
