@@ -15,8 +15,11 @@ const router = express.Router();
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+/* Landing page para quem ainda não tem conta; quem já entrou vai direto
+ * para o painel, como antes. */
 router.get('/', (req, res) => {
-  res.redirect(req.user ? (req.user.role === 'admin' ? '/admin' : '/panel') : '/login');
+  if (req.user) return res.redirect(req.user.role === 'admin' ? '/admin' : '/panel');
+  res.render('public/landing');
 });
 
 function clean(value, max = 200) {

@@ -355,6 +355,13 @@ async function main() {
     });
     check('POST sem CSRF → 403', res.status === 403);
 
+    res = await call('GET', '/', { jar: ownerJar });
+    check('/ com sessão vai para o painel', res.status === 302 && res.headers.get('location') === '/panel');
+    res = await call('GET', '/');
+    html = await text(res);
+    check('/ sem sessão mostra a landing page',
+      res.status === 200 && html.includes('lp-hero') && html.includes('href="/registro"'));
+
     console.log('\n— Filtros e páginas do painel —');
     res = await call('GET', '/panel/restaurante', { jar: ownerJar });
     html = await text(res);

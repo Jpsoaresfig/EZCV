@@ -32,6 +32,10 @@ A etiqueta **não é programada pelo sistema**: o EZCV fornece a URL e o dono gr
 - Código QR da mesma URL, pronto a imprimir ou descarregar em PNG (`/panel/qr`).
 - Notificações no painel e por email (SMTP opcional).
 
+**Landing page** — `/`
+- Apresenta o produto aos donos de restaurantes: como funciona, funcionalidades, privacidade e FAQ.
+- As maquetas do formulário e do painel são HTML/CSS (sem imagens), por isso seguem o modo escuro.
+
 **Admin da plataforma** — `/admin`
 - Métricas globais, ativação de estabelecimentos, bloqueio de utilizadores e logs de segurança.
 - **Sem acesso a dados de candidatos**, por desenho.

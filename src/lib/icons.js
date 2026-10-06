@@ -55,7 +55,56 @@ const PATHS = {
     '<path d="M6.5 8.5a7 7 0 0 0 0 7"/>' +
     '<path d="M9.8 10.4a3.2 3.2 0 0 0 0 3.2"/>' +
     '<path d="M14.2 10.4a3.2 3.2 0 0 1 0 3.2"/>' +
-    '<path d="M17.5 8.5a7 7 0 0 1 0 7"/>'
+    '<path d="M17.5 8.5a7 7 0 0 1 0 7"/>',
+
+  /* --- Usados na landing page --- */
+  file:
+    '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/>' +
+    '<path d="M14 3v5h5"/>' +
+    '<path d="M9 13h6"/>' +
+    '<path d="M9 17h4"/>',
+
+  pause:
+    '<circle cx="12" cy="12" r="9"/>' +
+    '<path d="M10 9v6"/>' +
+    '<path d="M14 9v6"/>',
+
+  qr:
+    '<rect x="3.5" y="3.5" width="6" height="6" rx="1"/>' +
+    '<rect x="14.5" y="3.5" width="6" height="6" rx="1"/>' +
+    '<rect x="3.5" y="14.5" width="6" height="6" rx="1"/>' +
+    '<path d="M14.5 14.5h2.5v2.5"/>' +
+    '<path d="M20.5 14.5v.01"/>' +
+    '<path d="M14.5 20.5h.01"/>' +
+    '<path d="M17.5 20.5h3v-3"/>',
+
+  search:
+    '<circle cx="11" cy="11" r="6.5"/>' +
+    '<path d="m20 20-4.2-4.2"/>',
+
+  chat:
+    '<path d="M20.5 11.5a8 8 0 0 1-11.7 7.1L3.5 20l1.4-5A8 8 0 1 1 20.5 11.5z"/>' +
+    '<path d="M8.5 11.5h.01"/>' +
+    '<path d="M12.5 11.5h.01"/>' +
+    '<path d="M16.5 11.5h.01"/>',
+
+  mail:
+    '<rect x="3" y="5" width="18" height="14" rx="2"/>' +
+    '<path d="m3.5 6.5 8.5 6.5 8.5-6.5"/>',
+
+  star:
+    '<path d="m12 3.5 2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.9z"/>',
+
+  lock:
+    '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/>' +
+    '<path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+
+  check:
+    '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+
+  phone:
+    '<rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/>' +
+    '<path d="M11 18.5h2"/>'
 };
 
 function icon(name) {
