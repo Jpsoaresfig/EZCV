@@ -1,7 +1,7 @@
 -- ===========================================================================
--- EZCV — 0000_reset
+-- Fíchame — 0000_reset
 --
--- ⚠️  DESTRUTIVO. Apaga TODAS as tabelas, views, funções e ficheiros do EZCV.
+-- ⚠️  DESTRUTIVO. Apaga TODAS as tabelas, views, funções e ficheiros do Fíchame.
 --
 -- Serve para recomeçar o schema do zero durante o desenvolvimento.
 -- NUNCA correr num projeto com dados reais de candidatos.

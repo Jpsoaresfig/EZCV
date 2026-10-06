@@ -1,4 +1,4 @@
-# EZCV
+# Fíchame
 
 **Candidaturas por NFC para qualquer negócio em Espanha — restaurantes, lojas, hotéis, cabeleireiros, ginásios…**
 
@@ -8,7 +8,7 @@ O candidato aproxima o telemóvel da etiqueta NFC do estabelecimento, abre a pá
 Etiqueta NFC → /r/:slug → formulário + CV (PDF) → painel do restaurante → Nuevo … Contratado
 ```
 
-A etiqueta **não é programada pelo sistema**: o EZCV fornece a URL e o dono grava-a na tag com qualquer app de escrita NFC (ex.: NFC Tools).
+A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o dono grava-a na tag com qualquer app de escrita NFC (ex.: NFC Tools).
 
 > 📄 Documentação técnica completa (rotas, fluxos, modelo de dados, segurança, testes): [`docs/DOCUMENTACAO.md`](docs/DOCUMENTACAO.md)
 
@@ -179,7 +179,7 @@ docs/                documentação técnica
 
 Inventário completo em [`docs/DOCUMENTACAO.md` §8](docs/DOCUMENTACAO.md#8-segurança-inventário).
 
-> **RGPD:** a arquitetura está preparada para conformidade, mas isso não é uma declaração de conformidade. O texto de `/privacidad` precisa de revisão jurídica antes de uso real. Cada estabelecimento é responsável pelo tratamento; o EZCV é encarregado.
+> **RGPD:** a arquitetura está preparada para conformidade, mas isso não é uma declaração de conformidade. O texto de `/privacidad` precisa de revisão jurídica antes de uso real. Cada estabelecimento é responsável pelo tratamento; o Fíchame é encarregado.
 
 ---
 

@@ -1,5 +1,5 @@
 /* ===========================================================================
-   EZCV — design system
+   Fíchame — design system
    ---------------------------------------------------------------------------
    Sem atributos `style=` nas views: o Content-Security-Policy é
    `style-src 'self'`, que bloqueia estilos inline. Tudo o que é visual vive
@@ -319,8 +319,8 @@ hr {
   color: #fff;
   display: grid;
   place-items: center;
-  font-size: .78rem;
-  font-weight: 800;
+  font-size: .95rem;
+  font-weight: 850;
   letter-spacing: -.02em;
   box-shadow: var(--sh-1);
 }
@@ -1410,7 +1410,7 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
 .auth-card { width: 100%; max-width: 480px; margin: 0 auto; padding: 0 16px; }
 .auth-head { text-align: center; margin-bottom: 20px; }
 .auth-head .brand { justify-content: center; font-size: 1.3rem; }
-.auth-head .brand-mark { width: 32px; height: 32px; font-size: .85rem; }
+.auth-head .brand-mark { width: 32px; height: 32px; font-size: 1.05rem; }
 .auth-head p { color: var(--ink-2); margin: 10px 0 0; font-size: .94rem; }
 .auth-alt { margin: 18px 0 0; }
 

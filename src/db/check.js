@@ -80,7 +80,7 @@ async function assertSchema() {
 /* `npm run check` */
 async function main() {
   console.log('');
-  console.log('  EZCV — verificação do Supabase');
+  console.log('  Fíchame — verificação do Supabase');
   console.log('  ------------------------------');
 
   try {

@@ -8,9 +8,9 @@ const { sb, one } = require('./index');
 const config = require('../config');
 const { hashPassword } = require('../lib/crypto');
 
-const email = process.env.ADMIN_EMAIL || 'admin@ezcv.local';
+const email = process.env.ADMIN_EMAIL || 'admin@fichame.local';
 const password = process.env.ADMIN_PASSWORD || '';
-const name = process.env.ADMIN_NAME || 'Administrador EZCV';
+const name = process.env.ADMIN_NAME || 'Administrador Fíchame';
 
 async function main() {
   config.assertConfig();

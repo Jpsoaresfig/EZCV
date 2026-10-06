@@ -103,7 +103,7 @@ function main() {
   }
 
   console.log('');
-  console.log('  EZCV — migrations');
+  console.log('  Fíchame — migrations');
   console.log('  -----------------');
   if (doReset) console.log('  ⚠️  --reset: o schema vai ser apagado antes de ser recriado');
   console.log('');

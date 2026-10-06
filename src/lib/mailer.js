@@ -11,6 +11,15 @@ function escapeHtml(s) {
   }[c]));
 }
 
+/* Cabeçalhos de email só admitem ASCII: texto com acentos («Fíchame», nomes
+ * de vagas no assunto) vai como encoded-word UTF-8/base64 (RFC 2047), senão
+ * alguns servidores e clientes mostram caracteres trocados. */
+function encodeHeaderWord(text) {
+  const s = String(text);
+  if (/^[\x20-\x7e]*$/.test(s)) return s;
+  return '=?UTF-8?B?' + Buffer.from(s, 'utf8').toString('base64') + '?=';
+}
+
 /* ---------------------------------------------------------------------------
  * Cliente SMTP mínimo (apenas para envio de notificações).
  * Se SMTP_HOST não estiver definido, o email é apenas registado em log.
@@ -63,7 +72,7 @@ async function smtpSend({ to, subject, text, html }) {
 
   try {
     await expect(socket, [220]);
-    socket.write(`EHLO ezcv.local\r\n`);
+    socket.write(`EHLO fichame.local\r\n`);
     let reply = await expect(socket, [250]);
     let caps = reply.lines.join(' ').toLowerCase();
 
@@ -80,7 +89,7 @@ async function smtpSend({ to, subject, text, html }) {
       socket.removeAllListeners('data');
       socket.removeAllListeners('error');
       socket.removeAllListeners('close');
-      socket.write(`EHLO ezcv.local\r\n`);
+      socket.write(`EHLO fichame.local\r\n`);
       reply = await expect(socket, [250]);
       caps = reply.lines.join(' ').toLowerCase();
     }
@@ -111,9 +120,9 @@ async function smtpSend({ to, subject, text, html }) {
 
     const boundary = 'ezcv-' + Math.random().toString(36).slice(2);
     const headers = [
-      `From: EZCV <${from}>`,
+      `From: ${encodeHeaderWord('Fíchame')} <${from}>`,
       `To: <${to}>`,
-      `Subject: ${subject.replace(/[\r\n]+/g, ' ')}`,
+      `Subject: ${encodeHeaderWord(subject.replace(/[\r\n]+/g, ' '))}`,
       'MIME-Version: 1.0',
       `Content-Type: multipart/alternative; boundary="${boundary}"`,
       ''

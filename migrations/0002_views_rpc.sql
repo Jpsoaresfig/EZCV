@@ -1,5 +1,5 @@
 -- ===========================================================================
--- EZCV — 0002_views_rpc
+-- Fíchame — 0002_views_rpc
 --
 -- O PostgREST não faz GROUP BY, subselects no SELECT, OR entre colunas de
 -- tabelas unidas, nem transações com vários statements. Este ficheiro resolve

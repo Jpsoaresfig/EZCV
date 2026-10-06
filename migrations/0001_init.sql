@@ -1,5 +1,5 @@
 -- ===========================================================================
--- EZCV — 0001_init
+-- Fíchame — 0001_init
 -- Schema base: tabelas, constraints, índices e Row Level Security.
 --
 -- Aplicar em: Supabase → SQL Editor → New query → colar → Run.

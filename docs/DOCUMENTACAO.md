@@ -1,6 +1,6 @@
-# EZCV — Documentação Técnica
+# Fíchame — Documentação Técnica
 
-Documentação do que foi construído no sistema **EZCV — Reclutamiento por NFC para bares y restaurantes**.
+Documentação do que foi construído no sistema **Fíchame — Reclutamiento por NFC para bares y restaurantes**.
 
 > Público-alvo desta documentação: quem vai manter, auditar ou evoluir o código.
 > Para instruções de uso, ver também o [`README.md`](../README.md).

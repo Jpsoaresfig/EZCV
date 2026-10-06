@@ -12,7 +12,7 @@ async function main() {
     await assertSchema();
   } catch (err) {
     console.error('');
-    console.error('  Não foi possível arrancar o EZCV:');
+    console.error('  Não foi possível arrancar o Fíchame:');
     console.error('');
     console.error(`  ${String(err.message).split('\n').join('\n  ')}`);
     console.error('');
@@ -23,7 +23,7 @@ async function main() {
 
   app.listen(config.port, () => {
     console.log('');
-    console.log('  EZCV — Reclutamiento por NFC');
+    console.log('  Fíchame — Reclutamiento por NFC');
     console.log('  ----------------------------');
     console.log(`  Painel (dono):   ${config.appUrl}/login`);
     console.log(`  Registro:        ${config.appUrl}/registro`);

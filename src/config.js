@@ -56,7 +56,7 @@ const config = {
     secure: process.env.SMTP_SECURE === '1',
     user: process.env.SMTP_USER || '',
     pass: process.env.SMTP_PASS || '',
-    from: process.env.SMTP_FROM || 'no-reply@ezcv.local'
+    from: process.env.SMTP_FROM || 'no-reply@fichame.local'
   }
 };
 

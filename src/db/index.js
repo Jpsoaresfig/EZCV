@@ -83,7 +83,7 @@ async function run(builder, context = '') {
   return data || null;
 }
 
-/* Chama uma função RPC. Todas as funções do EZCV recebem um único parâmetro
+/* Chama uma função RPC. Todas as funções do Fíchame recebem um único parâmetro
  * jsonb chamado `p`, por isso o objeto é embrulhado aqui. */
 async function rpc(fn, params = {}, context = '') {
   const { data, error } = await sb().rpc(fn, { p: params });

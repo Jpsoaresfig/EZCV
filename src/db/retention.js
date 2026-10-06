@@ -104,7 +104,7 @@ async function main() {
   config.assertConfig();
 
   console.log('');
-  console.log('  EZCV — retenção de dados');
+  console.log('  Fíchame — retenção de dados');
   console.log('  ------------------------');
   console.log(`  modo: ${apply ? 'APLICAR (escreve na base de dados)' : 'simulação (não altera nada)'}`);
   console.log('');
