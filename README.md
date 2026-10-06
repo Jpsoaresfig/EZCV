@@ -1,8 +1,8 @@
 # EZCV
 
-**Candidaturas por NFC para bares, restaurantes e estabelecimentos de alimentação em Espanha.**
+**Candidaturas por NFC para qualquer negócio em Espanha — restaurantes, lojas, hotéis, cabeleireiros, ginásios…**
 
-O candidato aproxima o telemóvel da etiqueta NFC do estabelecimento, abre a página do restaurante, preenche o formulário e envia o CV em PDF. A candidatura aparece no painel do restaurante, onde o dono a organiza, contacta o candidato e acompanha o processo até à contratação.
+O candidato aproxima o telemóvel da etiqueta NFC do estabelecimento, abre a página do negócio, preenche o formulário e envia o CV em PDF. A candidatura aparece no painel do restaurante, onde o dono a organiza, contacta o candidato e acompanha o processo até à contratação.
 
 ```
 Etiqueta NFC → /r/:slug → formulário + CV (PDF) → painel do restaurante → Nuevo … Contratado
@@ -33,7 +33,7 @@ A etiqueta **não é programada pelo sistema**: o EZCV fornece a URL e o dono gr
 - Notificações no painel e por email (SMTP opcional).
 
 **Landing page** — `/`
-- Apresenta o produto aos donos de restaurantes: como funciona, funcionalidades, privacidade e FAQ.
+- Apresenta o produto aos donos de negócios: como funciona, funcionalidades, privacidade e FAQ.
 - As maquetas do formulário e do painel são HTML/CSS (sem imagens), por isso seguem o modo escuro.
 
 **Admin da plataforma** — `/admin`

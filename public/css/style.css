@@ -2273,3 +2273,44 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
   .lp-toast { animation: none; opacity: 1; }
   .lp-step:hover, .lp-feature:hover { transform: none; }
 }
+
+/* Faixa «Para cualquier negocio» — deixa claro logo após o hero que o
+   produto não é só para hotelaria. */
+.lp-biz {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+  padding: 26px 0 28px;
+}
+.lp-biz-title {
+  margin: 0 0 14px;
+  text-align: center;
+  font-size: .78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  color: var(--ink-3);
+}
+.lp-biz-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 10px;
+}
+.lp-biz-list li {
+  padding: 7px 14px;
+  border-radius: var(--r-full);
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-size: .9rem;
+  font-weight: 600;
+}
+.lp-biz-list li:last-child {
+  background: var(--brand-tint);
+  border-color: var(--brand-tint-2);
+  color: var(--brand-ink);
+}

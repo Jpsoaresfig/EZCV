@@ -1,7 +1,7 @@
 {
   "name": "ezcv",
   "version": "2.0.0",
-  "description": "Sistema de reclutamiento por NFC para bares, restaurantes y establecimientos de alimentación",
+  "description": "Sistema de reclutamiento por NFC para restaurantes, tiendas y cualquier negocio",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

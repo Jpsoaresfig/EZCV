@@ -1,6 +1,6 @@
 <%- include('../partials/head', {
-  title: 'Candidaturas por NFC para bares y restaurantes',
-  description: 'Pega una etiqueta NFC en tu local y recibe candidaturas con CV en PDF, ordenadas en un panel. Sin apps ni papeles.'
+  title: 'Candidaturas por NFC para tu negocio',
+  description: 'Restaurantes, tiendas, hoteles o cualquier negocio: pega una etiqueta NFC y recibe candidaturas con CV en PDF, ordenadas en un panel. Sin apps ni papeles.'
 }) %>
 
 <!-- Landing page (/). Tudo em HTML + CSS do próprio servidor: o CSP não
@@ -33,15 +33,16 @@
   <section class="lp-hero">
     <div class="lp-wrap lp-hero-grid">
       <div class="lp-hero-copy">
-        <span class="lp-eyebrow"><%- icon('nfc') %> Reclutamiento por NFC para hostelería</span>
-        <h1>Tu próximo camarero está a <span class="lp-hl">un toque del móvil</span>.</h1>
+        <span class="lp-eyebrow"><%- icon('nfc') %> Reclutamiento por NFC para cualquier negocio</span>
+        <h1>Tu próximo fichaje está a <span class="lp-hl">un toque del móvil</span>.</h1>
         <p class="lp-lead">
-          Pega una etiqueta NFC en tu local. Quien quiera trabajar contigo acerca
-          el móvil, rellena un formulario y envía su CV en PDF. Tú lo recibes
-          ordenado en tu panel — sin apps, sin papeles y sin CVs perdidos en el WhatsApp.
+          Pega una etiqueta NFC en tu restaurante, tienda o negocio. Quien quiera
+          trabajar contigo acerca el móvil, rellena un formulario y envía su CV en
+          PDF. Tú lo recibes ordenado en tu panel — sin apps, sin papeles y sin CVs
+          perdidos en el WhatsApp.
         </p>
         <div class="lp-cta-row">
-          <a class="btn lg" href="/registro">Registrar mi local</a>
+          <a class="btn lg" href="/registro">Registrar mi negocio</a>
           <a class="btn lg secondary" href="#como-funciona">Ver cómo funciona</a>
         </div>
         <ul class="lp-proof">
@@ -51,7 +52,7 @@
         </ul>
       </div>
 
-      <!-- Maqueta: telemóvel com a página pública do restaurante -->
+      <!-- Maqueta: telemóvel com a página pública de um negócio -->
       <div class="lp-hero-visual" aria-hidden="true">
         <div class="lp-tag">
           <span class="lp-tag-waves"><span></span><span></span><span></span></span>
@@ -62,15 +63,15 @@
           <div class="lp-phone-notch"></div>
           <div class="lp-phone-screen">
             <div class="lp-m-hero">
-              <div class="lp-m-logo">CG</div>
-              <div class="lp-m-name">Casa Granada</div>
-              <div class="lp-m-type">Bar · Tapas · Sevilla</div>
+              <div class="lp-m-logo">MS</div>
+              <div class="lp-m-name">Mercado Sol</div>
+              <div class="lp-m-type">Tienda · Valencia</div>
               <span class="lp-m-open"><span class="dot green"></span> Estamos contratando</span>
             </div>
             <div class="lp-m-body">
               <div class="lp-m-label">Vacantes abiertas</div>
-              <div class="lp-m-job">Camarero/a <span>Jornada completa</span></div>
-              <div class="lp-m-job">Ayudante de cocina <span>Fines de semana</span></div>
+              <div class="lp-m-job">Dependiente/a <span>Jornada completa</span></div>
+              <div class="lp-m-job">Reponedor/a <span>Fines de semana</span></div>
               <div class="lp-m-label">Tus datos</div>
               <div class="lp-m-input">Lucía Fernández</div>
               <div class="lp-m-input">612 345 678</div>
@@ -84,10 +85,28 @@
           <span class="lp-toast-icon"><%- icon('bell') %></span>
           <div>
             <strong>Nueva candidatura</strong>
-            <span>Lucía F. · Camarero/a</span>
+            <span>Lucía F. · Dependiente/a</span>
           </div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <!-- ===================== PARA QUALQUER NEGÓCIO ==================== -->
+  <section class="lp-biz" aria-label="Tipos de negocio">
+    <div class="lp-wrap">
+      <p class="lp-biz-title">Para cualquier negocio que busque personal</p>
+      <ul class="lp-biz-list">
+        <li>Restaurantes</li>
+        <li>Bares y cafeterías</li>
+        <li>Tiendas</li>
+        <li>Supermercados</li>
+        <li>Hoteles</li>
+        <li>Peluquerías y estética</li>
+        <li>Gimnasios</li>
+        <li>Oficinas</li>
+        <li>…y más</li>
+      </ul>
     </div>
   </section>
 
@@ -97,15 +116,15 @@
       <div class="lp-head">
         <span class="lp-kicker">Cómo funciona</span>
         <h2>Tres pasos. Ni una hoja de papel.</h2>
-        <p>De la etiqueta en la barra al candidato en tu panel, sin que nadie tenga que instalar nada.</p>
+        <p>De la etiqueta en el mostrador al candidato en tu panel, sin que nadie tenga que instalar nada.</p>
       </div>
 
       <ol class="lp-steps">
         <li class="lp-step">
           <span class="lp-step-num">1</span>
           <span class="lp-step-icon"><%- icon('store') %></span>
-          <h3>Registra tu local</h3>
-          <p>Crea tu cuenta, sube el logo y publica tus vacantes: camarero, cocina, barra… Con contrato, jornada y requisitos.</p>
+          <h3>Registra tu negocio</h3>
+          <p>Crea tu cuenta, sube el logo y publica tus vacantes: dependiente, camarero, recepcionista, cocina… Con contrato, jornada y requisitos.</p>
         </li>
         <li class="lp-step">
           <span class="lp-step-num">2</span>
@@ -131,7 +150,7 @@
         <h3>Para el candidato</h3>
         <p class="lp-side-lead">Menos de 2 minutos desde el móvil. Sin registrarse.</p>
         <ul class="lp-list">
-          <li><%- icon('check') %> Ve tu local, tus vacantes y si estás contratando.</li>
+          <li><%- icon('check') %> Ve tu negocio, tus vacantes y si estás contratando.</li>
           <li><%- icon('check') %> Rellena sus datos y adjunta el CV en PDF.</li>
           <li><%- icon('check') %> Sabe exactamente para qué se usan sus datos.</li>
           <li><%- icon('check') %> Si no hay vacantes, deja sus datos para más adelante.</li>
@@ -139,7 +158,7 @@
       </div>
       <div class="lp-side lp-side-brand">
         <span class="lp-side-icon"><%- icon('store') %></span>
-        <h3>Para tu restaurante</h3>
+        <h3>Para tu negocio</h3>
         <p class="lp-side-lead">Todas las candidaturas en un solo sitio, en orden.</p>
         <ul class="lp-list">
           <li><%- icon('check') %> Recibe candidatos aunque estés en plena hora punta.</li>
@@ -157,7 +176,7 @@
       <div class="lp-head">
         <span class="lp-kicker">Tu panel</span>
         <h2>Del «nuevo» al «contratado», de un vistazo.</h2>
-        <p>Cada candidatura avanza por estados. Sabes en todo momento a quién llamar, a quién entrevistar y a quién guardar para el verano.</p>
+        <p>Cada candidatura avanza por estados. Sabes en todo momento a quién llamar, a quién entrevistar y a quién guardar para la próxima campaña.</p>
       </div>
 
       <div class="lp-panel" aria-hidden="true">
@@ -180,7 +199,7 @@
             <span class="lp-av">LF</span>
             <div class="lp-row-main">
               <strong>Lucía Fernández <span class="lp-fav"><%- icon('star') %></span></strong>
-              <span>Camarero/a · Inmediata · hace 5 min</span>
+              <span>Dependiente/a · Inmediata · hace 5 min</span>
             </div>
             <span class="lp-chip is-new">Nuevo</span>
           </div>
@@ -188,7 +207,7 @@
             <span class="lp-av lp-av-2">JM</span>
             <div class="lp-row-main">
               <strong>Javier Moreno</strong>
-              <span>Ayudante de cocina · Fines de semana · ayer</span>
+              <span>Reponedor/a · Fines de semana · ayer</span>
             </div>
             <span class="lp-chip is-int">Entrevista</span>
           </div>
@@ -196,7 +215,7 @@
             <span class="lp-av lp-av-3">AR</span>
             <div class="lp-row-main">
               <strong>Ana Ruiz</strong>
-              <span>Barra · Media jornada · hace 3 días</span>
+              <span>Cajero/a · Media jornada · hace 3 días</span>
             </div>
             <span class="lp-chip is-ok">Contratado</span>
           </div>
@@ -210,8 +229,8 @@
     <div class="lp-wrap">
       <div class="lp-head">
         <span class="lp-kicker">Funciones</span>
-        <h2>Pensado para cómo funciona un bar de verdad.</h2>
-        <p>Sencillo para usar de pie, entre mesa y mesa, desde el móvil.</p>
+        <h2>Pensado para el día a día de tu negocio.</h2>
+        <p>Sencillo para usar de pie, entre cliente y cliente, desde el móvil.</p>
       </div>
 
       <div class="lp-features">
@@ -223,7 +242,7 @@
         <div class="lp-feature">
           <span class="lp-f-icon"><%- icon('qr') %></span>
           <h3>Código QR imprimible</h3>
-          <p>Para móviles sin NFC: genera un QR con tu enlace, listo para imprimir o descargar y poner en la puerta o en la carta.</p>
+          <p>Para móviles sin NFC: genera un QR con tu enlace, listo para imprimir o descargar y poner en la puerta, el escaparate o el mostrador.</p>
         </div>
         <div class="lp-feature">
           <span class="lp-f-icon"><%- icon('search') %></span>
@@ -264,7 +283,7 @@
         <ul class="lp-privacy-list">
           <li><%- icon('lock') %><div><strong>CV privados</strong><span>Solo tú los ves, desde tu panel. Nunca hay enlaces públicos.</span></div></li>
           <li><%- icon('shield') %><div><strong>Consentimiento registrado</strong><span>Guardamos qué aceptó cada candidato y cuándo.</span></div></li>
-          <li><%- icon('store') %><div><strong>Datos separados por local</strong><span>Ningún otro establecimiento puede ver tus candidaturas.</span></div></li>
+          <li><%- icon('store') %><div><strong>Datos separados por negocio</strong><span>Ningún otro negocio puede ver tus candidaturas.</span></div></li>
           <li><%- icon('people') %><div><strong>Decides tú</strong><span>Sin filtros automáticos: cada candidato lo valora una persona.</span></div></li>
         </ul>
       </div>
@@ -308,10 +327,10 @@
   <section class="lp-final">
     <div class="lp-wrap lp-final-inner">
       <span class="lp-final-icon"><%- icon('nfc') %></span>
-      <h2>Tu próxima incorporación puede estar tomando un café en tu barra.</h2>
-      <p>Registra tu local y empieza a recibir candidaturas hoy mismo.</p>
+      <h2>Tu próxima incorporación puede estar ahora mismo en tu local.</h2>
+      <p>Registra tu negocio y empieza a recibir candidaturas hoy mismo.</p>
       <div class="lp-cta-row lp-cta-center">
-        <a class="btn lg lp-btn-light" href="/registro">Registrar mi local</a>
+        <a class="btn lg lp-btn-light" href="/registro">Registrar mi negocio</a>
         <a class="btn lg lp-btn-outline" href="/login">Ya tengo cuenta</a>
       </div>
     </div>

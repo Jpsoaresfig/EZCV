@@ -36,7 +36,12 @@ const ESTABLISHMENT_TYPES = {
   cafeteria:     'Cafetería',
   panaderia:     'Panadería / pastelería',
   food_truck:    'Food truck',
-  tienda:        'Tienda de alimentación',
+  tienda:        'Tienda de alimentación / supermercado',
+  comercio:      'Tienda / comercio',
+  hotel:         'Hotel / alojamiento',
+  belleza:       'Peluquería / estética',
+  gimnasio:      'Gimnasio / deporte',
+  oficina:       'Oficina / servicios',
   otro:          'Otro'
 };
 
