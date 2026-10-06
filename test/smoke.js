@@ -360,6 +360,18 @@ async function main() {
     html = await text(res);
     check('Mi restaurante mostra URL NFC',
       res.status === 200 && html.includes(`/r/${slugA}`) && html.includes('Copiar URL'));
+    res = await call('GET', '/panel/qr', { jar: ownerJar });
+    html = await text(res);
+    check('página do QR renderiza SVG com a URL NFC',
+      res.status === 200 && html.includes('<svg') && html.includes(`/r/${slugA}`) && html.includes('data-print'));
+    res = await call('GET', '/panel/qr.png', { jar: ownerJar });
+    const qrPng = Buffer.from(await res.arrayBuffer());
+    check('QR em PNG para descarregar',
+      res.status === 200 && res.headers.get('content-type') === 'image/png' &&
+      qrPng.subarray(1, 4).toString() === 'PNG' &&
+      (res.headers.get('content-disposition') || '').includes('attachment'));
+    res = await call('GET', '/panel/qr');
+    check('QR exige sessão', res.status !== 200 || !(await text(res)).includes('<svg'));
     res = await call('GET', '/panel/configuracion', { jar: ownerJar });
     check('Configuración renderiza', res.status === 200 && (await text(res)).includes('Contraseña actual'));
     res = await call('GET', '/panel/candidaturas?q=camarero', { jar: ownerJar });

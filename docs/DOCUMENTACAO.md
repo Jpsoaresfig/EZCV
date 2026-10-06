@@ -11,7 +11,7 @@ Documentação do que foi construído no sistema **EZCV — Reclutamiento por NF
 
 Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alta rotatividade de funcionários. O dono grava uma **URL única numa etiqueta NFC**; o candidato aproxima o celular, preenche o formulário, envia o CV em PDF e a candidatura cai organizada no painel do restaurante.
 
-- **Sem QR Code**: o mecanismo é NFC → navegador → página do restaurante.
+- **NFC como mecanismo principal**: NFC → navegador → página do restaurante. O QR code (`/panel/qr`) é opcional, impresso pelo dono para quem não tem NFC, e aponta para a mesma URL.
 - **Sem login para o candidato**: fluxo em menos de 2 minutos, mobile-first, em espanhol.
 - **Sem tocar na tag para pausar**: o dono pausa/ativa as candidaturas pelo painel; a URL da tag nunca muda.
 
@@ -106,6 +106,8 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 | POST | `/panel/vagas/:id/toggle` | Liga/desliga vaga |
 | POST | `/panel/contratacion` | `accion=pausar|activar` |
 | GET/POST | `/panel/restaurante` | Edita dados (multipart: logo/foto) + mostra URL NFC |
+| GET | `/panel/qr` | Folha imprimível com o QR code da URL NFC (SVG gerado no servidor) |
+| GET | `/panel/qr.png` | QR code em PNG 1024 px para descarregar |
 | GET | `/panel/notificaciones` | Área de notificações: histórico de avisos + estado de entrega dos emails |
 | POST | `/panel/notificaciones/marcar-leidas` | Marca notificações do restaurante como lidas |
 | GET/POST | `/panel/configuracion` | Troca email de acesso / senha (rate limit 10/15min) |
@@ -405,4 +407,3 @@ A `SUPABASE_SERVICE_ROLE_KEY` ignora RLS e existe exclusivamente no backend: nun
 8. Paginação real na lista de candidaturas (hoje: 200 mais recentes + filtros)
 9. Multi-utilizador por restaurante (gerentes/permissões) e auditoria de alterações
 10. Monitorização: healthcheck, métricas, alertas
-11. QR Code como fallback opcional (se o hardware NFC falhar) — nunca como mecanismo principal

@@ -29,6 +29,7 @@ A etiqueta **não é programada pelo sistema**: o EZCV fornece a URL e o dono gr
 - Perfil do candidato com CV, notas internas, histórico e atalhos `tel:`, `mailto:` e WhatsApp.
 - Vacantes: criar, editar, ativar/desativar e eliminar.
 - Pausar/ativar candidaturas **sem mexer na etiqueta NFC**.
+- Código QR da mesma URL, pronto a imprimir ou descarregar em PNG (`/panel/qr`).
 - Notificações no painel e por email (SMTP opcional).
 
 **Admin da plataforma** — `/admin`

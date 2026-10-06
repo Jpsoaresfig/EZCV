@@ -37,3 +37,8 @@ document.addEventListener('click', function (e) {
     done();
   }
 });
+
+/* Botão «Imprimir» da página do QR — sem onclick inline por causa do CSP. */
+document.addEventListener('click', function (e) {
+  if (e.target.closest('[data-print]')) window.print();
+});

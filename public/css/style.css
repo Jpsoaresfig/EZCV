@@ -1519,3 +1519,53 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
 @media (max-width: 420px) {
   .app-row .meta:nth-of-type(3) { display: none; }
 }
+
+/* ===========================================================================
+   Folha do código QR (/panel/qr)
+   ---------------------------------------------------------------------------
+   Cores fixas, também em modo escuro: os leitores de QR esperam módulos
+   escuros sobre fundo claro, e é isto que sai no papel.
+   =========================================================================== */
+.qr-sheet {
+  background: #fff;
+  color: #1c1917;
+  border: 1px solid #e7e5e4;
+  border-radius: var(--r-xl);
+  padding: 32px 24px;
+  margin: 18px auto 32px;
+  max-width: 460px;
+  text-align: center;
+  box-shadow: var(--sh-2);
+}
+.qr-title { margin: 0 0 4px; font-size: 1.6rem; color: #1c1917; }
+.qr-lead { margin: 0 0 18px; color: #c9402a; font-weight: 700; }
+.qr-code { width: min(300px, 100%); margin: 0 auto; }
+.qr-code svg { display: block; width: 100%; height: auto; }
+.qr-cta { margin: 18px 0 6px; font-size: 1.02rem; line-height: 1.45; }
+.qr-url { margin: 0; font-family: var(--mono); font-size: .82rem; color: #57534e; word-break: break-all; }
+
+@media print {
+  @page { margin: 15mm; }
+  /* Esconde tudo o resto (menu, footer, botões) sem depender da estrutura
+     exata do layout do painel. */
+  body * { visibility: hidden; }
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .qr-sheet, .qr-sheet * { visibility: visible; }
+  .qr-sheet {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: 0 auto;
+    max-width: 150mm;
+    border: 1.5px dashed #a8a29e;
+    box-shadow: none;
+    padding: 14mm 10mm;
+  }
+  .qr-title { font-size: 26pt; }
+  .qr-lead { font-size: 15pt; }
+  .qr-code { width: 95mm; }
+  .qr-cta { font-size: 13pt; }
+  .qr-url { font-size: 10pt; }
+}

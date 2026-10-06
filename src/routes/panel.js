@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const QRCode = require('qrcode');
 
 const config = require('../config');
 const { sb, one, many, count, run, rpc, escapeLike, logSecurity } = require('../db');
@@ -558,6 +559,51 @@ router.get('/panel/restaurante', async (req, res) => {
     nfcUrl: `${config.appUrl}/r/${restaurant.slug}`,
     query: req.query
   });
+});
+
+/* ================================================================== *
+ * QR code da URL NFC — alternativa impressa à etiqueta
+ * ------------------------------------------------------------------
+ * Gerado no servidor: o CSP (`script-src 'self'`) não permite libs de
+ * CDN, e o QR fica igual ao que é impresso ou descarregado.
+ * Margem 4 = zona de silêncio mínima do padrão; nível M aguenta
+ * pequenos riscos no papel sem tornar o código demasiado denso.
+ * ================================================================== */
+const QR_OPTIONS = { errorCorrectionLevel: 'M', margin: 4 };
+
+async function ownRestaurantUrl(req) {
+  const restaurant = await one(
+    sb().from('restaurants').select('name, commercial_name, slug').eq('id', restaurantId(req)),
+    'restaurante (QR)'
+  );
+  if (!restaurant) return null;
+  return { restaurant, url: `${config.appUrl}/r/${restaurant.slug}` };
+}
+
+router.get('/panel/qr', async (req, res) => {
+  const found = await ownRestaurantUrl(req);
+  if (!found) return notFound(res);
+
+  const qrSvg = await QRCode.toString(found.url, { ...QR_OPTIONS, type: 'svg' });
+
+  res.render('panel/qr', {
+    restaurant: found.restaurant,
+    nfcUrl: found.url,
+    qrSvg
+  });
+});
+
+router.get('/panel/qr.png', async (req, res) => {
+  const found = await ownRestaurantUrl(req);
+  if (!found) return notFound(res);
+
+  /* 1024 px: nítido impresso até ~10 cm a 300 dpi. */
+  const png = await QRCode.toBuffer(found.url, { ...QR_OPTIONS, type: 'png', width: 1024 });
+
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Content-Disposition', `attachment; filename="qr-${found.restaurant.slug}.png"`);
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(png);
 });
 
 router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
