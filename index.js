@@ -14,6 +14,11 @@
  * falta — aparece nos Runtime Logs da Vercel.
  */
 
+/* Não remover: a Vercel só aceita como entrada um ficheiro cujo código
+ * contenha require('express') (procura isto por regex em @vercel/express).
+ * Sem esta linha ignorava este ficheiro e voltava a escolher src/app.js. */
+require('express');
+
 const config = require('./src/config');
 const { createApp } = require('./src/app');
 
