@@ -343,3 +343,5 @@ npm test
 `test/smoke.js` sobe o servidor e valida o fluxo completo **contra o Supabase real**: registo, login, vagas, página NFC, candidatura com CV no Storage, validação de PDF, documento opcional, CSRF, filtros e escape de curingas, pipeline visual, ordenação, upload de imagens, favoritos, histórico, consentimento com versão, área de notificações, privacidade, eliminação de vaga, honeypot, pausa/reativação, isolamento entre dois restaurantes (BD **e** Storage), RLS com chave anon, rate limiting, admin (+ logs) e exclusão segura do CV.
 
 **Isolamento dos testes:** cada execução gera um prefixo único gravado em `restaurants.test_prefix`; no fim, a função `purge_test_data` apaga só o que ficou marcado com esse prefixo, incluindo os objetos no Storage. Os nomes dos estabelecimentos levam o prefixo e o slug é lido do painel em vez de assumido, para que duas execuções seguidas nunca colidam.
+#   E Z C V  
+ 
