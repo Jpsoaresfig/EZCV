@@ -1,0 +1,135 @@
+<%- include('../partials/head', { title: 'Privacidad' }) %>
+
+<main class="container-narrow public-main">
+  <h1>Privacidad y protección de datos</h1>
+
+  <div class="card">
+    <h2>Quién trata tus datos</h2>
+    <p>
+      EZCV es la plataforma que el establecimiento utiliza para recibir y
+      organizar candidaturas. El <strong>responsable del tratamiento de tus
+      datos es el establecimiento</strong> al que envías tu candidatura, no
+      EZCV. EZCV actúa como encargado del tratamiento: almacena y procesa los
+      datos por cuenta del establecimiento y siguiendo sus instrucciones.
+    </p>
+    <p class="help">
+      Cada establecimiento tiene sus propios datos completamente separados de
+      los demás. Un establecimiento nunca puede ver las candidaturas de otro.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Qué datos recogemos</h2>
+    <ul>
+      <li><strong>Datos de contacto:</strong> nombre, apellidos, email y teléfono.</li>
+      <li><strong>Datos profesionales:</strong> puesto al que aspiras, disponibilidad, experiencia y observaciones.</li>
+      <li><strong>Currículum:</strong> el archivo PDF que adjuntas.</li>
+      <li><strong>Documento de identidad:</strong> tipo y número, <strong>solo si decides facilitarlos</strong>.</li>
+    </ul>
+    <p class="help">
+      El número de documento es <strong>opcional</strong>. No es necesario para
+      valorar tu candidatura y puedes dejarlo en blanco: el establecimiento te
+      lo pedirá únicamente si avanzas hacia una contratación. Esto es
+      minimización de datos: no pedimos lo que no hace falta.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Para qué los usamos</h2>
+    <p>
+      Exclusivamente para gestionar procesos de selección del establecimiento al
+      que te has candidatado. Tus datos y tu currículum:
+    </p>
+    <ul>
+      <li>no se ceden a terceros;</li>
+      <li>no se usan para publicidad;</li>
+      <li>no se publican en ningún listado ni mercado de currículums;</li>
+      <li>no son accesibles por otros establecimientos de la plataforma.</li>
+    </ul>
+    <p class="help">
+      Tu currículum se guarda en almacenamiento privado. No existe ninguna
+      dirección pública permanente desde la que se pueda descargar: solo el
+      establecimiento al que te has candidatado puede abrirlo, después de
+      identificarse.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Los dos consentimientos</h2>
+    <p>Son independientes y se registran por separado, con la fecha y el texto exacto que aceptaste.</p>
+
+    <h3>Obligatorio — proceso de selección</h3>
+    <p class="help pre"><%= selectionText %></p>
+
+    <h3>Opcional — futuras oportunidades</h3>
+    <p class="help pre"><%= futureText %></p>
+
+    <p class="muted small flat">
+      Versión actual del texto de consentimiento: <strong><%= consentVersion %></strong>.
+      Cada candidatura guarda la versión y el texto vigentes en el momento del envío.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Cuánto tiempo los conservamos</h2>
+    <p>
+      Mientras el proceso de selección esté activo. Si aceptaste el
+      consentimiento opcional, el establecimiento puede conservarlos para
+      considerarte en futuras vacantes hasta que retires ese consentimiento.
+    </p>
+    <p class="help">
+      Puedes pedir la supresión de tus datos en cualquier momento, también
+      durante un proceso en curso.
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Tus derechos</h2>
+    <p>Puedes ejercer en cualquier momento tus derechos de:</p>
+    <ul>
+      <li><strong>Acceso</strong> — saber qué datos tuyos se conservan.</li>
+      <li><strong>Rectificación</strong> — corregir datos incorrectos.</li>
+      <li><strong>Supresión</strong> — pedir que se eliminen tus datos y tu currículum.</li>
+      <li><strong>Oposición y limitación</strong> — pedir que se deje de tratar tus datos.</li>
+      <li><strong>Portabilidad</strong> — recibir una copia de los datos que facilitaste.</li>
+      <li><strong>Retirada del consentimiento</strong> — en especial el de futuras oportunidades.</li>
+    </ul>
+    <p>
+      Para ejercerlos, contacta directamente con el establecimiento al que
+      enviaste tu candidatura: es quien decide sobre tus datos. Encontrarás sus
+      datos de contacto en su página pública.
+    </p>
+    <p class="help">
+      Si consideras que tus derechos no han sido atendidos, puedes presentar una
+      reclamación ante la Agencia Española de Protección de Datos (AEPD).
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>Decisiones automatizadas</h2>
+    <p>
+      No se toman decisiones automatizadas sobre tu candidatura. Ninguna
+      selección, descarte o contratación se decide por un sistema: la decisión
+      es siempre de una persona del establecimiento.
+    </p>
+  </div>
+
+  <div class="card attention">
+    <h2>Nota sobre el estado de este texto</h2>
+    <p class="flat">
+      Esta plataforma está construida para cumplir el RGPD —consentimientos
+      independientes y registrados, datos aislados por establecimiento,
+      currículums privados, minimización de datos y estructura para retención y
+      supresión—, pero este texto es una base técnica y
+      <strong>debe ser revisado jurídicamente</strong> antes de un uso real,
+      incluyendo la identificación concreta del responsable del tratamiento y
+      sus datos de contacto.
+    </p>
+  </div>
+
+  <div class="actions-row center-row spaced">
+    <a class="btn secondary small" href="/">Volver</a>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

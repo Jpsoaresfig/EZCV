@@ -1,0 +1,14 @@
+<%- include('partials/head', { title: typeof title !== 'undefined' ? title : 'Error' }) %>
+
+<main class="container-narrow error-main">
+  <div class="card center pad-lg">
+    <div class="error-code"><%= status %></div>
+    <h2><%= title %></h2>
+    <p class="muted"><%= message %></p>
+    <div class="actions-row center-row spaced">
+      <a class="btn secondary" href="/">Volver al inicio</a>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/foot') %>

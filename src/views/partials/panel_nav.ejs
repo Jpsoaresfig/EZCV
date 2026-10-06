@@ -1,0 +1,69 @@
+<%
+/* Navegação do painel em duas formas da mesma lista:
+ *   ≥1024px  barra lateral fixa — aproveita a largura do ecrã de PC
+ *   <1024px  separadores no fundo — ao alcance do polegar, que é como o dono
+ *            do restaurante usa isto de facto, de pé no estabelecimento
+ * O CSS decide qual aparece; não há duplicação de lógica.
+ */
+var navItems = [
+  { href: '/panel',                 icon: 'home',   label: 'Inicio',        short: 'Inicio',   exact: true },
+  { href: '/panel/candidaturas',    icon: 'people', label: 'Candidaturas',  short: 'Candidatos', badge: true },
+  { href: '/panel/vagas',           icon: 'jobs',   label: 'Vacantes',      short: 'Vacantes' },
+  { href: '/panel/notificaciones',  icon: 'bell',   label: 'Avisos',        short: 'Avisos' },
+  { href: '/panel/restaurante',     icon: 'store',  label: 'Mi restaurante', short: 'Mi local' },
+  { href: '/panel/configuracion',   icon: 'cog',    label: 'Configuración', short: 'Ajustes' }
+];
+
+function isActive(item) {
+  return item.exact ? path === item.href : path.indexOf(item.href) === 0;
+}
+
+var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCount : 0;
+%>
+<aside class="sidenav">
+  <a class="brand" href="/panel">
+    <span class="brand-mark">EZ</span>
+    <span>EZCV</span>
+  </a>
+
+  <% navItems.forEach(function(item) { %>
+    <a class="navlink <%= isActive(item) ? 'active' : '' %>" href="<%= item.href %>">
+      <%- icon(item.icon) %>
+      <span class="navlabel"><%= item.label %></span>
+      <% if (item.badge && unread) { %><span class="nav-badge"><%= unread %></span><% } %>
+    </a>
+  <% }) %>
+
+  <div class="sidenav-foot">
+    <form action="/logout" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <button class="btn ghost small block" type="submit">Cerrar sesión</button>
+    </form>
+  </div>
+</aside>
+
+<header class="appbar">
+  <div class="appbar-inner">
+    <a class="brand" href="/panel">
+      <span class="brand-mark">EZ</span>
+      <span>EZCV</span>
+    </a>
+    <span class="brand-sub"><%= typeof restaurantName !== 'undefined' ? restaurantName : '' %></span>
+    <div class="appbar-end">
+      <form action="/logout" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn secondary small" type="submit">Salir</button>
+      </form>
+    </div>
+  </div>
+</header>
+
+<nav class="tabbar" aria-label="Navegación principal">
+  <% navItems.forEach(function(item) { %>
+    <a class="<%= isActive(item) ? 'active' : '' %>" href="<%= item.href %>">
+      <%- icon(item.icon) %>
+      <span><%= item.short %></span>
+      <% if (item.badge && unread) { %><span class="nav-badge"><%= unread %></span><% } %>
+    </a>
+  <% }) %>
+</nav>

@@ -1,0 +1,263 @@
+<%- include('../partials/head', { title: restaurant.name }) %>
+
+<header class="hero <%= restaurant.photo_path ? 'has-photo' : '' %>">
+  <% if (restaurant.photo_path) { %>
+    <!-- Fotografia como fundo através de <img> e não de background-image:
+         o CSP é `style-src 'self'` e bloqueia estilos inline. -->
+    <img class="hero-photo" src="/r/<%= restaurant.slug %>/imagen/foto" alt="" aria-hidden="true">
+  <% } %>
+
+  <div class="container-narrow hero-body">
+    <% if (restaurant.logo_path) { %>
+      <img class="hero-logo" src="/r/<%= restaurant.slug %>/imagen/logo" alt="Logo de <%= restaurant.name %>">
+    <% } %>
+
+    <h1><%= restaurant.commercial_name || restaurant.name %></h1>
+
+    <% if (restaurant.establishment_type && ESTABLISHMENT_TYPES[restaurant.establishment_type]) { %>
+      <p class="sub"><%= ESTABLISHMENT_TYPES[restaurant.establishment_type] %></p>
+    <% } %>
+
+    <% if (restaurant.description) { %>
+      <p class="hero-desc"><%= restaurant.description %></p>
+    <% } %>
+
+    <% if (restaurant.address || restaurant.city) { %>
+      <p class="sub hero-place">
+        <%= restaurant.address %><% if (restaurant.postal_code) { %>, <%= restaurant.postal_code %><% } %><% if (restaurant.address && restaurant.city) { %> · <% } %><%= restaurant.city %>
+      </p>
+    <% } %>
+
+    <% if (mode === 'form') { %>
+      <span class="badge-open"><span class="dot green"></span> Estamos contratando</span>
+    <% } else { %>
+      <span class="badge-closed"><span class="dot red"></span> No estamos contratando</span>
+    <% } %>
+  </div>
+</header>
+
+<main class="container-narrow public-main">
+
+<% if (typeof query !== 'undefined' && query && query.err) { %>
+  <div class="flash err"><%= query.err %></div>
+<% } %>
+
+<% if (mode === 'form') { %>
+
+  <% if (jobs.length > 0) { %>
+    <div class="card">
+      <h2>Vacantes abiertas</h2>
+      <p class="help help-lift">Puedes elegir una en el formulario, o dejarlo sin especificar.</p>
+      <% jobs.forEach(function(job) { %>
+        <div class="job-item">
+          <div class="title"><%= job.title %></div>
+          <% if (job.description) { %><p class="desc"><%= job.description %></p><% } %>
+          <% if (job.contract_type || job.work_schedule) { %>
+            <div class="row spaced-sm">
+              <% if (job.contract_type && CONTRACT_TYPES[job.contract_type]) { %>
+                <span class="badge slate"><%= CONTRACT_TYPES[job.contract_type] %></span>
+              <% } %>
+              <% if (job.work_schedule && WORK_SCHEDULES[job.work_schedule]) { %>
+                <span class="badge slate"><%= WORK_SCHEDULES[job.work_schedule] %></span>
+              <% } %>
+            </div>
+          <% } %>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+
+  <div class="card">
+    <h2>Envía tu candidatura</h2>
+    <p class="help help-lift">Menos de 2 minutos. Solo necesitas tus datos y tu CV en PDF. No hace falta crear ninguna cuenta.</p>
+
+    <% if (errors && errors.general) { %>
+      <div class="flash err"><%= errors.general.join(' ') %></div>
+    <% } %>
+
+    <form action="/r/<%= restaurant.slug %>/apply" method="post" enctype="multipart/form-data" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="hp" aria-hidden="true">
+        <label>Sitio web</label>
+        <input type="text" name="sitio_web" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="section-title">Tus datos</div>
+
+      <div class="field">
+        <label for="nombre">Nombre *</label>
+        <input id="nombre" type="text" name="nombre" maxlength="100" required value="<%= form.nombre || '' %>" autocomplete="given-name">
+        <% if (errors && errors.nombre) { %><div class="field-error"><%= errors.nombre %></div><% } %>
+      </div>
+
+      <div class="field">
+        <label for="apellidos">Apellidos</label>
+        <input id="apellidos" type="text" name="apellidos" maxlength="100" value="<%= form.apellidos || '' %>" autocomplete="family-name">
+      </div>
+
+      <div class="field">
+        <label for="email">Email *</label>
+        <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" autocomplete="email" inputmode="email">
+        <% if (errors && errors.email) { %><div class="field-error"><%= errors.email %></div><% } %>
+      </div>
+
+      <div class="field">
+        <label for="telefono">Número de teléfono *</label>
+        <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= form.telefono || '' %>" autocomplete="tel" inputmode="tel">
+        <% if (errors && errors.telefono) { %><div class="field-error"><%= errors.telefono %></div><% } %>
+      </div>
+
+      <div class="hint-row">
+        <div class="field">
+          <label for="doc_tipo">Tipo de documento</label>
+          <select id="doc_tipo" name="doc_tipo">
+            <option value="">Selecciona…</option>
+            <% Object.keys(DOC_TYPES).forEach(function(key) { %>
+              <option value="<%= key %>" <%= form.doc_tipo === key ? 'selected' : '' %>><%= DOC_TYPES[key] %></option>
+            <% }) %>
+          </select>
+          <% if (errors && errors.doc_tipo) { %><div class="field-error"><%= errors.doc_tipo %></div><% } %>
+        </div>
+        <div class="field">
+          <label for="doc_numero">Nº de documento</label>
+          <input id="doc_numero" type="text" name="doc_numero" maxlength="30" value="<%= form.doc_numero || '' %>" autocomplete="off">
+          <% if (errors && errors.doc_numero) { %><div class="field-error"><%= errors.doc_numero %></div><% } %>
+        </div>
+      </div>
+      <p class="help help-lift">
+        Opcional. NIE, DNI, pasaporte u otro documento. No hace falta para
+        presentar tu candidatura — el establecimiento te lo pedirá solo si
+        avanzas en el proceso.
+      </p>
+
+      <div class="section-title">El puesto</div>
+
+      <div class="field">
+        <label for="puesto">Puesto al que aspiras</label>
+        <select id="puesto" name="puesto">
+          <option value="">No especifico / cualquiera</option>
+          <% jobs.forEach(function(job) { %>
+            <option value="<%= job.id %>" <%= String(form.puesto) === String(job.id) ? 'selected' : '' %>><%= job.title %></option>
+          <% }) %>
+          <option value="otro" <%= form.puesto === 'otro' ? 'selected' : '' %>>Otro</option>
+        </select>
+        <% if (errors && errors.puesto) { %><div class="field-error"><%= errors.puesto %></div><% } %>
+      </div>
+
+      <div class="field <%= form.puesto === 'otro' ? '' : 'is-hidden' %>" id="otro-puesto-field">
+        <label for="otro_puesto">¿Qué puesto?</label>
+        <input id="otro_puesto" type="text" name="otro_puesto" maxlength="80" value="<%= form.otro_puesto || '' %>">
+      </div>
+
+      <div class="field">
+        <label for="disponibilidad">Disponibilidad</label>
+        <select id="disponibilidad" name="disponibilidad">
+          <% Object.keys(AVAILABILITIES).forEach(function(key) { %>
+            <option value="<%= key %>" <%= form.disponibilidad === key ? 'selected' : '' %>><%= AVAILABILITIES[key] %></option>
+          <% }) %>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="experiencia">Experiencia</label>
+        <textarea id="experiencia" name="experiencia" maxlength="3000" placeholder="Ej.: 2 años como camarero en…"><%= form.experiencia || '' %></textarea>
+      </div>
+
+      <div class="field">
+        <label for="observaciones">Observaciones</label>
+        <textarea id="observaciones" name="observaciones" maxlength="3000" placeholder="Cualquier dato que quieras contarnos"><%= form.observaciones || '' %></textarea>
+      </div>
+
+      <div class="section-title">Tu currículum</div>
+
+      <div class="field">
+        <label for="cv">CV en PDF *</label>
+        <input id="cv" type="file" name="cv" accept="application/pdf,.pdf" required>
+        <div class="file-name" data-file-name></div>
+        <div class="help">PDF · máximo <%= maxUploadMb %> MB</div>
+        <% if (errors && errors.cv) { %><div class="field-error"><%= errors.cv %></div><% } %>
+      </div>
+
+      <div class="section-title">Protección de datos</div>
+
+      <p class="help help-lift">
+        Tus datos serán tratados por <%= restaurant.name %> exclusivamente para
+        gestionar este proceso de selección. No se cederán a terceros ni se usarán
+        para otras finalidades. Puedes ejercer tus derechos de acceso,
+        rectificación y supresión contactando con el establecimiento.
+        <a href="/privacidad" target="_blank" rel="noopener">Más información</a>.
+      </p>
+
+      <label class="check">
+        <input type="checkbox" name="consentimiento_proceso" value="1" <%= form.consent_proceso ? 'checked' : '' %>>
+        <span><%= consentSelectionText %> *</span>
+      </label>
+      <% if (errors && errors.consentimiento_proceso) { %>
+        <div class="field-error consent-error"><%= errors.consentimiento_proceso %></div>
+      <% } %>
+
+      <label class="check">
+        <input type="checkbox" name="consentimiento_futuro" value="1" <%= form.consent_futuro ? 'checked' : '' %>>
+        <span><%= consentFutureText %></span>
+      </label>
+
+      <button class="btn block lg spaced" type="submit">Enviar candidatura</button>
+    </form>
+  </div>
+
+<% } else { %>
+
+  <div class="card">
+    <% if (mode === 'paused') { %>
+      <h2>Actualmente no estamos contratando.</h2>
+      <p class="muted">Puedes volver a consultar más adelante.</p>
+    <% } else { %>
+      <h2>Actualmente no tenemos vacantes disponibles.</h2>
+      <p class="muted">Déjanos tus datos y te contactaremos cuando haya una oportunidad.</p>
+    <% } %>
+
+    <div class="section-title">¿Quieres que guardemos tu candidatura para futuras oportunidades?</div>
+
+    <% if (errors && errors.general) { %>
+      <div class="flash err"><%= errors.general.join(' ') %></div>
+    <% } %>
+
+    <form action="/r/<%= restaurant.slug %>/interes" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="hp" aria-hidden="true">
+        <label>Sitio web</label>
+        <input type="text" name="sitio_web" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="nombre">Nombre *</label>
+        <input id="nombre" type="text" name="nombre" maxlength="100" required value="<%= form.nombre || '' %>" autocomplete="given-name">
+      </div>
+      <div class="field">
+        <label for="email">Email *</label>
+        <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" inputmode="email" autocomplete="email">
+      </div>
+      <div class="field">
+        <label for="telefono">Teléfono *</label>
+        <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= form.telefono || '' %>" inputmode="tel" autocomplete="tel">
+      </div>
+
+      <p class="help">
+        Usaremos tus datos solo para contactarte sobre futuras vacantes en
+        <%= restaurant.name %>.
+        <a href="/privacidad" target="_blank" rel="noopener">Más información</a>.
+      </p>
+
+      <label class="check">
+        <input type="checkbox" name="consentimiento_futuro" value="1" <%= form.consent_futuro ? 'checked' : '' %>>
+        <span><%= consentFutureText %> *</span>
+      </label>
+
+      <button class="btn block lg" type="submit">Guardar mi candidatura</button>
+    </form>
+  </div>
+
+<% } %>
+</main>
+
+<%- include('../partials/foot') %>

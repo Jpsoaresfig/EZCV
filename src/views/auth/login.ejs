@@ -1,0 +1,37 @@
+<%- include('../partials/head', { title: 'Iniciar sesión' }) %>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+      <a class="brand" href="/">
+        <span class="brand-mark">EZ</span>
+        <span>EZCV</span>
+      </a>
+      <p>Candidaturas para bares y restaurantes</p>
+    </div>
+
+    <div class="card">
+      <h2>Iniciar sesión</h2>
+      <% if (error) { %><div class="flash err"><%= error %></div><% } %>
+
+      <form action="/login" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" name="email" required value="<%= email %>" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <input id="password" type="password" name="password" required autocomplete="current-password">
+        </div>
+        <button class="btn block lg" type="submit">Entrar</button>
+      </form>
+
+      <p class="small muted center auth-alt">
+        ¿Todavía no tienes cuenta? <a href="/registro">Registra tu establecimiento</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

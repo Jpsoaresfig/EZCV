@@ -1,0 +1,50 @@
+<%- include('../partials/head', { title: 'Usuarios' }) %>
+<%- include('../partials/admin_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Usuarios</h1>
+    <span class="count"><%= users.length %></span>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <div class="card">
+    <p class="help help-lift">
+      Esta lista contiene nombres y emails. Cada acceso queda registrado en los
+      logs de seguridad.
+    </p>
+    <div class="table-wrap">
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Email</th><th>Nombre</th><th>Rol</th>
+            <th>Establecimiento</th><th>Creado</th><th>Estado</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <% users.forEach(function(u) { %>
+            <tr>
+              <td class="small"><%= u.email %></td>
+              <td><%= u.full_name %></td>
+              <td><span class="badge <%= u.role === 'admin' ? 'violet' : 'slate' %>"><%= u.role %></span></td>
+              <td class="small"><%= u.restaurant_name || '—' %></td>
+              <td class="small nowrap"><%= fmtDate(u.created_at) %></td>
+              <td><span class="badge <%= u.blocked ? 'red' : 'green' %>"><%= u.blocked ? 'Bloqueado' : 'Activo' %></span></td>
+              <td>
+                <% if (u.role !== 'admin') { %>
+                  <form action="/admin/usuarios/<%= u.id %>/bloquear" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn <%= u.blocked ? 'secondary' : 'danger' %> small" type="submit"><%= u.blocked ? 'Desbloquear' : 'Bloquear' %></button>
+                  </form>
+                <% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

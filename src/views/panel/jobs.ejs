@@ -1,0 +1,174 @@
+<%- include('../partials/head', { title: 'Vacantes' }) %>
+<%- include('../partials/panel_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Vacantes</h1>
+    <a class="btn ghost small" href="/panel">← Inicio</a>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <div class="card">
+    <h2>Crear vacante</h2>
+    <p class="help help-lift">Mientras no haya ninguna vacante activa, la página NFC ofrece el formulario de futuras oportunidades.</p>
+
+    <form action="/panel/vagas/crear" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field">
+        <label for="titulo">Título *</label>
+        <input id="titulo" type="text" name="titulo" maxlength="80" placeholder="Ej.: Camarero/a" required>
+      </div>
+      <div class="field">
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" name="descripcion" maxlength="2000" placeholder="Ej.: Buscamos camarero/a para restaurante céntrico…"></textarea>
+      </div>
+      <div class="field">
+        <label for="requisitos">Requisitos</label>
+        <textarea id="requisitos" name="requisitos" maxlength="2000" placeholder="Ej.: Experiencia previa (valorada), disponibilidad de fines de semana…"></textarea>
+      </div>
+      <div class="hint-row">
+        <div class="field">
+          <label for="contrato">Tipo de contrato</label>
+          <select id="contrato" name="contrato">
+            <% Object.keys(CONTRACT_TYPES).forEach(function(key) { %>
+              <option value="<%= key %>"><%= CONTRACT_TYPES[key] %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label for="jornada">Jornada</label>
+          <select id="jornada" name="jornada">
+            <% Object.keys(WORK_SCHEDULES).forEach(function(key) { %>
+              <option value="<%= key %>"><%= WORK_SCHEDULES[key] %></option>
+            <% }) %>
+          </select>
+        </div>
+        <div class="field">
+          <label for="disponibilidad">Disponibilidad</label>
+          <select id="disponibilidad" name="disponibilidad">
+            <% Object.keys(AVAILABILITIES).forEach(function(key) { %>
+              <option value="<%= key %>"><%= AVAILABILITIES[key] %></option>
+            <% }) %>
+          </select>
+        </div>
+      </div>
+      <button class="btn small" type="submit">Crear vacante</button>
+    </form>
+  </div>
+
+  <div class="page-title">
+    <h2>Vacantes actuales</h2>
+    <span class="count"><%= jobs.length %></span>
+  </div>
+
+  <% if (jobs.length === 0) { %>
+    <div class="card empty">
+      <span class="empty-icon">💼</span>
+      <p>No tienes vacantes. Crea la primera arriba. Mientras no haya vacantes activas, la página NFC ofrecerá el formulario de futuras oportunidades.</p>
+    </div>
+  <% } else { %>
+    <div class="stack">
+      <% jobs.forEach(function(job) { %>
+        <div class="card">
+          <div class="row-between">
+            <h3 class="flat"><%= job.title %></h3>
+            <span class="badge <%= job.active ? 'green' : 'slate' %>"><%= job.active ? 'Activa' : 'Desactivada' %></span>
+          </div>
+
+          <% if (job.description) { %><p class="muted small pre spaced-sm"><%= job.description %></p><% } %>
+          <% if (job.requirements) { %>
+            <p class="muted small pre"><strong>Requisitos:</strong> <%= job.requirements %></p>
+          <% } %>
+
+          <div class="row spaced-sm">
+            <% if (job.contract_type) { %>
+              <span class="badge slate"><%= CONTRACT_TYPES[job.contract_type] || job.contract_type %></span>
+            <% } %>
+            <% if (job.work_schedule) { %>
+              <span class="badge slate"><%= WORK_SCHEDULES[job.work_schedule] || job.work_schedule %></span>
+            <% } %>
+            <% if (job.availability) { %>
+              <span class="badge slate"><%= availabilityLabel(job.availability) %></span>
+            <% } %>
+          </div>
+
+          <p class="dim tiny spaced-sm">
+            <%= job.applicants %> candidatura(s) recibidas · creada el <%= fmtDate(job.created_at) %>
+          </p>
+
+          <details>
+            <summary>Editar…</summary>
+            <div class="details-body">
+              <form action="/panel/vagas/<%= job.id %>/editar" method="post">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <div class="field">
+                  <label>Título</label>
+                  <input type="text" name="titulo" maxlength="80" value="<%= job.title %>" required>
+                </div>
+                <div class="field">
+                  <label>Descripción</label>
+                  <textarea name="descripcion" maxlength="2000"><%= job.description %></textarea>
+                </div>
+                <div class="field">
+                  <label>Requisitos</label>
+                  <textarea name="requisitos" maxlength="2000"><%= job.requirements %></textarea>
+                </div>
+                <div class="hint-row">
+                  <div class="field">
+                    <label>Tipo de contrato</label>
+                    <select name="contrato">
+                      <% Object.keys(CONTRACT_TYPES).forEach(function(key) { %>
+                        <option value="<%= key %>" <%= job.contract_type === key ? 'selected' : '' %>><%= CONTRACT_TYPES[key] %></option>
+                      <% }) %>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Jornada</label>
+                    <select name="jornada">
+                      <% Object.keys(WORK_SCHEDULES).forEach(function(key) { %>
+                        <option value="<%= key %>" <%= job.work_schedule === key ? 'selected' : '' %>><%= WORK_SCHEDULES[key] %></option>
+                      <% }) %>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>Disponibilidad</label>
+                    <select name="disponibilidad">
+                      <% Object.keys(AVAILABILITIES).forEach(function(key) { %>
+                        <option value="<%= key %>" <%= job.availability === key ? 'selected' : '' %>><%= AVAILABILITIES[key] %></option>
+                      <% }) %>
+                    </select>
+                  </div>
+                </div>
+                <button class="btn secondary small" type="submit">Guardar cambios</button>
+              </form>
+            </div>
+          </details>
+
+          <div class="actions-row tight">
+            <form action="/panel/vagas/<%= job.id %>/toggle" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <% if (job.active) { %>
+                <button class="btn secondary small" type="submit">Desactivar vacante</button>
+              <% } else { %>
+                <button class="btn small" type="submit">Activar vacante</button>
+              <% } %>
+            </form>
+            <details>
+              <summary class="summary-danger">Eliminar vacante…</summary>
+              <div class="details-body">
+                <p class="help help-lift">Las candidaturas recibidas para esta vacante se conservan.</p>
+                <form action="/panel/vagas/<%= job.id %>/eliminar" method="post">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn danger small" type="submit">Sí, eliminar esta vacante</button>
+                </form>
+              </div>
+            </details>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

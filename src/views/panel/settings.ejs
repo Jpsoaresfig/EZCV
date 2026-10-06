@@ -1,0 +1,47 @@
+<%- include('../partials/head', { title: 'Configuración' }) %>
+<%- include('../partials/panel_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Configuración</h1>
+    <a class="btn ghost small" href="/panel">← Inicio</a>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <div class="card narrow-card">
+    <h2>Cuenta de acceso</h2>
+    <p class="muted small">Email actual: <strong><%= userEmail %></strong></p>
+
+    <form action="/panel/configuracion" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label for="email">Nuevo email de acceso</label>
+        <input id="email" type="email" name="email" maxlength="120" placeholder="Déjalo vacío para no cambiarlo">
+        <div class="help">Es el email con el que inicias sesión.</div>
+      </div>
+
+      <div class="section-title">Cambiar contraseña</div>
+
+      <div class="field">
+        <label for="password_actual">Contraseña actual *</label>
+        <input id="password_actual" type="password" name="password_actual" required autocomplete="current-password">
+        <div class="help">Hace falta siempre, también para cambiar solo el email.</div>
+      </div>
+      <div class="field">
+        <label for="password_nuevo">Contraseña nueva</label>
+        <input id="password_nuevo" type="password" name="password_nuevo" minlength="8" autocomplete="new-password">
+        <div class="help">Mínimo 8 caracteres. Déjalo vacío para no cambiarla.</div>
+      </div>
+      <div class="field">
+        <label for="password_repetir">Repetir contraseña nueva</label>
+        <input id="password_repetir" type="password" name="password_repetir" autocomplete="new-password">
+      </div>
+
+      <button class="btn" type="submit">Guardar configuración</button>
+    </form>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

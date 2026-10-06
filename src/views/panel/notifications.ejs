@@ -1,0 +1,86 @@
+<%- include('../partials/head', { title: 'Avisos' }) %>
+<%- include('../partials/panel_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Avisos</h1>
+    <div class="actions-row flat">
+      <% if (typeof unreadCount !== 'undefined' && unreadCount > 0) { %>
+        <form action="/panel/notificaciones/marcar-leidas" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <input type="hidden" name="volver" value="/panel/notificaciones">
+          <button class="btn secondary small" type="submit">Marcar todo como leído</button>
+        </form>
+      <% } %>
+      <a class="btn ghost small" href="/panel">← Inicio</a>
+    </div>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <% if (notifications.length === 0) { %>
+    <div class="card empty">
+      <span class="empty-icon">🔔</span>
+      <p>Todavía no hay avisos. Aquí aparecerán las nuevas candidaturas y el resultado de los emails de notificación.</p>
+    </div>
+  <% } else { %>
+    <div class="card">
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Aviso</th>
+              <th>Candidato</th>
+              <th>Canal</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% notifications.forEach(function(n) { %>
+              <tr>
+                <td class="nowrap">
+                  <%= fmtDate(n.created_at) %>
+                  <div class="dim tiny"><%= fmtRelative(n.created_at) %></div>
+                </td>
+                <td>
+                  <strong><%= n.type === 'nueva_candidatura' ? 'Nueva candidatura' : n.type %></strong>
+                  <% if (n.jobTitle) { %><div class="dim tiny"><%= n.jobTitle %></div><% } %>
+                </td>
+                <td>
+                  <% if (n.application_id) { %>
+                    <a href="/panel/candidaturas/<%= n.application_id %>"><%= n.candidateName || 'Ver candidatura' %></a>
+                  <% } else { %>
+                    <span class="dim">—</span>
+                  <% } %>
+                </td>
+                <td class="nowrap"><%= n.channel === 'email' ? 'Email' : 'Panel' %></td>
+                <td>
+                  <%
+                    /* `logged` significa que no hay SMTP configurado: el email
+                       solo se escribió en el log del servidor. */
+                    var ESTADOS = {
+                      unread:  { label: 'Sin leer',       color: 'blue'   },
+                      read:    { label: 'Leído',          color: 'slate'  },
+                      pending: { label: 'Pendiente',      color: 'amber'  },
+                      sent:    { label: 'Enviado',        color: 'green'  },
+                      failed:  { label: 'Falló',          color: 'red'    },
+                      logged:  { label: 'Solo en el log', color: 'slate'  }
+                    };
+                    var estado = ESTADOS[n.status] || { label: n.status, color: 'slate' };
+                  %>
+                  <span class="badge <%= estado.color %>"><%= estado.label %></span>
+                  <% if (n.status === 'failed' && n.detail) { %>
+                    <div class="dim tiny"><%= n.detail %></div>
+                  <% } %>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

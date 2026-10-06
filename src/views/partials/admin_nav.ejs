@@ -1,0 +1,32 @@
+<%
+/* Navegação do admin da plataforma. São três secções — cabem na barra
+ * superior e não justificam uma barra lateral. */
+var adminItems = [
+  { href: '/admin',           icon: 'chart',  label: 'Métricas', exact: true },
+  { href: '/admin/usuarios',  icon: 'people', label: 'Usuarios' },
+  { href: '/admin/logs',      icon: 'shield', label: 'Logs' }
+];
+%>
+<header class="appbar">
+  <div class="appbar-inner">
+    <a class="brand" href="/admin">
+      <span class="brand-mark">EZ</span>
+      <span>Admin</span>
+    </a>
+    <nav class="appnav">
+      <% adminItems.forEach(function(item) { %>
+        <a class="<%= (item.exact ? path === item.href : path.indexOf(item.href) === 0) ? 'active' : '' %>"
+           href="<%= item.href %>">
+          <%- icon(item.icon) %>
+          <span><%= item.label %></span>
+        </a>
+      <% }) %>
+    </nav>
+    <div class="appbar-end">
+      <form action="/logout" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn secondary small" type="submit">Salir</button>
+      </form>
+    </div>
+  </div>
+</header>

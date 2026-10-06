@@ -1,0 +1,107 @@
+<%- include('../partials/head', { title: 'Registro' }) %>
+
+<div class="auth-wrap auth-wrap-top">
+  <div class="auth-card">
+    <div class="auth-head">
+      <a class="brand" href="/">
+        <span class="brand-mark">EZ</span>
+        <span>EZCV</span>
+      </a>
+      <p>Crea la página de candidaturas de tu establecimiento</p>
+    </div>
+
+    <div class="card">
+      <h2>Registra tu establecimiento</h2>
+      <p class="muted small">Después podrás usar tu URL exclusiva en la etiqueta NFC.</p>
+
+      <form action="/registro" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+        <div class="field">
+          <label for="restaurant_name">Nombre del establecimiento *</label>
+          <input id="restaurant_name" type="text" name="restaurant_name" maxlength="100" required value="<%= form.restaurant_name || '' %>">
+          <% if (errors && errors.restaurant_name) { %><div class="field-error"><%= errors.restaurant_name %></div><% } %>
+        </div>
+
+        <div class="field">
+          <label for="commercial_name">Nombre comercial <span class="dim label-hint">(si es diferente)</span></label>
+          <input id="commercial_name" type="text" name="commercial_name" maxlength="100" value="<%= form.commercial_name || '' %>">
+          <div class="help">Es el nombre que verán los candidatos en la página de la etiqueta NFC.</div>
+        </div>
+
+        <div class="field">
+          <label for="establecimiento">Tipo de establecimiento *</label>
+          <select id="establecimiento" name="establecimiento" required>
+            <option value="">Selecciona…</option>
+            <% Object.keys(ESTABLISHMENT_TYPES).forEach(function(key) { %>
+              <option value="<%= key %>" <%= form.establishment_type === key ? 'selected' : '' %>><%= ESTABLISHMENT_TYPES[key] %></option>
+            <% }) %>
+          </select>
+          <% if (errors && errors.establishment_type) { %><div class="field-error"><%= errors.establishment_type %></div><% } %>
+        </div>
+
+        <div class="field">
+          <label for="owner_name">Nombre del responsable *</label>
+          <input id="owner_name" type="text" name="owner_name" maxlength="100" required value="<%= form.owner_name || '' %>">
+          <% if (errors && errors.owner_name) { %><div class="field-error"><%= errors.owner_name %></div><% } %>
+        </div>
+
+        <div class="field">
+          <label for="email">Email *</label>
+          <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" autocomplete="email">
+          <% if (errors && errors.email) { %><div class="field-error"><%= errors.email %></div><% } %>
+        </div>
+
+        <div class="field">
+          <label for="telefono">Número de teléfono *</label>
+          <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= form.phone || '' %>" inputmode="tel">
+          <% if (errors && errors.phone) { %><div class="field-error"><%= errors.phone %></div><% } %>
+        </div>
+
+        <div class="field">
+          <label for="direccion">Dirección</label>
+          <input id="direccion" type="text" name="direccion" maxlength="200" value="<%= form.address || '' %>">
+        </div>
+
+        <div class="hint-row">
+          <div class="field">
+            <label for="cp">Código postal</label>
+            <input id="cp" type="text" name="cp" maxlength="5" pattern="\d{5}" inputmode="numeric" placeholder="28013" value="<%= form.postal_code || '' %>">
+            <% if (errors && errors.postal_code) { %><div class="field-error"><%= errors.postal_code %></div><% } %>
+          </div>
+          <div class="field">
+            <label for="ciudad">Ciudad *</label>
+            <input id="ciudad" type="text" name="ciudad" maxlength="100" required value="<%= form.city || '' %>">
+            <% if (errors && errors.city) { %><div class="field-error"><%= errors.city %></div><% } %>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="descripcion">Descripción breve</label>
+          <textarea id="descripcion" name="descripcion" maxlength="1500" rows="3" placeholder="Ej.: Cocina mediterránea en el centro de Madrid. Buscamos equipo con ganas de aprender."><%= form.description || '' %></textarea>
+          <div class="help">Se muestra en la página pública de tu etiqueta NFC.</div>
+        </div>
+
+        <div class="field">
+          <label for="password">Contraseña * <span class="dim label-hint">(mínimo 8 caracteres)</span></label>
+          <input id="password" type="password" name="password" required minlength="8" autocomplete="new-password">
+          <% if (errors && errors.password) { %><div class="field-error"><%= errors.password %></div><% } %>
+        </div>
+
+        <div class="field">
+          <label for="password2">Repetir contraseña *</label>
+          <input id="password2" type="password" name="password2" required autocomplete="new-password">
+          <% if (errors && errors.password2) { %><div class="field-error"><%= errors.password2 %></div><% } %>
+        </div>
+
+        <button class="btn block lg" type="submit">Crear cuenta</button>
+      </form>
+
+      <p class="small muted center auth-alt">
+        ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+      </p>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

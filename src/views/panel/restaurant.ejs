@@ -1,0 +1,149 @@
+<%- include('../partials/head', { title: 'Mi restaurante' }) %>
+<%- include('../partials/panel_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Mi restaurante</h1>
+    <a class="btn ghost small" href="/panel">← Inicio</a>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <!-- A URL da etiqueta é o centro do produto: destaque próprio. -->
+  <div class="nfc-box">
+    <div class="label"><%- icon('nfc') %> URL de tu etiqueta NFC</div>
+    <div class="url"><%= nfcUrl %></div>
+    <div class="actions-row flat">
+      <button class="btn small" type="button" data-copy="<%= nfcUrl %>">Copiar URL</button>
+      <a class="btn secondary small" href="<%= nfcUrl %>" target="_blank" rel="noopener">Abrir página</a>
+    </div>
+    <p class="small nfc-note">Graba esta URL en la etiqueta NFC. Nunca cambiará, aunque pauses o reactives las candidaturas.</p>
+  </div>
+
+  <div class="card">
+    <h2>Estado de contratación</h2>
+    <% if (restaurant.hiring_status === 'open') { %>
+      <div class="status-strip is-open">
+        <span class="dot dot-lg green"></span>
+        <div class="grow"><strong>Aceptando candidaturas</strong></div>
+      </div>
+      <form action="/panel/contratacion" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="accion" value="pausar">
+        <button class="btn secondary" type="submit">Pausar candidaturas</button>
+      </form>
+      <p class="help">Al pausar, la página NFC mostrará «No estamos contratando» y solo recibirá datos para futuras oportunidades. No hace falta tocar la etiqueta.</p>
+    <% } else { %>
+      <div class="status-strip is-paused">
+        <span class="dot dot-lg red"></span>
+        <div class="grow"><strong>Pausado</strong></div>
+      </div>
+      <form action="/panel/contratacion" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <input type="hidden" name="accion" value="activar">
+        <button class="btn" type="submit">Activar candidaturas</button>
+      </form>
+      <p class="help">Al activar, el formulario de candidaturas vuelve a estar disponible al instante.</p>
+    <% } %>
+  </div>
+
+  <div class="card">
+    <h2>Datos del establecimiento</h2>
+    <form action="/panel/restaurante" method="post" enctype="multipart/form-data">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+      <div class="field">
+        <label for="name">Nombre del establecimiento *</label>
+        <input id="name" type="text" name="name" maxlength="100" required value="<%= restaurant.name %>">
+      </div>
+      <div class="field">
+        <label for="commercial_name">Nombre comercial <span class="dim label-hint">(opcional)</span></label>
+        <input id="commercial_name" type="text" name="commercial_name" maxlength="100" value="<%= restaurant.commercial_name %>">
+        <div class="help">Es el nombre que verán los candidatos en la página de la etiqueta NFC.</div>
+      </div>
+      <div class="field">
+        <label for="establecimiento">Tipo de establecimiento *</label>
+        <select id="establecimiento" name="establecimiento" required>
+          <option value="">Selecciona…</option>
+          <% Object.keys(ESTABLISHMENT_TYPES).forEach(function(key) { %>
+            <option value="<%= key %>" <%= restaurant.establishment_type === key ? 'selected' : '' %>><%= ESTABLISHMENT_TYPES[key] %></option>
+          <% }) %>
+        </select>
+      </div>
+      <div class="field">
+        <label for="descripcion">Descripción</label>
+        <textarea id="descripcion" name="descripcion" maxlength="1500" rows="3"><%= restaurant.description %></textarea>
+      </div>
+      <div class="field">
+        <label for="owner_name">Responsable *</label>
+        <input id="owner_name" type="text" name="owner_name" maxlength="100" required value="<%= restaurant.owner_name %>">
+      </div>
+      <div class="field">
+        <label for="email">Email de contacto *</label>
+        <input id="email" type="email" name="email" maxlength="120" required value="<%= restaurant.email %>">
+        <div class="help">Aquí se reciben las notificaciones de nuevas candidaturas.</div>
+      </div>
+      <div class="field">
+        <label for="telefono">Teléfono *</label>
+        <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= restaurant.phone %>">
+      </div>
+      <div class="field">
+        <label for="direccion">Dirección</label>
+        <input id="direccion" type="text" name="direccion" maxlength="200" value="<%= restaurant.address %>">
+      </div>
+      <div class="hint-row">
+        <div class="field">
+          <label for="cp">Código postal</label>
+          <input id="cp" type="text" name="cp" maxlength="5" pattern="\d{5}" inputmode="numeric" value="<%= restaurant.postal_code %>">
+        </div>
+        <div class="field">
+          <label for="ciudad">Ciudad *</label>
+          <input id="ciudad" type="text" name="ciudad" maxlength="100" required value="<%= restaurant.city %>">
+        </div>
+      </div>
+
+      <div class="section-title">Imágenes de la etiqueta NFC</div>
+      <p class="help help-lift">PNG, JPG o WEBP · máximo <%= maxImgMb %> MB. Se muestran en la página pública que ven los candidatos.</p>
+      <div class="hint-row">
+        <div class="field">
+          <label for="logo">Logo</label>
+          <input id="logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+          <div class="file-name" data-file-name></div>
+          <% if (restaurant.logo_path) { %>
+            <div class="img-preview">
+              <img src="/r/<%= restaurant.slug %>/imagen/logo" alt="Logo actual">
+              <label class="check check-plain">
+                <input type="checkbox" name="borrar_logo" value="1">
+                <span>Eliminar logo</span>
+              </label>
+            </div>
+          <% } %>
+        </div>
+        <div class="field">
+          <label for="foto">Foto</label>
+          <input id="foto" type="file" name="foto" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+          <div class="file-name" data-file-name></div>
+          <% if (restaurant.photo_path) { %>
+            <div class="img-preview">
+              <img src="/r/<%= restaurant.slug %>/imagen/foto" alt="Foto actual">
+              <label class="check check-plain">
+                <input type="checkbox" name="borrar_foto" value="1">
+                <span>Eliminar foto</span>
+              </label>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+      <button class="btn" type="submit">Guardar cambios</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Tu slug</h2>
+    <p class="muted small flat"><strong>/<%= restaurant.slug %></strong> — identificador único de tu establecimiento en la plataforma.</p>
+    <p class="help">Contacta con soporte si necesitas cambiarlo: cambiarlo invalidaría la URL grabada en tu etiqueta NFC.</p>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

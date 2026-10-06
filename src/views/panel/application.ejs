@@ -1,0 +1,225 @@
+<%- include('../partials/head', { title: a.first_name + ' ' + a.last_name }) %>
+<%- include('../partials/panel_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1><%= a.first_name %> <%= a.last_name %></h1>
+    <a class="btn ghost small" href="/panel/candidaturas">← Candidaturas</a>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <!-- Cabeçalho: quem é, em que estado está, e como se fala com a pessoa.
+       As ações de contacto ficam aqui em cima porque são o que o dono do
+       restaurante vem fazer. -->
+  <div class="card">
+    <div class="row-between">
+      <div class="row">
+        <span class="avatar"><%= initials(a.first_name, a.last_name) %></span>
+        <div>
+          <span class="badge badge-lg <%= (STATUSES[a.status] || {}).color || 'slate' %>"><%= statusLabel(a.status) %></span>
+          <div class="muted small spaced-sm">Recibida el <%= fmtDate(a.applied_at) %> (<%= fmtRelative(a.applied_at) %>)</div>
+        </div>
+      </div>
+      <form action="/panel/candidaturas/<%= a.id %>/favorito" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn <%= a.favorite ? 'primary' : 'secondary' %> small" type="submit">
+          <%= a.favorite ? '★ Favorito' : '☆ Marcar favorito' %>
+        </button>
+      </form>
+    </div>
+
+    <div class="actions-row">
+      <a class="btn small" href="tel:<%= String(a.phone).replace(/[^\d+]/g, '') %>">📞 Llamar</a>
+      <a class="btn secondary small" href="mailto:<%= a.email %>?subject=<%= encodeURIComponent('Candidatura para ' + (a.job_title || 'tu establecimiento')) %>">✉️ Email</a>
+      <% var wa = String(a.phone).replace(/[^\d]/g, ''); if (wa) { %>
+        <a class="btn secondary small" href="https://wa.me/<%= wa %>" target="_blank" rel="noopener" title="Abre WhatsApp con este número">WhatsApp</a>
+      <% } %>
+    </div>
+  </div>
+
+  <div class="detail-cols">
+    <div class="stack">
+
+      <div class="card">
+        <div class="section-title">Datos personales</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="k">Nombre</div>
+            <div class="v"><%= a.first_name %> <%= a.last_name %></div>
+          </div>
+          <div class="detail-item">
+            <div class="k">Email</div>
+            <div class="v"><a href="mailto:<%= a.email %>"><%= a.email %></a></div>
+          </div>
+          <div class="detail-item">
+            <div class="k">Teléfono</div>
+            <div class="v"><%= a.phone %></div>
+          </div>
+          <div class="detail-item">
+            <div class="k">Documento</div>
+            <div class="v">
+              <% if (a.doc_number) { %>
+                <%= docTypeLabel(a.doc_type) %> · <%= a.doc_number %>
+              <% } else { %>
+                <span class="dim">No facilitado</span>
+              <% } %>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-title">Información profesional</div>
+        <div class="detail-grid">
+          <div class="detail-item">
+            <div class="k">Puesto</div>
+            <div class="v">
+              <%= a.job_title || 'No especificado' %>
+              <% if (a.job_name) { %>
+                <span class="dim small">(<%= a.job_active ? 'vacante activa' : 'vacante cerrada' %>)</span>
+              <% } %>
+            </div>
+          </div>
+          <div class="detail-item">
+            <div class="k">Disponibilidad</div>
+            <div class="v"><%= availabilityLabel(a.availability) || '—' %></div>
+          </div>
+          <div class="detail-item">
+            <div class="k">Consentimiento</div>
+            <div class="v">
+              <% if (consent) { %>
+                Proceso: <%= consent.selection_consent ? 'Sí' : 'No' %> ·
+                Futuras oportunidades: <%= consent.future_opportunity_consent ? 'Sí' : 'No' %>
+                <% if (consent.consent_version) { %>
+                  <div class="dim tiny">versión <%= consent.consent_version %> · <%= fmtDate(consent.created_at) %></div>
+                <% } %>
+              <% } else { %>—<% } %>
+            </div>
+          </div>
+        </div>
+
+        <% if (a.experience) { %>
+          <div class="section-title">Experiencia</div>
+          <p class="pre"><%= a.experience %></p>
+        <% } %>
+        <% if (a.observations) { %>
+          <div class="section-title">Observaciones del candidato</div>
+          <p class="pre"><%= a.observations %></p>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <h2>Notas internas</h2>
+        <p class="help help-lift">Solo visibles para tu establecimiento. El candidato nunca las verá.</p>
+
+        <form action="/panel/candidaturas/<%= a.id %>/notas" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field">
+            <label for="nota">Añadir nota</label>
+            <textarea id="nota" name="nota" maxlength="2000" placeholder="Ej.: Tiene 2 años de experiencia. Buen nivel de español. Llamar el viernes."></textarea>
+          </div>
+          <button class="btn small" type="submit">Guardar nota</button>
+        </form>
+
+        <div class="spaced">
+          <% if (notes.length === 0) { %>
+            <p class="dim small flat">Sin notas todavía.</p>
+          <% } else { %>
+            <% notes.forEach(function(note) { %>
+              <div class="note">
+                <div class="pre"><%= note.body %></div>
+                <div class="when">
+                  <span><%= fmtDate(note.created_at) %><% if (note.author) { %> · <%= note.author %><% } %></span>
+                  <form action="/panel/candidaturas/<%= a.id %>/notas/<%= note.id %>/eliminar" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn danger small" type="submit">Eliminar</button>
+                  </form>
+                </div>
+              </div>
+            <% }) %>
+          <% } %>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="stack">
+
+      <div class="card">
+        <h2>Currículum</h2>
+        <% if (cv) { %>
+          <p class="muted small"><%= cv.original_filename %> · <%= fmtSize(cv.size_bytes) %></p>
+          <div class="actions-row tight">
+            <a class="btn small" href="/panel/cv/<%= cv.id %>" target="_blank" rel="noopener">Ver CV</a>
+            <a class="btn secondary small" href="/panel/cv/<%= cv.id %>?descargar=1">Descargar CV</a>
+          </div>
+        <% } else { %>
+          <p class="dim flat">Sin CV adjunto.</p>
+        <% } %>
+      </div>
+
+      <div class="card">
+        <h2>Estado</h2>
+        <form action="/panel/candidaturas/<%= a.id %>/estado" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field">
+            <select name="status" aria-label="Estado de la candidatura">
+              <% Object.keys(STATUSES).forEach(function(key) { %>
+                <option value="<%= key %>" <%= a.status === key ? 'selected' : '' %>><%= STATUSES[key].label %></option>
+              <% }) %>
+            </select>
+          </div>
+          <button class="btn small block" type="submit">Guardar estado</button>
+        </form>
+        <p class="help">«Reserva / Futuras oportunidades» deja al candidato disponible para próximas vacantes.</p>
+      </div>
+
+      <div class="card">
+        <h2>Historial</h2>
+        <% if (history.length === 0) { %>
+          <p class="dim small flat">Sin eventos todavía.</p>
+        <% } else { %>
+          <div class="timeline">
+            <% history.forEach(function(h) { %>
+              <div class="tl-item">
+                <div class="tl-body">
+                  <strong><%= historyLabel(h.event) %></strong>
+                  <%
+                    /* Mudança de estado: o texto é composto a partir das
+                       colunas old_status/new_status, para as etiquetas
+                       acompanharem o idioma da interface em vez de ficarem
+                       congeladas na base de dados. */
+                    var detalhe = h.detail || '';
+                    if (h.event === 'estado' && h.new_status) {
+                      detalhe = (h.old_status ? statusLabel(h.old_status) + ' → ' : '') + statusLabel(h.new_status);
+                    }
+                  %>
+                  <% if (detalhe) { %><div class="muted small"><%= detalhe %></div><% } %>
+                </div>
+                <div class="dim tiny nowrap">
+                  <%= fmtDate(h.created_at) %><% if (h.author) { %> · <%= h.author %><% } %>
+                </div>
+              </div>
+            <% }) %>
+          </div>
+        <% } %>
+      </div>
+
+      <div class="card danger-zone">
+        <h2>Zona peligrosa</h2>
+        <p class="help help-lift">Eliminar la candidatura borra también su CV y sus notas de forma permanente.</p>
+        <details>
+          <summary class="summary-danger">Eliminar esta candidatura…</summary>
+          <div class="details-body">
+            <form action="/panel/candidaturas/<%= a.id %>/eliminar" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <button class="btn danger small" type="submit">Sí, eliminar definitivamente</button>
+            </form>
+          </div>
+        </details>
+      </div>
+
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

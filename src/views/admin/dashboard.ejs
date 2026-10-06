@@ -1,0 +1,99 @@
+<%- include('../partials/head', { title: 'Administración' }) %>
+<%- include('../partials/admin_nav') %>
+
+<main class="container">
+  <div class="page-title"><h1>Métricas de la plataforma</h1></div>
+
+  <%- include('../partials/flash') %>
+
+  <div class="stats">
+    <div class="stat"><div class="num"><%= metrics.restaurants %></div><div class="label">Establecimientos</div></div>
+    <div class="stat"><div class="num"><%= metrics.restaurantsActive %></div><div class="label">Activos</div></div>
+    <div class="stat accent"><div class="num"><%= metrics.applications %></div><div class="label">Candidaturas totales</div></div>
+    <div class="stat"><div class="num"><%= metrics.applications7d %></div><div class="label">Últimos 7 días</div></div>
+    <div class="stat"><div class="num"><%= metrics.users %></div><div class="label">Usuarios</div></div>
+    <div class="stat"><div class="num"><%= metrics.usersBlocked %></div><div class="label">Bloqueados</div></div>
+    <div class="stat"><div class="num"><%= metrics.jobs %></div><div class="label">Vacantes</div></div>
+    <div class="stat"><div class="num"><%= metrics.notificationsFailed %></div><div class="label">Emails fallidos</div></div>
+  </div>
+
+  <% if (failed.length > 0) { %>
+    <div class="card danger-zone">
+      <h2>Notificaciones fallidas recientes</h2>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr><th>ID</th><th>Establecimiento</th><th>Error</th><th>Fecha</th></tr>
+          </thead>
+          <tbody>
+            <% failed.forEach(function(n) { %>
+              <tr>
+                <td><%= n.id %></td>
+                <td><%= n.restaurant_id %></td>
+                <td class="small"><%= n.detail %></td>
+                <td class="nowrap small"><%= fmtDate(n.created_at) %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="card">
+    <h2>Establecimientos</h2>
+    <p class="help help-lift">
+      Esta área no da acceso a candidaturas, candidatos ni currículums: la
+      administración de la plataforma ve métricas y metadatos, no datos
+      personales de candidatos.
+    </p>
+
+    <% if (restaurants.length === 0) { %>
+      <p class="dim flat">Sin establecimientos todavía.</p>
+    <% } else { %>
+      <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Establecimiento</th><th>Slug</th><th>Responsable</th>
+              <th>Candidaturas</th><th>Owners</th><th>Estado</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <% restaurants.forEach(function(r) { %>
+              <tr>
+                <td>
+                  <strong><%= r.name %></strong>
+                  <div class="dim tiny"><%= r.city %></div>
+                </td>
+                <td class="small">
+                  <a href="/r/<%= r.slug %>" target="_blank" rel="noopener">/r/<%= r.slug %></a>
+                </td>
+                <td class="small">
+                  <%= r.owner_name %>
+                  <div class="dim tiny"><%= r.email %></div>
+                </td>
+                <td><%= r.apps %></td>
+                <td><%= r.owners %></td>
+                <td class="nowrap">
+                  <span class="badge <%= r.active ? 'green' : 'red' %>"><%= r.active ? 'Activo' : 'Desactivado' %></span>
+                  <% if (r.hiring_status === 'paused') { %>
+                    <span class="badge amber">Pausado</span>
+                  <% } %>
+                </td>
+                <td>
+                  <form action="/admin/restaurantes/<%= r.id %>/toggle" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                    <button class="btn secondary small" type="submit"><%= r.active ? 'Desactivar' : 'Activar' %></button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

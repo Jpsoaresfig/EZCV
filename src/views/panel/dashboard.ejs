@@ -1,0 +1,130 @@
+<%- include('../partials/head', { title: 'Inicio' }) %>
+<%- include('../partials/panel_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Hola de nuevo</h1>
+    <form action="/panel/contratacion" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <% if (restaurant.hiring === 'open') { %>
+        <input type="hidden" name="accion" value="pausar">
+        <button class="btn secondary small" type="submit">⏸ Pausar candidaturas</button>
+      <% } else { %>
+        <input type="hidden" name="accion" value="activar">
+        <button class="btn small" type="submit">▶ Activar candidaturas</button>
+      <% } %>
+    </form>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <% if (typeof unreadCount !== 'undefined' && unreadCount > 0) { %>
+    <div class="notice">
+      <div>Tienes <strong><%= unreadCount %></strong> nueva(s) candidatura(s) por revisar.</div>
+      <form action="/panel/notificaciones/marcar-leidas" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <button class="btn secondary small" type="submit">Marcar como leídas</button>
+      </form>
+    </div>
+  <% } %>
+
+  <div class="status-strip <%= restaurant.hiring === 'open' ? 'is-open' : 'is-paused' %>">
+    <span class="dot dot-lg <%= restaurant.hiring === 'open' ? 'green' : 'red' %>"></span>
+    <div class="grow">
+      <% if (restaurant.hiring === 'open') { %>
+        <strong>Estado de contratación: Aceptando candidaturas</strong>
+        <div class="muted small">La página NFC está abierta a nuevos candidatos.</div>
+      <% } else { %>
+        <strong>Estado de contratación: Pausado</strong>
+        <div class="muted small">La página NFC sigue activa, pero no admite candidaturas nuevas. Solo recibirá datos para futuras oportunidades.</div>
+      <% } %>
+    </div>
+  </div>
+
+  <% if (counts.nuevo > 0 || counts.contactar > 0 || counts.entrevista > 0) { %>
+    <div class="card attention">
+      <h2>Necesita atención</h2>
+      <div class="attention-list">
+        <% if (counts.nuevo > 0) { %>
+          <a href="/panel/candidaturas?estado=nuevo"><strong><%= counts.nuevo %></strong> candidato(s) esperando revisión</a>
+        <% } %>
+        <% if (counts.contactar > 0) { %>
+          <a href="/panel/candidaturas?estado=contactar"><strong><%= counts.contactar %></strong> candidato(s) para contactar</a>
+        <% } %>
+        <% if (counts.entrevista > 0) { %>
+          <a href="/panel/candidaturas?estado=entrevista"><strong><%= counts.entrevista %></strong> candidato(s) en entrevista</a>
+        <% } %>
+      </div>
+    </div>
+  <% } %>
+
+  <div class="stats">
+    <a class="stat accent" href="/panel/candidaturas">
+      <div class="num"><%= total %></div>
+      <div class="label">Candidaturas</div>
+    </a>
+    <a class="stat" href="/panel/candidaturas?estado=nuevo">
+      <div class="num"><%= counts.nuevo %></div>
+      <div class="label">Nuevas</div>
+    </a>
+    <a class="stat" href="/panel/candidaturas">
+      <div class="num"><%= weekCount %></div>
+      <div class="label">Esta semana</div>
+    </a>
+    <a class="stat" href="/panel/candidaturas">
+      <div class="num"><%= monthCount %></div>
+      <div class="label">Este mes</div>
+    </a>
+    <a class="stat" href="/panel/candidaturas?estado=entrevista">
+      <div class="num"><%= counts.entrevista %></div>
+      <div class="label">Entrevistas</div>
+    </a>
+    <a class="stat" href="/panel/candidaturas?estado=contratado">
+      <div class="num"><%= counts.contratado %></div>
+      <div class="label">Contratados</div>
+    </a>
+    <a class="stat" href="/panel/vagas">
+      <div class="num"><%= openJobs %></div>
+      <div class="label">Vacantes abiertas</div>
+    </a>
+    <a class="stat" href="/panel/candidaturas?estado=reserva">
+      <div class="num"><%= counts.reserva %></div>
+      <div class="label">Reserva</div>
+    </a>
+  </div>
+
+  <div class="page-title">
+    <h2>Candidaturas recientes</h2>
+    <% if (recent.length > 0) { %>
+      <a class="btn ghost small" href="/panel/candidaturas">Ver todas →</a>
+    <% } %>
+  </div>
+
+  <% if (recent.length === 0) { %>
+    <div class="card empty">
+      <span class="empty-icon">📱</span>
+      <p>Aún no hay candidaturas. Graba tu URL NFC en la etiqueta y colócala en la entrada para empezar a recibirlas.</p>
+      <div class="actions-row center spaced">
+        <a class="btn small" href="/panel/restaurante">Ver mi URL NFC</a>
+      </div>
+    </div>
+  <% } else { %>
+    <div class="app-list">
+      <% recent.forEach(function(r) { %>
+        <a class="app-row" href="/panel/candidaturas/<%= r.id %>">
+          <span class="avatar"><%= initials(r.first_name, r.last_name) %></span>
+          <div class="grow">
+            <div class="who"><%= r.first_name %> <%= r.last_name %></div>
+            <div class="meta"><%= r.job_title || 'Sin puesto especificado' %></div>
+          </div>
+          <div class="right">
+            <span class="badge <%= (STATUSES[r.status] || {}).color || 'slate' %>"><%= statusLabel(r.status) %></span>
+            <div class="meta"><%= fmtRelative(r.applied_at) %></div>
+          </div>
+        </a>
+      <% }) %>
+    </div>
+  <% } %>
+</main>
+
+<%- include('../partials/foot') %>

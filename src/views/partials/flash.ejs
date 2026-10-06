@@ -1,0 +1,4 @@
+<% if (typeof query !== 'undefined' && query) { %>
+  <% if (query.ok) { %><div class="flash ok"><%= query.ok %></div><% } %>
+  <% if (query.err) { %><div class="flash err"><%= query.err %></div><% } %>
+<% } %>
