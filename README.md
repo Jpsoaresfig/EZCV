@@ -345,4 +345,5 @@ npm test
 **Isolamento dos testes:** cada execução gera um prefixo único gravado em `restaurants.test_prefix`; no fim, a função `purge_test_data` apaga só o que ficou marcado com esse prefixo, incluindo os objetos no Storage. Os nomes dos estabelecimentos levam o prefixo e o slug é lido do painel em vez de assumido, para que duas execuções seguidas nunca colidam.
 #   E Z C V  
  #   E Z C V  
+ #   E Z C V  
  
