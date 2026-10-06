@@ -13,6 +13,15 @@ document.addEventListener('change', function (e) {
       out.textContent = f ? '✓ ' + f.name : '';
       out.classList.toggle('is-shown', Boolean(f));
     }
+    /* Botão próprio (.file-pick): o texto nativo do input vem na língua do
+       browser e não pode ser traduzido, por isso o input fica escondido. */
+    var pick = e.target.closest('.file-pick');
+    if (pick) {
+      var has = Boolean(e.target.files && e.target.files[0]);
+      pick.classList.toggle('has-file', has);
+      var action = pick.querySelector('[data-file-action]');
+      if (action) action.textContent = action.getAttribute(has ? 'data-change' : 'data-empty');
+    }
   }
 });
 

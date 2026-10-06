@@ -552,6 +552,8 @@ async function main() {
     html = await text(res);
     check('página mostra "No estamos contratando"',
       res.status === 200 && html.includes('No estamos contratando'));
+    check('formulário de interesse pede uma breve descrição',
+      html.includes('action="/r/' + slugA + '/interes"') && html.includes('¿En qué te gustaría trabajar?'));
 
     res = await call('GET', `/r/${slugA}`, { jar: pubJar });
     const csrfPause = csrfOf(await text(res));
@@ -563,6 +565,7 @@ async function main() {
       jar: pubJar,
       body: form({
         nombre: 'Lucía', email: 'lucia@example.com', telefono: '655444333',
+        experiencia: 'Dependienta, 3 años en tienda de ropa',
         consentimiento_futuro: '1', _csrf: csrfPause
       })
     });
@@ -573,6 +576,7 @@ async function main() {
     html = await text(res);
     check('interesse guardado como Reserva',
       html.includes('Lucía') && html.includes('Reserva / Futuras oportunidades'));
+    check('descrição do interesse aparece no painel', html.includes('Dependienta, 3 años en tienda de ropa'));
 
     res = await call('GET', '/panel', { jar: ownerJar });
     const dashCsrf2 = csrfOf(await text(res));
@@ -736,8 +740,16 @@ async function main() {
     console.log('\n— Exclusão segura —');
     res = await call('GET', `/panel/candidaturas/${appId}`, { jar: ownerJar });
     const delCsrf = csrfOf(await text(res));
+    const { count: notifBefore } = await sb.from('notifications')
+      .select('id', { count: 'exact', head: true }).eq('application_id', appId);
     res = await call('POST', `/panel/candidaturas/${appId}/eliminar`, { jar: ownerJar, body: form({ _csrf: delCsrf }) });
     check('eliminar candidatura', res.status === 302);
+    const { count: notifAfter } = await sb.from('notifications')
+      .select('id', { count: 'exact', head: true }).eq('application_id', appId);
+    const { count: orphans } = await sb.from('notifications')
+      .select('id', { count: 'exact', head: true }).eq('restaurant_id', ridA.id).is('application_id', null);
+    check('notificações da candidatura eliminada também são apagadas',
+      notifBefore > 0 && notifAfter === 0 && orphans === 0, `antes=${notifBefore} depois=${notifAfter} órfãs=${orphans}`);
     res = await call('GET', `/panel/candidaturas/${appId}`, { jar: ownerJar });
     check('candidatura eliminada → 404', res.status === 404);
     res = await call('GET', `/panel/cv/${cvId}`, { jar: ownerJar });

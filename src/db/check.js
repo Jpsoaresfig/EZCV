@@ -10,7 +10,7 @@ const config = require('../config');
 const { sb, many } = require('../db');
 const storage = require('../lib/storage');
 
-const REQUIRED_MIGRATIONS = ['0001_init', '0002_views_rpc', '0003_storage'];
+const REQUIRED_MIGRATIONS = ['0001_init', '0002_views_rpc', '0003_storage', '0004_notifications_cascade'];
 
 /* As views e funções de que o código depende. Sem isto, uma migration
  * esquecida só daria erro no primeiro pedido que a usasse. */

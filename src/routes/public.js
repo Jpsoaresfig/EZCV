@@ -308,6 +308,7 @@ router.post('/r/:slug/interes', interestLimiter, async (req, res) => {
     nombre: clean(req.body.nombre, 100),
     email: clean(req.body.email, 120),
     telefono: clean(req.body.telefono, 30),
+    experiencia: clean(req.body.experiencia, 1000),
     consent_futuro: Boolean(req.body.consentimiento_futuro)
   };
 
@@ -343,6 +344,7 @@ router.post('/r/:slug/interes', interestLimiter, async (req, res) => {
     first_name: form.nombre,
     email: form.email,
     phone: form.telefono,
+    experience: form.experiencia,
     consent_version: CONSENT_VERSION,
     consent_text: consentSnapshot(true)
   }, 'registar interesse');

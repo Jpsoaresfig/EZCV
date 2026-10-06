@@ -172,7 +172,16 @@
 
       <div class="field">
         <label for="cv">CV en PDF *</label>
-        <input id="cv" type="file" name="cv" accept="application/pdf,.pdf" required>
+        <div class="file-pick">
+          <input class="file-pick-input" id="cv" type="file" name="cv" accept="application/pdf,.pdf" required>
+          <label class="file-pick-box" for="cv">
+            <span class="file-pick-icon"><%- icon('file') %></span>
+            <span class="file-pick-text">
+              <strong data-file-action data-empty="Elegir PDF" data-change="Cambiar archivo">Elegir PDF</strong>
+              <span>Toca para buscar tu CV en el móvil</span>
+            </span>
+          </label>
+        </div>
         <div class="file-name" data-file-name></div>
         <div class="help">PDF · máximo <%= maxUploadMb %> MB</div>
         <% if (errors && errors.cv) { %><div class="field-error"><%= errors.cv %></div><% } %>
@@ -240,6 +249,11 @@
       <div class="field">
         <label for="telefono">Teléfono *</label>
         <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= form.telefono || '' %>" inputmode="tel" autocomplete="tel">
+      </div>
+      <div class="field">
+        <label for="experiencia">¿En qué te gustaría trabajar?</label>
+        <textarea id="experiencia" name="experiencia" maxlength="1000" rows="3" placeholder="Ej.: camarero/a o dependiente/a, 2 años de experiencia, disponible por las tardes."><%= form.experiencia || '' %></textarea>
+        <div class="help">Opcional. Una frase basta para que sepan en qué puestos pensar en ti.</div>
       </div>
 
       <p class="help">

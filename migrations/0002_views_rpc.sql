@@ -377,9 +377,11 @@ begin
   returning id into v_cid;
 
   insert into applications (
-    restaurant_id, candidate_id, job_title, status, future_interest
+    restaurant_id, candidate_id, job_title, status, future_interest, experience
   ) values (
-    v_rid, v_cid, 'Oportunidades futuras', 'reserva', true
+    v_rid, v_cid, 'Oportunidades futuras', 'reserva', true,
+    -- breve descrição do que a pessoa sabe/quer fazer (opcional)
+    coalesce(p->>'experience', '')
   )
   returning id into v_aid;
 

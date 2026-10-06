@@ -108,7 +108,16 @@
       <div class="hint-row">
         <div class="field">
           <label for="logo">Logo</label>
-          <input id="logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+          <div class="file-pick">
+            <input class="file-pick-input" id="logo" type="file" name="logo" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+            <label class="file-pick-box" for="logo">
+              <span class="file-pick-icon"><%- icon('file') %></span>
+              <span class="file-pick-text">
+                <strong data-file-action data-empty="Elegir imagen" data-change="Cambiar archivo">Elegir imagen</strong>
+                <span>PNG, JPG o WEBP</span>
+              </span>
+            </label>
+          </div>
           <div class="file-name" data-file-name></div>
           <% if (restaurant.logo_path) { %>
             <div class="img-preview">
@@ -122,7 +131,16 @@
         </div>
         <div class="field">
           <label for="foto">Foto</label>
-          <input id="foto" type="file" name="foto" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+          <div class="file-pick">
+            <input class="file-pick-input" id="foto" type="file" name="foto" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+            <label class="file-pick-box" for="foto">
+              <span class="file-pick-icon"><%- icon('file') %></span>
+              <span class="file-pick-text">
+                <strong data-file-action data-empty="Elegir imagen" data-change="Cambiar archivo">Elegir imagen</strong>
+                <span>PNG, JPG o WEBP</span>
+              </span>
+            </label>
+          </div>
           <div class="file-name" data-file-name></div>
           <% if (restaurant.photo_path) { %>
             <div class="img-preview">

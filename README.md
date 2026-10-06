@@ -91,6 +91,7 @@ npm run migrate
 1. `migrations/0001_init.sql`
 2. `migrations/0002_views_rpc.sql`
 3. `migrations/0003_storage.sql`
+4. `migrations/0004_notifications_cascade.sql`
 
 As migrations são idempotentes. `0000_reset.sql` é **destrutivo** (apaga o schema) e só corre com `npm run migrate -- --reset`.
 
