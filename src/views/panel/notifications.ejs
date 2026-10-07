@@ -70,8 +70,9 @@
                     var estado = ESTADOS[n.status] || { label: n.status, color: 'slate' };
                   %>
                   <span class="badge <%= estado.color %>"><%= estado.label %></span>
-                  <% if (n.status === 'failed' && n.detail) { %>
-                    <div class="dim tiny"><%= n.detail %></div>
+                  <% if (n.status === 'failed') { %>
+                    <%# o detalhe técnico (em português, do servidor SMTP) fica só no admin %>
+                    <div class="dim tiny">No se pudo enviar el email.</div>
                   <% } %>
                 </td>
               </tr>

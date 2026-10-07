@@ -24,24 +24,31 @@
       <form action="/panel/candidaturas/<%= a.id %>/favorito" method="post">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button class="btn <%= a.favorite ? 'primary' : 'secondary' %> small" type="submit">
-          <%= a.favorite ? '★ Favorito' : '☆ Marcar favorito' %>
+          <%= a.favorite ? '★ Favorito' : '☆ Favorito' %>
         </button>
       </form>
     </div>
 
     <div class="actions-row">
-      <a class="btn small" href="tel:<%= String(a.phone).replace(/[^\d+]/g, '') %>">📞 Llamar</a>
-      <a class="btn secondary small" href="mailto:<%= a.email %>?subject=<%= encodeURIComponent('Candidatura para ' + (a.job_title || 'tu establecimiento')) %>">✉️ Email</a>
-      <% var wa = String(a.phone).replace(/[^\d]/g, ''); if (wa) { %>
-        <a class="btn secondary small" href="https://wa.me/<%= wa %>" target="_blank" rel="noopener" title="Abre WhatsApp con este número">WhatsApp</a>
+      <a class="btn small" href="tel:<%= String(a.phone).replace(/[^\d+]/g, '') %>"><%- icon('phone') %> Llamar</a>
+      <%
+        /* wa.me exige o número internacional sem «+». Os candidatos escrevem
+         * quase sempre o móvel espanhol sem indicativo (612 345 678): sem o
+         * 34 à frente o WhatsApp abria um número inválido. */
+        var wa = String(a.phone).replace(/[^\d]/g, '').replace(/^00/, '');
+        if (/^[6789]\d{8}$/.test(wa)) wa = '34' + wa;
+      %>
+      <% if (wa) { %>
+        <a class="btn secondary small btn-wa" href="https://wa.me/<%= wa %>" target="_blank" rel="noopener" title="Abre WhatsApp con este número"><%- icon('chat') %> WhatsApp</a>
       <% } %>
+      <a class="btn secondary small" href="mailto:<%= a.email %>?subject=<%= encodeURIComponent('Candidatura para ' + (a.job_title || 'tu establecimiento')) %>"><%- icon('mail') %> Email</a>
     </div>
   </div>
 
   <div class="detail-cols">
     <div class="stack">
 
-      <div class="card">
+      <div class="card o-datos">
         <div class="section-title">Datos personales</div>
         <div class="detail-grid">
           <div class="detail-item">
@@ -107,7 +114,7 @@
         <% } %>
       </div>
 
-      <div class="card">
+      <div class="card o-notas">
         <h2>Notas internas</h2>
         <p class="help help-lift">Solo visibles para tu establecimiento. El candidato nunca las verá.</p>
 
@@ -144,7 +151,7 @@
 
     <div class="stack">
 
-      <div class="card">
+      <div class="card o-cv">
         <h2>Currículum</h2>
         <% if (cv) { %>
           <p class="muted small"><%= cv.original_filename %> · <%= fmtSize(cv.size_bytes) %></p>
@@ -157,7 +164,7 @@
         <% } %>
       </div>
 
-      <div class="card">
+      <div class="card o-estado">
         <h2>Estado</h2>
         <form action="/panel/candidaturas/<%= a.id %>/estado" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -173,7 +180,7 @@
         <p class="help">«Reserva / Futuras oportunidades» deja al candidato disponible para próximas vacantes.</p>
       </div>
 
-      <div class="card">
+      <div class="card o-historial">
         <h2>Historial</h2>
         <% if (history.length === 0) { %>
           <p class="dim small flat">Sin eventos todavía.</p>
@@ -204,7 +211,7 @@
         <% } %>
       </div>
 
-      <div class="card danger-zone">
+      <div class="card danger-zone o-perigo">
         <h2>Zona peligrosa</h2>
         <p class="help help-lift">Eliminar la candidatura borra también su CV y sus notas de forma permanente.</p>
         <details>

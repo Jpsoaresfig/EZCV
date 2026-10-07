@@ -24,22 +24,36 @@ function parseDbDate(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+/* Datas sempre na hora de Espanha peninsular. Na Vercel o servidor corre em
+ * UTC: sem fixar o fuso, uma candidatura às 00:30 aparecia no dia anterior e
+ * «Hoy»/«Ayer» mudavam à hora errada. */
+const MADRID_DAY = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit'
+});
+
+function madridDay(d) {
+  return MADRID_DAY.format(d); // «2026-10-06»
+}
+
 function fmtDate(value) {
   const d = parseDbDate(value);
   if (!d) return String(value || '');
-  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  const [y, m, day] = madridDay(d).split('-');
+  return `${day}/${m}/${y}`;
 }
 
 function fmtRelative(value) {
   const d = parseDbDate(value);
   if (!d) return '';
-  const today = new Date();
-  const startToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const startDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-  const days = Math.round((startToday - startDate) / 86400000);
+  const days = Math.round((Date.parse(madridDay(new Date())) - Date.parse(madridDay(d))) / 86400000);
   if (days === 0) return 'Hoy';
   if (days === 1) return 'Ayer';
   return fmtDate(value);
+}
+
+/* «1 candidatura» / «3 candidaturas» — em vez de «candidatura(s)». */
+function plural(n, one, many) {
+  return `${n} ${Number(n) === 1 ? one : many}`;
 }
 
 function fmtSize(bytes) {
@@ -135,6 +149,7 @@ function createApp() {
   app.locals.historyLabel = historyLabel;
   app.locals.fmtDate = fmtDate;
   app.locals.fmtRelative = fmtRelative;
+  app.locals.plural = plural;
   app.locals.fmtSize = fmtSize;
   app.locals.icon = icon;
   app.locals.initials = initials;

@@ -4,12 +4,12 @@
   <% if (restaurant.photo_path) { %>
     <!-- Fotografia como fundo através de <img> e não de background-image:
          o CSP é `style-src 'self'` e bloqueia estilos inline. -->
-    <img class="hero-photo" src="/r/<%= restaurant.slug %>/imagen/foto" alt="" aria-hidden="true">
+    <img class="hero-photo" src="/r/<%= restaurant.slug %>/imagen/foto?v=<%= String(restaurant.photo_path).split('/').pop() %>" alt="" aria-hidden="true">
   <% } %>
 
   <div class="container-narrow hero-body">
     <% if (restaurant.logo_path) { %>
-      <img class="hero-logo" src="/r/<%= restaurant.slug %>/imagen/logo" alt="Logo de <%= restaurant.name %>">
+      <img class="hero-logo" src="/r/<%= restaurant.slug %>/imagen/logo?v=<%= String(restaurant.logo_path).split('/').pop() %>" alt="Logo de <%= restaurant.name %>">
     <% } %>
 
     <h1><%= restaurant.commercial_name || restaurant.name %></h1>

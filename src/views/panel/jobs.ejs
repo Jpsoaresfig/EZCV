@@ -9,9 +9,10 @@
 
   <%- include('../partials/flash') %>
 
-  <div class="card">
-    <h2>Crear vacante</h2>
-    <p class="help help-lift">Mientras no haya ninguna vacante activa, la página NFC ofrece el formulario de futuras oportunidades.</p>
+  <%# Recolhido quando já há vagas: a lista é o que interessa ver primeiro. %>
+  <details class="card create-job" <%= jobs.length === 0 ? 'open' : '' %>>
+    <summary class="create-job-summary"><span class="create-job-plus">+</span> Nueva vacante</summary>
+    <p class="help">Mientras no haya ninguna vacante activa, tu página ofrece el formulario de futuras oportunidades.</p>
 
     <form action="/panel/vagas/crear" method="post">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -55,7 +56,7 @@
       </div>
       <button class="btn small" type="submit">Crear vacante</button>
     </form>
-  </div>
+  </details>
 
   <div class="page-title">
     <h2>Vacantes actuales</h2>
@@ -94,7 +95,7 @@
           </div>
 
           <p class="dim tiny spaced-sm">
-            <%= job.applicants %> candidatura(s) recibidas · creada el <%= fmtDate(job.created_at) %>
+            <%= plural(job.applicants, 'candidatura recibida', 'candidaturas recibidas') %> · creada el <%= fmtDate(job.created_at) %>
           </p>
 
           <details>

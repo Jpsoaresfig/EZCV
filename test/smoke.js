@@ -373,6 +373,18 @@ async function main() {
     html = await text(res);
     check('Mi restaurante mostra URL NFC',
       res.status === 200 && html.includes(`/r/${slugA}`) && html.includes('Copiar URL'));
+    {
+      const fd = new FormData();
+      fd.append('_csrf', csrfOf(html));
+      for (const [k, v] of Object.entries({
+        name: 'Nombre Editado Test', owner_name: 'Ana López', email: 'ana@example.com',
+        telefono: '912345678', ciudad: 'Madrid', cp: '123', establecimiento: 'restaurante'
+      })) fd.append(k, v);
+      res = await call('POST', '/panel/restaurante', { jar: ownerJar, body: fd });
+      const editHtml = await text(res);
+      check('erro em Mi negocio mantém o que foi escrito',
+        res.status === 422 && editHtml.includes('Nombre Editado Test') && editHtml.includes('5 dígitos'));
+    }
     res = await call('GET', '/panel/qr', { jar: ownerJar });
     html = await text(res);
     check('página do QR renderiza SVG com a URL NFC',
@@ -467,7 +479,12 @@ async function main() {
     console.log('\n— Notificaciones del panel —');
     res = await call('GET', '/panel', { jar: ownerJar });
     html = await text(res);
-    check('dashboard avisa de candidaturas nuevas', html.includes('Tienes'));
+    // a ficha da candidatura já foi aberta acima: o aviso dela fica lido sozinho
+    const { data: notifRows } = await sb.from('notifications')
+      .select('status').eq('application_id', appId).eq('channel', 'panel');
+    check('abrir a ficha marca o aviso como lido',
+      (notifRows || []).length > 0 && notifRows.every((n) => n.status === 'read'));
+    check('dashboard sem avisos por ler', !html.includes('Marcar avisos como leídos'));
     res = await call('GET', '/panel/notificaciones', { jar: ownerJar });
     html = await text(res);
     check('página de avisos lista notificações',
@@ -478,7 +495,7 @@ async function main() {
     });
     check('marcar notificações como lidas', res.status === 302);
     res = await call('GET', '/panel', { jar: ownerJar });
-    check('aviso desaparece após marcar lidas', !(await text(res)).includes('Tienes'));
+    check('aviso desaparece após marcar lidas', !(await text(res)).includes('Marcar avisos como leídos'));
 
     console.log('\n— Privacidad (§6, §29) —');
     res = await call('GET', '/privacidad');
@@ -681,7 +698,7 @@ async function main() {
     console.log('\n— Rate limiting de candidaturas —');
     const spamJar = new Jar();
     let limited = false;
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 25; i++) { // limite: 20 por hora por IP + negócio
       res = await call('GET', `/r/${slugB}`, { jar: spamJar });
       const c = csrfOf(await text(res));
       res = await call('POST', `/r/${slugB}/apply`, {

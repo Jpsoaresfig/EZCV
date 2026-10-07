@@ -67,7 +67,10 @@ const cvUpload = multer({
     const okExt = name.endsWith('.pdf');
     const okMime = mime === 'application/pdf' || mime === 'application/x-pdf';
 
-    if (!okExt || !okMime) {
+    /* Basta um dos dois: no Android, ficheiros vindos do Drive ou do WhatsApp
+     * chegam muitas vezes sem «.pdf» no nome ou como octet-stream. A
+     * verificação que conta é a do conteúdo (isPdf, %PDF-), feita na rota. */
+    if (!okExt && !okMime) {
       const err = new Error('INVALID_TYPE');
       err.code = 'INVALID_TYPE';
       return cb(err);

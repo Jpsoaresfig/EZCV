@@ -27,71 +27,89 @@
     </a>
   </div>
 
-  <div class="card">
+  <%
+    /* Filtros avançados recolhidos por omissão: no telemóvel os 7 campos
+     * ocupavam o ecrã inteiro antes do primeiro candidato. Abrem sozinhos
+     * se algum estiver em uso. */
+    var advanced = Boolean(filters.estado || filters.puesto || filters.disp || filters.desde || filters.hasta || filters.favs || filters.orden === 'antiguas');
+    var anyFilter = advanced || Boolean(filters.q);
+  %>
+  <div class="card filters-card">
     <form action="/panel/candidaturas" method="get">
-      <div class="filters">
-        <div class="field">
-          <label for="q">Buscar</label>
-          <input id="q" type="search" name="q" maxlength="80" placeholder="Nombre, puesto, teléfono…" value="<%= filters.q %>">
-        </div>
-        <div class="field">
-          <label for="estado">Estado</label>
-          <select id="estado" name="estado">
-            <option value="">Todos</option>
-            <% Object.keys(STATUSES).forEach(function(key) { %>
-              <option value="<%= key %>" <%= filters.estado === key ? 'selected' : '' %>><%= STATUSES[key].label %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div class="field">
-          <label for="puesto">Puesto</label>
-          <select id="puesto" name="puesto">
-            <option value="">Todos</option>
-            <% jobs.forEach(function(job) { %>
-              <option value="<%= job.id %>" <%= String(filters.puesto) === String(job.id) ? 'selected' : '' %>><%= job.title %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div class="field">
-          <label for="disp">Disponibilidad</label>
-          <select id="disp" name="disp">
-            <option value="">Todas</option>
-            <% Object.keys(AVAILABILITIES).forEach(function(key) { if (!key) return; %>
-              <option value="<%= key %>" <%= filters.disp === key ? 'selected' : '' %>><%= AVAILABILITIES[key] %></option>
-            <% }) %>
-          </select>
-        </div>
-        <div class="field">
-          <label for="orden">Orden</label>
-          <select id="orden" name="orden">
-            <option value="recientes" <%= filters.orden === 'recientes' ? 'selected' : '' %>>Más recientes</option>
-            <option value="antiguas" <%= filters.orden === 'antiguas' ? 'selected' : '' %>>Más antiguas</option>
-          </select>
-        </div>
-        <div class="field">
-          <label for="desde">Desde</label>
-          <input id="desde" type="date" name="desde" value="<%= filters.desde %>">
-        </div>
-        <div class="field">
-          <label for="hasta">Hasta</label>
-          <input id="hasta" type="date" name="hasta" value="<%= filters.hasta %>">
-        </div>
-        <label class="check check-plain">
-          <input type="checkbox" name="favs" value="1" <%= filters.favs ? 'checked' : '' %>>
-          <span>Solo favoritos</span>
-        </label>
+      <div class="search-row">
+        <label for="q" class="sr-only">Buscar</label>
+        <input id="q" type="search" name="q" maxlength="80" placeholder="Nombre, puesto, teléfono…" value="<%= filters.q %>">
+        <button class="btn small" type="submit"><%- icon('search') %><span class="hide-xs">Buscar</span></button>
       </div>
-      <div class="actions-row tight">
-        <button class="btn small" type="submit">Filtrar</button>
-        <a class="btn secondary small" href="/panel/candidaturas">Limpiar</a>
-      </div>
+      <details class="more-filters" <%= advanced ? 'open' : '' %>>
+        <summary>Más filtros<% if (advanced) { %> <span class="badge brand">activos</span><% } %></summary>
+        <div class="filters">
+          <div class="field">
+            <label for="estado">Estado</label>
+            <select id="estado" name="estado">
+              <option value="">Todos</option>
+              <% Object.keys(STATUSES).forEach(function(key) { %>
+                <option value="<%= key %>" <%= filters.estado === key ? 'selected' : '' %>><%= STATUSES[key].label %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label for="puesto">Puesto</label>
+            <select id="puesto" name="puesto">
+              <option value="">Todos</option>
+              <% jobs.forEach(function(job) { %>
+                <option value="<%= job.id %>" <%= String(filters.puesto) === String(job.id) ? 'selected' : '' %>><%= job.title %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label for="disp">Disponibilidad</label>
+            <select id="disp" name="disp">
+              <option value="">Todas</option>
+              <% Object.keys(AVAILABILITIES).forEach(function(key) { if (!key) return; %>
+                <option value="<%= key %>" <%= filters.disp === key ? 'selected' : '' %>><%= AVAILABILITIES[key] %></option>
+              <% }) %>
+            </select>
+          </div>
+          <div class="field">
+            <label for="orden">Orden</label>
+            <select id="orden" name="orden">
+              <option value="recientes" <%= filters.orden === 'recientes' ? 'selected' : '' %>>Más recientes</option>
+              <option value="antiguas" <%= filters.orden === 'antiguas' ? 'selected' : '' %>>Más antiguas</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="desde">Desde</label>
+            <input id="desde" type="date" name="desde" value="<%= filters.desde %>">
+          </div>
+          <div class="field">
+            <label for="hasta">Hasta</label>
+            <input id="hasta" type="date" name="hasta" value="<%= filters.hasta %>">
+          </div>
+          <label class="check check-plain">
+            <input type="checkbox" name="favs" value="1" <%= filters.favs ? 'checked' : '' %>>
+            <span>Solo favoritos</span>
+          </label>
+        </div>
+        <div class="actions-row tight">
+          <button class="btn small" type="submit">Aplicar filtros</button>
+          <% if (anyFilter) { %><a class="btn secondary small" href="/panel/candidaturas">Quitar filtros</a><% } %>
+        </div>
+      </details>
     </form>
   </div>
 
   <% if (rows.length === 0) { %>
     <div class="card empty">
-      <span class="empty-icon">🔍</span>
-      <p>No hay candidaturas con estos filtros.</p>
+      <% if (anyFilter) { %>
+        <span class="empty-icon">🔍</span>
+        <p>No hay candidaturas con estos filtros.</p>
+        <div class="actions-row center spaced"><a class="btn secondary small" href="/panel/candidaturas">Quitar filtros</a></div>
+      <% } else { %>
+        <span class="empty-icon">📭</span>
+        <p>Aún no has recibido candidaturas. Cuando alguien acerque el móvil a tu etiqueta o escanee tu QR, aparecerá aquí.</p>
+        <div class="actions-row center spaced"><a class="btn small" href="/panel/qr">Ver mi código QR</a></div>
+      <% } %>
     </div>
   <% } else { %>
     <% if (rows.length === 200) { %>

@@ -54,6 +54,15 @@ function notFound(res) {
   });
 }
 
+/* Ids nas rotas são sempre inteiros positivos. Sem isto, /panel/cv/abc
+ * chegava ao Postgres como NaN e dava 500 em vez de 404. */
+for (const name of ['id', 'noteId']) {
+  router.param(name, (req, res, next, value) => {
+    if (!/^\d{1,18}$/.test(String(value))) return notFound(res);
+    next();
+  });
+}
+
 function invalidSession(res) {
   return res.status(403).render('error', {
     status: 403, title: 'Sesión no válida', message: 'Recarga la página.'
@@ -96,7 +105,7 @@ async function statusCounts(rid) {
 router.get('/panel', async (req, res) => {
   const rid = restaurantId(req);
 
-  const [counts, metrics, recent] = await Promise.all([
+  const [counts, metrics, recent, profile] = await Promise.all([
     statusCounts(rid),
     one(sb().from('restaurant_metrics').select('*').eq('restaurant_id', rid), 'métricas'),
     many(
@@ -107,10 +116,17 @@ router.get('/panel', async (req, res) => {
         .order('id', { ascending: false })
         .limit(8),
       'candidaturas recentes'
-    )
+    ),
+    // só para o guia de primeiros passos (logo já carregado ou não)
+    one(sb().from('restaurants').select('logo_path').eq('id', rid), 'perfil do restaurante')
   ]);
 
+  const firstName = String(req.user.full_name || '').trim().split(/\s+/)[0] || '';
+
   res.render('panel/dashboard', {
+    firstName,
+    hasLogo: Boolean(profile && profile.logo_path),
+    nfcUrl: `${config.appUrl}/r/${req.user.restaurant_slug}`,
     counts,
     total: Number(metrics && metrics.total) || 0,
     weekCount: Number(metrics && metrics.week) || 0,
@@ -192,7 +208,7 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
 
   const rid = restaurantId(req);
 
-  const [notes, cv, consent, history] = await Promise.all([
+  const [notes, cv, consent, history, markedRead] = await Promise.all([
     many(
       sb().from('application_notes')
         .select('id, body, created_at, user_id, users(full_name)')
@@ -218,8 +234,24 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
         .order('created_at', { ascending: false })
         .order('id', { ascending: false }),
       'histórico'
+    ),
+    /* Abrir a ficha conta como ver o aviso: sem isto o contador do menu
+     * só baixava com «Marcar como leídas». */
+    many(
+      sb().from('notifications')
+        .update({ status: 'read', read_at: new Date().toISOString() })
+        .eq('application_id', application.id)
+        .eq('restaurant_id', rid)
+        .eq('channel', 'panel')
+        .eq('status', 'unread')
+        .select('id'),
+      'marcar aviso como lido'
     )
   ]);
+
+  if (markedRead.length > 0 && res.locals.unreadCount > 0) {
+    res.locals.unreadCount = Math.max(0, res.locals.unreadCount - markedRead.length);
+  }
 
   /* As views do EJS esperam `author` como texto simples. */
   const withAuthor = (rows) => rows.map((r) => ({
@@ -645,7 +677,19 @@ router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
   }
 
   if (Object.keys(errors).length > 0) {
-    return res.redirect(errParam(Object.values(errors)[0]));
+    /* Volta a mostrar o formulário com o que a pessoa escreveu. Antes era um
+     * redirect com ?err=, que apagava todas as alterações por um único
+     * código postal mal escrito. */
+    const saved = await one(
+      sb().from('restaurants').select('*').eq('id', restaurantId(req)),
+      'restaurante (erro de validação)'
+    );
+    if (!saved) return notFound(res);
+    return res.status(422).render('panel/restaurant', {
+      restaurant: { ...saved, ...form },
+      nfcUrl: `${config.appUrl}/r/${saved.slug}`,
+      query: { err: Object.values(errors).join(' ') }
+    });
   }
 
   const rid = restaurantId(req);
@@ -762,6 +806,8 @@ router.get('/panel/notificaciones', async (req, res) => {
     sb().from('notifications')
       .select('id, type, channel, status, detail, read_at, created_at, application_id, applications(job_title, candidates(first_name, last_name))')
       .eq('restaurant_id', restaurantId(req))
+      // «logged» = sem SMTP configurado: não houve email nenhum, só confunde o dono
+      .neq('status', 'logged')
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .limit(100),
@@ -786,8 +832,11 @@ router.post('/panel/notificaciones/marcar-leidas', async (req, res) => {
 
   await rpc('mark_notifications_read', { restaurant_id: restaurantId(req) }, 'marcar lidas');
 
-  const back = typeof req.body.volver === 'string' && req.body.volver.startsWith('/')
-    ? req.body.volver
+  /* Só caminhos internos: «//site.com» ou «/\site.com» são URLs externos
+   * para o browser (open redirect). */
+  const volver = typeof req.body.volver === 'string' ? req.body.volver : '';
+  const back = volver.startsWith('/') && volver[1] !== '/' && volver[1] !== '\\'
+    ? volver
     : '/panel';
 
   res.redirect(back);

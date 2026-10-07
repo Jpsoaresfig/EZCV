@@ -64,6 +64,10 @@ async function smtpSend({ to, subject, text, html }) {
     ? tls.connect({ host, port, servername: host })
     : net.connect({ host, port });
 
+  /* Um servidor SMTP que não responde não pode prender o pedido para sempre
+   * (na Vercel isso consome o tempo da função). */
+  socket.setTimeout(15000, () => socket.destroy(new Error('Tempo esgotado a falar com o servidor SMTP')));
+
   await new Promise((resolve, reject) => {
     socket.once('secureConnect', resolve);
     socket.once('connect', resolve);

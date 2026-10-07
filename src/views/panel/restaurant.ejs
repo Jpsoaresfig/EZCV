@@ -121,7 +121,7 @@
           <div class="file-name" data-file-name></div>
           <% if (restaurant.logo_path) { %>
             <div class="img-preview">
-              <img src="/r/<%= restaurant.slug %>/imagen/logo" alt="Logo actual">
+              <img src="/r/<%= restaurant.slug %>/imagen/logo?v=<%= String(restaurant.logo_path).split('/').pop() %>" alt="Logo actual">
               <label class="check check-plain">
                 <input type="checkbox" name="borrar_logo" value="1">
                 <span>Eliminar logo</span>
@@ -144,7 +144,7 @@
           <div class="file-name" data-file-name></div>
           <% if (restaurant.photo_path) { %>
             <div class="img-preview">
-              <img src="/r/<%= restaurant.slug %>/imagen/foto" alt="Foto actual">
+              <img src="/r/<%= restaurant.slug %>/imagen/foto?v=<%= String(restaurant.photo_path).split('/').pop() %>" alt="Foto actual">
               <label class="check check-plain">
                 <input type="checkbox" name="borrar_foto" value="1">
                 <span>Eliminar foto</span>

@@ -99,7 +99,9 @@ router.get('/r/:slug', ensureSession, async (req, res) => {
  * ------------------------------------------------------------------ */
 const applyLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  /* Por IP + negócio. 20 e não 5: numa loja com Wi-Fi vários candidatos
+   * saem pelo mesmo IP, e o duplicado (mesmo email em 48 h) já trava spam. */
+  max: 20,
   name: 'apply',
   key: (req) => `${req.ip}|${req.params.slug}`,
   message: 'Has enviado demasiadas candidaturas desde este dispositivo. Inténtalo más tarde.'
@@ -288,7 +290,9 @@ router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
  * ------------------------------------------------------------------ */
 const interestLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
-  max: 5,
+  /* Por IP + negócio. 20 e não 5: numa loja com Wi-Fi vários candidatos
+   * saem pelo mesmo IP, e o duplicado (mesmo email em 48 h) já trava spam. */
+  max: 20,
   name: 'interest',
   key: (req) => `${req.ip}|${req.params.slug}`,
   message: 'Demasiadas solicitudes. Inténtalo más tarde.'
@@ -411,7 +415,12 @@ router.get('/r/:slug/imagen/:tipo', async (req, res) => {
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Length', buffer.length);
-  res.setHeader('Cache-Control', 'public, max-age=3600');
+  /* Com ?v=<ficheiro> o URL muda a cada novo upload, por isso pode ficar em
+   * cache muito tempo (também na CDN da Vercel, via s-maxage) sem nunca
+   * mostrar uma imagem antiga. Sem versão, cache curta. */
+  res.setHeader('Cache-Control', req.query.v
+    ? 'public, max-age=604800, s-maxage=604800, immutable'
+    : 'public, max-age=300');
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.end(buffer);
 });
