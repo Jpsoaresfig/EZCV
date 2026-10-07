@@ -45,7 +45,7 @@ A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o don
 **Página de apresentação** — `/conoce`
 - Destino do QR impresso nos cartões entregues aos estabelecimentos: explica do zero o que é o Fíchame, como funciona, que não é preciso RH e que é gratuito durante a prova de mercado.
 - Espanhol por omissão, inglês com `?lang=en` (ou se o browser estiver em inglês). Texto em `src/lib/conoce.js` — só descreve o que o produto faz hoje.
-- **Vídeo:** colocar a gravação da aplicação em `public/video/fichame-demo.mp4` (opcional `fichame-demo-en.mp4`). Sem ficheiro, a página mostra «Vídeo en preparación». Nada é descarregado até carregar no play.
+- **Vídeo:** `public/video/fichame-demo.mp4` (legendas em espanhol) e `fichame-demo-en.mp4` (inglês), ~1 min 45 s, gravados da aplicação real com dados fictícios. Para regenerar depois de mudar a interface: ver o cabeçalho de [`scripts/demo-video/record.js`](scripts/demo-video/record.js). Sem ficheiro, a página mostra «Vídeo en preparación». Nada é descarregado até carregar no play.
 - `CONTACT_EMAIL` (opcional) mostra um botão «Escríbenos» na secção de opinião.
 
 **Admin da plataforma** — `/admin`
