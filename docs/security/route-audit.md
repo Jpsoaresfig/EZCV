@@ -39,6 +39,9 @@ Comuns a todas as respostas: CSP estrita, `nosniff`, `X-Frame-Options: DENY`, `R
 | `GET/POST /panel/privacidad…` | O | — | tenant | — | ✓ | `retencion_configurada` | Prazos dentro de limites (CHECK na BD) |
 | `GET/POST /panel/derechos…` | O | Pedidos | tenant | — | ✓ | `derechos_actualizada` | — |
 | `GET /admin`, `/admin/usuarios`, `/admin/logs` | A | Metadados de negócios e utilizadores; logs | papel admin | — | — | `admin_lista_usuarios` | **Sem rotas de candidatos/CV**; admin → `/panel/*` = 403 (testado) |
+| `GET /panel/reportar`, `POST /panel/reportar` | O | Texto livre do dono (aviso: sem dados de candidatos) | tenant da sessão | M 10/h por utilizador | ✓ | `reporte_enviado` | Página guardada só como caminho interno, sem query; código de erro validado `[A-F0-9]{6}` |
+| `GET /admin/reportes`, `POST /admin/reportes/:id/estado` | A | Reportes (texto livre) e erros técnicos redigidos | papel admin; `id` numérico | — | ✓ | `admin_lista_reportes` (await) | Anónimo/owner → 404 (testado) |
+| Erro 500 (qualquer rota) | — | Mensagem e stack redigidos (emails, números longos) | — | — | — | `error_events` | Código mostrado na página de erro; rota `/__test/erro` só com `EZCV_TEST_PREFIX` |
 | `GET /admin/divulgacion`, `/admin/divulgacion/qr.png`, `/qr.svg` | A | — | papel admin | — | — | — | QR fixo para `APP_URL/conoce`; não aceita URL do pedido (sem gerador aberto). Anónimo/owner → 404 (testado) |
 | `POST /admin/restaurantes/:id/toggle`, `/admin/usuarios/:id/bloquear` | A | — | `id` numérico | — | ✓ | `restaurante_toggle`, `usuario_bloqueo` | Bloquear termina sessões |
 

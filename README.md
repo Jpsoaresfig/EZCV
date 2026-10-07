@@ -51,6 +51,11 @@ A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o don
 **Admin da plataforma** — `/admin`
 - Métricas globais, ativação de estabelecimentos, bloqueio de utilizadores e logs de segurança.
 - **Divulgación** (`/admin/divulgacion`): o QR único que leva a `/conoce`, para descarregar (PNG/SVG), imprimir ou copiar o link. Só o admin o vê.
+- **Reportes** (`/admin/reportes`): reportes enviados pelos negócios (erro, sugestão, dúvida), com estado Nuevo → En revisión → Resuelto, e os últimos erros 500 do servidor. Cada erro tem um código (ex.: `A3F9C2`) que a pessoa vê no ecrã; se reportar a partir dali, o reporte fica ligado ao erro. Aviso por email para `ADMIN_EMAIL` (com SMTP), sem o texto do reporte.
+
+**Reportar un problema** — `/panel/reportar` (no menu lateral; no telemóvel em Ajustes)
+- Formulário curto para o dono do negócio. Junta a página de onde veio e o código do erro, se houver. Pede para não incluir dados de candidatos.
+- Erros do servidor e reportes resolvidos são apagados pela retenção ao fim de `ERROR_EVENT_DAYS` (90) e `REPORT_DAYS` (365) dias.
 - **Sem acesso a dados de candidatos**, por desenho (testado: admin → rotas de candidatos = 403).
 
 ---
@@ -105,6 +110,9 @@ npm run migrate
 4. `migrations/0004_notifications_cascade.sql`
 5. `migrations/0005_privacy_hardening.sql`
 6. `migrations/0006_tenant_fk_cleanup.sql`
+7. `migrations/0007_google_login.sql`
+8. `migrations/0008_onboarding_steps.sql`
+9. `migrations/0009_problem_reports.sql`
 
 As migrations são idempotentes. `0000_reset.sql` é **destrutivo** (apaga o schema) e só corre com `npm run migrate -- --reset`.
 

@@ -32,6 +32,22 @@ const storage = require('./storage');
 
 const SECURITY_LOG_DAYS = parseInt(process.env.SECURITY_LOG_DAYS || '365', 10);
 const RIGHTS_REQUEST_DAYS = parseInt(process.env.RIGHTS_REQUEST_DAYS || '1095', 10);
+/* Erros do servidor e reportes resolvidos (0009): dados técnicos e de
+ * suporte, sem razão para ficarem mais tempo. */
+const ERROR_EVENT_DAYS = parseInt(process.env.ERROR_EVENT_DAYS || '90', 10);
+const REPORT_DAYS = parseInt(process.env.REPORT_DAYS || '365', 10);
+
+/* Conta (e, com apply, apaga) as linhas anteriores ao prazo. */
+async function purgeOlderThan(table, days, apply, extra = (q) => q) {
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString();
+  const { count: n, error } = await extra(sb().from(table).select('id', { count: 'exact', head: true }).lt('created_at', cutoff));
+  if (error) throw new Error(`Supabase: contar ${table} — ${error.message}`);
+  if (apply && n > 0) {
+    const { error: e2 } = await extra(sb().from(table).delete().lt('created_at', cutoff));
+    if (e2) throw new Error(`Supabase: apagar ${table} — ${e2.message}`);
+  }
+  return n || 0;
+}
 
 /* Objetos no bucket de CVs sem linha em `cvs`. Só considera órfãos os que
  * têm mais de `minAgeMs` (um upload em curso ainda não tem a linha). */
@@ -95,6 +111,10 @@ async function runRetention({ apply = false, log = () => {} } = {}) {
       `rate limit: ${purge.rate_limits} · logs > ${SECURITY_LOG_DAYS} d: ${purge.security_logs} · ` +
       `pedidos de direitos fechados > ${RIGHTS_REQUEST_DAYS} d: ${purge.rights_requests}`);
 
+  report.errorEvents = await purgeOlderThan('error_events', ERROR_EVENT_DAYS, apply);
+  report.problemReports = await purgeOlderThan('problem_reports', REPORT_DAYS, apply, (q) => q.eq('status', 'resuelto'));
+  log(`erros do servidor > ${ERROR_EVENT_DAYS} d: ${report.errorEvents} · reportes resolvidos > ${REPORT_DAYS} d: ${report.problemReports}`);
+
   const orphans = await findOrphanCvs();
   report.orphans = orphans.length;
   log(`CVs órfãos no Storage (> 24 h, sem candidatura): ${orphans.length}`);
@@ -113,4 +133,4 @@ async function runRetention({ apply = false, log = () => {} } = {}) {
   return report;
 }
 
-module.exports = { runRetention, findOrphanCvs, SECURITY_LOG_DAYS, RIGHTS_REQUEST_DAYS };
+module.exports = { runRetention, findOrphanCvs, SECURITY_LOG_DAYS, RIGHTS_REQUEST_DAYS, ERROR_EVENT_DAYS, REPORT_DAYS };

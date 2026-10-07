@@ -3063,3 +3063,40 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
   .cn-can-item .cn-chips, .cn-can-item .cn-pipe { grid-column: 1 / -1; }
   .cn-benefits { gap: 10px; }
 }
+
+/* ===========================================================================
+   19. Reportes (painel /panel/reportar e admin /admin/reportes)
+   =========================================================================== */
+.report-list { list-style: none; margin: 12px 0 0; padding: 0; display: grid; gap: 10px; }
+.report-list > li {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  background: var(--surface);
+  scroll-margin-top: 80px;
+}
+.report-list > li:target { border-color: var(--brand); box-shadow: var(--ring); }
+.report-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+.report-msg { margin: 8px 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.5; }
+.report-meta { margin: 0 0 8px; overflow-wrap: anywhere; }
+.report-status { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.report-status select { width: auto; min-width: 150px; }
+.report-filters { margin-bottom: 4px; }
+.report-stack summary { cursor: pointer; font-size: .85rem; color: var(--ink-2); }
+.report-stack pre {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  font-family: var(--mono);
+  font-size: .76rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+.badge.report-nuevo     { background: #fef3c7; color: #a4590a; }
+.badge.report-revisando { background: #cffafe; color: #0e7490; }
+.badge.report-resuelto  { background: #dcfce7; color: #15803d; }
+
+.error-ref { margin: 14px 0 4px; font-size: .95rem; }
+.error-ref strong { font-family: var(--mono); letter-spacing: .08em; }

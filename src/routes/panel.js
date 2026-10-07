@@ -1197,4 +1197,91 @@ router.post('/panel/candidaturas/:id/bloqueo', async (req, res) => {
   res.redirect(`/panel/candidaturas/${id}?ok=` + encodeURIComponent(hold ? 'Bloqueo de conservación activado.' : 'Bloqueo retirado.'));
 });
 
+/* ================================================================== *
+ * Reportar un problema (prova de mercado)
+ * ================================================================== *
+ * O dono do negócio envia um erro, uma sugestão ou uma dúvida. Fica em
+ * problem_reports (0009) e o admin lê-o em /admin/reportes. Junta-se a página
+ * de onde veio (só o caminho interno, sem query) e, se veio da página de
+ * erro, o código do erro registado em error_events. */
+const REPORT_KINDS = { error: 'Algo no funciona', sugerencia: 'Una sugerencia', duda: 'Tengo una duda' };
+const REPORT_STATUS = { nuevo: 'Recibido', revisando: 'En revisión', resuelto: 'Resuelto' };
+
+function reportPage(value) {
+  const p = String(value || '').split(/[?#]/)[0];
+  return /^\/[a-z0-9/_-]{0,150}$/i.test(p) && p !== '/panel/reportar' ? p : '';
+}
+
+function refererPage(req) {
+  try {
+    const u = new URL(req.get('referer') || '');
+    return u.host === req.get('host') ? reportPage(u.pathname) : '';
+  } catch {
+    return '';
+  }
+}
+
+function reportRef(value) {
+  const v = String(value || '').toUpperCase();
+  return /^[A-F0-9]{6}$/.test(v) ? v : '';
+}
+
+router.get('/panel/reportar', async (req, res) => {
+  const mine = await many(
+    sb().from('problem_reports')
+      .select('id, kind, message, status, created_at')
+      .eq('restaurant_id', restaurantId(req))
+      .order('created_at', { ascending: false })
+      .limit(10),
+    'reportes do negócio'
+  );
+
+  res.render('panel/report', {
+    ref: reportRef(req.query.ref),
+    page: reportPage(req.query.desde) || refererPage(req),
+    mine,
+    kinds: REPORT_KINDS,
+    statuses: REPORT_STATUS,
+    query: req.query
+  });
+});
+
+router.post('/panel/reportar', rateLimit({
+  windowMs: 60 * 60 * 1000, max: 10, name: 'reports', key: (req) => String(req.user && req.user.id)
+}), async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+
+  const kind = Object.prototype.hasOwnProperty.call(REPORT_KINDS, req.body.tipo) ? req.body.tipo : 'error';
+  const message = clean(req.body.mensaje, 2000);
+  const ref = reportRef(req.body.ref);
+  const page = reportPage(req.body.pagina);
+
+  if (message.length < 3) {
+    const back = new URLSearchParams({ err: 'Cuéntanos qué ha pasado.' });
+    if (ref) back.set('ref', ref);
+    if (page) back.set('desde', page);
+    return res.redirect('/panel/reportar?' + back.toString());
+  }
+
+  await run(sb().from('problem_reports').insert({
+    restaurant_id: restaurantId(req),
+    user_id: req.user.id,
+    kind,
+    message,
+    page,
+    error_ref: ref,
+    user_agent: String(req.headers['user-agent'] || '').slice(0, 200)
+  }), 'gravar reporte');
+
+  logSecurity('reporte_enviado', `kind=${kind}${ref ? ` ref=${ref}` : ''}`, req.ip, {
+    userId: req.user.id, restaurantId: restaurantId(req)
+  });
+
+  /* O aviso ao admin não atrasa a resposta. */
+  require('../lib/mailer').notifyProblemReport({ kind, restaurantName: req.user.restaurant_name })
+    .catch((err) => console.error('[reporte] aviso falhou:', err.message));
+
+  res.redirect('/panel/reportar?ok=' + encodeURIComponent('Gracias. Hemos recibido tu reporte y lo revisaremos.'));
+});
+
 module.exports = router;

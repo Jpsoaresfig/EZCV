@@ -223,3 +223,17 @@ test('/conoce: o texto não promete funcionalidades que o produto não tem', () 
     assert.ok(!all.includes(word), `texto menciona «${word.trim()}»`);
   }
 });
+
+const { redact, newRef } = require('../src/lib/errors');
+
+test('erros: código curto em hexadecimal maiúsculo', () => {
+  for (let i = 0; i < 20; i++) assert.match(newRef(), /^[A-F0-9]{6}$/);
+});
+
+test('erros: emails e números longos saem da mensagem', () => {
+  const out = redact('Key (email)=(ana.lopez@gmail.com) already exists; tel +34 612 345 678; id 42');
+  assert.ok(!out.includes('ana.lopez'), out);
+  assert.ok(!out.includes('612 345'), out);
+  assert.ok(out.includes('[email]') && out.includes('[número]'), out);
+  assert.ok(out.includes('id 42'), 'números curtos (ids) ficam');
+});

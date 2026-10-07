@@ -1181,6 +1181,72 @@ async function main() {
     res = await call('GET', '/admin/divulgacion/qr.svg', { jar: adminJar });
     check('admin descarrega o QR em SVG',
       res.status === 200 && (res.headers.get('content-type') || '').startsWith('image/svg+xml') && (await text(res)).includes('<svg'));
+    console.log('\n— Reportes e erros do servidor —');
+    res = await call('GET', '/__test/erro', { jar: ownerJar });
+    html = await text(res);
+    const errRef = (html.match(/Código de referencia: <strong>([A-F0-9]{6})<\/strong>/) || [])[1];
+    check('erro 500 mostra código de referência', res.status === 500 && Boolean(errRef));
+    check('dono pode reportar o erro a partir da página',
+      html.includes(`/panel/reportar?ref=${errRef}&amp;desde=%2F__test%2Ferro`));
+    {
+      let row = null;
+      for (let i = 0; i < 10 && !row; i++) {
+        const { data } = await sb.from('error_events').select('*').eq('ref', errRef || '-').maybeSingle();
+        row = data;
+        if (!row) await new Promise((r) => setTimeout(r, 300));
+      }
+      check('erro registado em error_events', Boolean(row && row.path === '/__test/erro' && row.restaurant_id));
+      check('mensagem do erro sem email nem telefone',
+        Boolean(row && row.message.includes('[email]') && !row.message.includes('ana.teste@') && !row.message.includes('123 456')));
+    }
+    res = await call('GET', '/__test/erro');
+    html = await text(res);
+    check('visitante vê o código mas não o botão de reporte',
+      res.status === 500 && html.includes('Código de referencia') && !html.includes('/panel/reportar'));
+
+    res = await call('GET', `/panel/reportar?ref=${errRef}&desde=/__test/erro`, { jar: ownerJar });
+    html = await text(res);
+    check('formulário de reporte com código e página', res.status === 200 &&
+      html.includes(`value="${errRef}"`) && html.includes('value="/__test/erro"') && html.includes('No incluyas datos de candidatos'));
+    const repCsrf = csrfOf(html);
+    res = await call('POST', '/panel/reportar', { jar: ownerJar, body: form({ _csrf: repCsrf, tipo: 'error', mensaje: ' ', ref: errRef }) });
+    check('reporte vazio é recusado', res.status === 302 && (res.headers.get('location') || '').includes('err='));
+    res = await call('POST', '/panel/reportar', { jar: ownerJar, body: form({
+      _csrf: repCsrf, tipo: 'error', mensaje: `Al guardar falla ${P}`, ref: errRef, pagina: '/__test/erro?x=1'
+    }) });
+    check('reporte enviado', res.status === 302 && (res.headers.get('location') || '').includes('ok='));
+    res = await call('POST', '/panel/reportar', { jar: ownerJar, body: form({ tipo: 'duda', mensaje: 'sem csrf' }) });
+    check('reporte sem CSRF → 403', res.status === 403);
+    {
+      const { data } = await sb.from('problem_reports').select('*').ilike('message', `%${P}%`).maybeSingle();
+      check('reporte gravado com negócio, código e página sem query',
+        Boolean(data && data.restaurant_id && data.error_ref === errRef && data.page === '/__test/erro' && data.status === 'nuevo'));
+    }
+    res = await call('GET', '/panel/reportar', { jar: ownerJar });
+    check('dono vê os seus reportes', (await text(res)).includes(`Al guardar falla ${P}`));
+
+    for (const u of ['/admin/reportes']) {
+      res = await call('GET', u);
+      check(`anónimo → ${u} → 404`, res.status === 404);
+      res = await call('GET', u, { jar: ownerJar });
+      check(`dono → ${u} → 404`, res.status === 404);
+    }
+    res = await call('GET', '/admin/reportes', { jar: adminJar });
+    html = await text(res);
+    check('admin vê o reporte e o erro ligados',
+      res.status === 200 && html.includes(`Al guardar falla ${P}`) && html.includes(`id="err-${errRef}"`) && html.includes('Reportado'));
+    {
+      const repId = (html.match(new RegExp(`id="r-(\\d+)"[\\s\\S]{0,1200}?Al guardar falla ${P}`)) || [])[1];
+      res = await call('POST', `/admin/reportes/${repId}/estado`, { jar: adminJar, body: form({ _csrf: csrfOf(html), status: 'resuelto' }) });
+      const { data } = await sb.from('problem_reports').select('status').eq('id', Number(repId) || 0).maybeSingle();
+      check('admin marca o reporte como resolvido', res.status === 302 && data && data.status === 'resuelto');
+      res = await call('POST', `/admin/reportes/${repId}/estado`, { jar: ownerJar, body: form({ _csrf: csrfOf(html), status: 'nuevo' }) });
+      const { data: after } = await sb.from('problem_reports').select('status').eq('id', Number(repId) || 0).maybeSingle();
+      check('dono não altera estados de reportes', [403, 404].includes(res.status) && after && after.status === 'resuelto', `status=${res.status}`);
+    }
+    res = await call('GET', '/admin/logs?event=admin_lista_reportes', { jar: adminJar });
+    check('acesso do admin aos reportes fica registado', (await text(res)).includes('admin_lista_reportes'));
+
 
     console.log('\n— Admin sem acesso a dados de candidatos —');
     for (const u of [`/panel/candidaturas/${appId}`, `/panel/cv/${cvId}`, '/panel/candidaturas', `/panel/candidaturas/${appId}/exportar`, '/panel/derechos']) {

@@ -37,6 +37,8 @@ drop function if exists submit_interest(jsonb);
 drop function if exists submit_application(jsonb);
 drop function if exists register_restaurant(jsonb);
 
+drop table if exists problem_reports cascade;
+drop table if exists error_events cascade;
 drop table if exists security_logs cascade;
 drop table if exists sessions cascade;
 drop table if exists notifications cascade;

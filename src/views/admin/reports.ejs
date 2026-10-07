@@ -1,0 +1,105 @@
+<%- include('../partials/head', { title: 'Reportes' }) %>
+<%- include('../partials/admin_nav') %>
+<%
+var KINDS = { error: 'Error', sugerencia: 'Sugerencia', duda: 'Duda' };
+var KIND_COLOR = { error: 'red', sugerencia: 'violet', duda: 'blue' };
+var STATUS = { nuevo: 'Nuevo', revisando: 'En revisión', resuelto: 'Resuelto' };
+var STATUS_COLOR = { nuevo: 'amber', revisando: 'cyan', resuelto: 'green' };
+function bizName(r) {
+  var b = r.restaurants;
+  return b ? (b.commercial_name || b.name) : '—';
+}
+%>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Reportes</h1>
+    <span class="count"><%= openCount %> abiertos</span>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <div class="card">
+    <h2>Reportes de los negocios</h2>
+    <p class="help">
+      Enviados desde «Reportar un problema» en el panel. Es texto libre: puede contener
+      datos personales aunque el formulario pide no incluirlos. Cada acceso queda
+      registrado en los logs de seguridad.
+    </p>
+
+    <div class="actions-row flat report-filters">
+      <a class="btn small <%= estado ? 'secondary' : '' %>" href="/admin/reportes">Todos</a>
+      <% Object.keys(STATUS).forEach(function (s) { %>
+        <a class="btn small <%= estado === s ? '' : 'secondary' %>" href="/admin/reportes?estado=<%= s %>"><%= STATUS[s] %></a>
+      <% }) %>
+    </div>
+
+    <% if (!reports.length) { %>
+      <p class="muted">No hay reportes<%= estado ? ' con este estado' : '' %>.</p>
+    <% } %>
+
+    <ul class="report-list">
+      <% reports.forEach(function (r) { %>
+        <li id="r-<%= r.id %>">
+          <div class="report-head">
+            <span class="badge <%= KIND_COLOR[r.kind] || 'slate' %>"><%= KINDS[r.kind] || r.kind %></span>
+            <strong><%= bizName(r) %></strong>
+            <span class="muted small"><%= r.users ? r.users.email : '' %></span>
+            <span class="muted small nowrap">#<%= r.id %> · <%= fmtDate(r.created_at) %></span>
+          </div>
+          <p class="report-msg"><%= r.message %></p>
+          <p class="muted small report-meta">
+            <% if (r.page) { %>Página: <code><%= r.page %></code> · <% } %>
+            <% if (r.error_ref) { %>Error: <a href="#err-<%= r.error_ref %>"><strong><%= r.error_ref %></strong></a> · <% } %>
+            <%= r.user_agent || 'navegador desconocido' %>
+          </p>
+          <form class="report-status" action="/admin/reportes/<%= r.id %>/estado" method="post">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <span class="badge <%= STATUS_COLOR[r.status] %>"><%= STATUS[r.status] %></span>
+            <select name="status" aria-label="Estado del reporte #<%= r.id %>">
+              <% Object.keys(STATUS).forEach(function (s) { %>
+                <option value="<%= s %>" <%= r.status === s ? 'selected' : '' %>><%= STATUS[s] %></option>
+              <% }) %>
+            </select>
+            <button class="btn secondary small" type="submit">Guardar</button>
+          </form>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>Errores del servidor</h2>
+    <p class="help">
+      Últimos 100 errores internos (500). El código es el que vio la persona en la
+      pantalla de error. Emails y números largos se eliminan antes de guardar.
+    </p>
+
+    <% if (!errors.length) { %>
+      <p class="muted">Sin errores registrados.</p>
+    <% } %>
+
+    <ul class="report-list">
+      <% errors.forEach(function (e) { %>
+        <li id="err-<%= e.ref %>">
+          <div class="report-head">
+            <span class="badge red"><%= e.ref %></span>
+            <code><%= e.method %> <%= e.path %></code>
+            <% if (reportedRefs.has(e.ref)) { %><span class="badge amber">Reportado</span><% } %>
+            <span class="muted small nowrap"><%= fmtDate(e.created_at) %> <%= new Date(e.created_at).toLocaleTimeString('es-ES', { timeZone: 'Europe/Madrid', hour: '2-digit', minute: '2-digit' }) %></span>
+          </div>
+          <p class="report-msg"><%= e.message || '(sin mensaje)' %></p>
+          <% if (e.restaurants) { %><p class="muted small report-meta">Negocio: <%= bizName(e) %></p><% } %>
+          <% if (e.stack) { %>
+            <details class="report-stack">
+              <summary>Ver detalle técnico</summary>
+              <pre><%= e.stack %></pre>
+            </details>
+          <% } %>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

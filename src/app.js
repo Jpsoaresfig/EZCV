@@ -11,6 +11,7 @@ const { csrfProtection } = require('./middleware/csrf');
 const { rateLimit } = require('./middleware/rateLimit');
 const { STATUSES, AVAILABILITIES, DOC_TYPES, ESTABLISHMENT_TYPES, CONTRACT_TYPES, WORK_SCHEDULES, statusLabel, availabilityLabel, docTypeLabel, historyLabel } = require('./lib/statuses');
 const { icon, initials } = require('./lib/icons');
+const { newRef, recordError } = require('./lib/errors');
 
 /* O PostgREST devolve timestamptz como ISO 8601 com fuso ("…+00:00"), que o
  * Date do JS lê diretamente. O ramo que acrescenta 'Z' cobre valores sem
@@ -221,17 +222,36 @@ function createApp() {
   app.use('/', require('./routes/panel'));
   app.use('/', require('./routes/admin'));
 
+  /* Só nos testes E2E (EZCV_TEST_PREFIX): um erro real para validar o registo
+   * em error_events, a redação de dados e a página com o código. */
+  if (config.testPrefix) {
+    app.get('/__test/erro', () => {
+      throw new Error('Falha de teste para ana.teste@example.com 600 123 456');
+    });
+  }
+
   app.use((req, res) => {
     res.status(404).render('error', {
       status: 404, title: 'Página no encontrada', message: 'La página que buscas no existe.'
     });
   });
 
+  /* Erro inesperado: fica em error_events com um código curto que a página
+   * mostra. O dono do negócio pode reportá-lo dali, já com o código; o admin
+   * vê os dois ligados em /admin/reportes. Erros 4xx do body-parser (corpo
+   * grande demais, JSON inválido) não são falhas do servidor e não ficam
+   * registados. */
   app.use((err, req, res, _next) => {
-    console.error('[erro]', err);
+    const serverFault = !(err && err.status >= 400 && err.status < 500);
+    const ref = serverFault ? newRef() : '';
+    console.error(ref ? `[erro ${ref}]` : '[erro]', err);
+    if (serverFault) recordError(err, req, ref);
     if (res.headersSent) return;
     res.status(500).render('error', {
-      status: 500, title: 'Error interno', message: 'Algo salió mal. Inténtalo de nuevo.'
+      status: 500, title: 'Error interno', message: 'Algo salió mal. Inténtalo de nuevo.',
+      errorRef: ref,
+      canReport: Boolean(req.user && req.user.role === 'owner'),
+      fromPath: req.path || ''
     });
   });
 

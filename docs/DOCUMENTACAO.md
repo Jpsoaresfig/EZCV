@@ -63,6 +63,7 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 - Tabela de estabelecimentos com toggle ativar/desativar.
 - Lista de usuários com bloqueio/desbloqueio (bloqueio remove as sessões ativas).
 - **`/admin/logs`**: logs de segurança (`security_logs`) com filtro por evento, IP, data.
+- **`/admin/reportes`**: reportes enviados pelos negócios em `/panel/reportar` e erros 500 do servidor (`error_events`, migration 0009), ligados pelo código de referência que a página de erro mostra. Acesso registado (`admin_lista_reportes`).
 - **`/admin/divulgacion`**: QR único da página de apresentação `/conoce`, para os cartões entregues aos negócios — ver, copiar o link, descarregar (PNG 2048 px ou SVG) e imprimir. Avisa se `APP_URL` não for um endereço público HTTPS.
 - Donos de restaurante recebem **404** em `/admin`.
 
@@ -97,6 +98,7 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/panel` | Dashboard + métricas + atenção + botão pausar/ativar |
+| GET/POST | `/panel/reportar` | Reportar um problema (`?ref=` código do erro, `?desde=` página); lista os reportes do próprio negócio |
 | GET | `/panel/candidaturas` | Lista com filtros (`q`, `estado`, `puesto`, `disp`, `desde`, `hasta`, `orden`, `favs`), máx. 200 |
 | GET | `/panel/candidaturas/:id` | Perfil do candidato |
 | POST | `/panel/candidaturas/:id/estado` | Altera estado (valida contra os 8 keys) + regista histórico |
@@ -125,6 +127,8 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 | GET | `/admin/usuarios` | Lista de usuários |
 | GET | `/admin/logs` | Logs de segurança (`security_logs`) com filtro por evento |
 | GET | `/admin/divulgacion` | QR da página de apresentação (`/conoce`) + `qr.png` / `qr.svg` |
+| GET | `/admin/reportes` | Reportes dos negócios (`?estado=`) e últimos 100 erros 500 (`error_events`) |
+| POST | `/admin/reportes/:id/estado` | Muda o estado do reporte (nuevo / revisando / resuelto) |
 | POST | `/admin/restaurantes/:id/toggle` | Ativa/desativa restaurante |
 | POST | `/admin/usuarios/:id/bloquear` | Bloqueia/desbloqueia (não a si próprio; não afeta outros admins) |
 

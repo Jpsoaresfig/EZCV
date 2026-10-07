@@ -268,4 +268,25 @@ async function sendPasswordReset({ to, token }) {
   return deliver({ to, subject, text, html, kind: 'recuperação de senha' });
 }
 
-module.exports = { notifyNewApplication, notifyRightsRequest, sendPasswordReset };
+/* Novo reporte de problema (/panel/reportar) para o admin da plataforma
+ * (ADMIN_EMAIL). Sem o texto do reporte — pode trazer dados que não devem
+ * sair por email: só o tipo, o negócio e o link para o admin. */
+async function notifyProblemReport({ kind, restaurantName }) {
+  const to = String(process.env.ADMIN_EMAIL || '').trim();
+  if (!to) return 'skipped';
+  const link = `${config.appUrl}/admin/reportes`;
+  const label = { error: 'Error', sugerencia: 'Sugerencia', duda: 'Duda' }[kind] || kind;
+  const subject = `Nuevo reporte en Fíchame: ${label}`;
+  const text = [
+    `${restaurantName || 'Un negocio'} ha enviado un reporte (${label}).`,
+    '',
+    `Ver en el panel de administración: ${link}`
+  ].join('\n');
+  const html = [
+    `<p><strong>${escapeHtml(restaurantName || 'Un negocio')}</strong> ha enviado un reporte (${escapeHtml(label)}).</p>`,
+    `<p><a href="${escapeHtml(link)}">Ver en el panel de administración</a></p>`
+  ].join('\n');
+  return deliver({ to, subject, text, html, kind: 'reporte de problema' });
+}
+
+module.exports = { notifyNewApplication, notifyRightsRequest, sendPasswordReset, notifyProblemReport };

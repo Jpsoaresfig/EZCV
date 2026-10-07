@@ -5,7 +5,7 @@ const QRCode = require('qrcode');
 
 const config = require('../config');
 const { QR_OPTIONS } = require('../lib/qr');
-const { sb, one, many, rpc, logSecurity } = require('../db');
+const { sb, one, many, count, rpc, logSecurity } = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const { verifyCsrf } = require('../middleware/csrf');
 
@@ -154,6 +154,58 @@ router.post('/admin/usuarios/:id/bloquear', async (req, res) => {
 
   res.redirect('/admin/usuarios?ok=' +
     encodeURIComponent(`${result.email}: ${result.blocked ? 'bloqueado' : 'desbloqueado'}`));
+});
+
+/* Reportes dos negócios e erros do servidor (0009).
+ *
+ * Os reportes são texto livre escrito pelo dono do negócio: apesar do aviso
+ * no formulário, podem trazer dados pessoais. Por isso o acesso fica
+ * registado, como a lista de utilizadores (§22). Os erros guardam só dados
+ * técnicos, já redigidos em src/lib/errors.js. */
+const REPORT_STATUSES = ['nuevo', 'revisando', 'resuelto'];
+
+router.get('/admin/reportes', async (req, res) => {
+  const estado = REPORT_STATUSES.includes(req.query.estado) ? req.query.estado : '';
+
+  let reportsQuery = sb().from('problem_reports')
+    .select('id, kind, message, page, error_ref, user_agent, status, created_at, restaurants(name, commercial_name), users(email)')
+    .order('created_at', { ascending: false })
+    .limit(200);
+  if (estado) reportsQuery = reportsQuery.eq('status', estado);
+
+  const [reports, errors, openCount] = await Promise.all([
+    many(reportsQuery, 'reportes'),
+    many(
+      sb().from('error_events')
+        .select('id, ref, method, path, message, stack, created_at, restaurants(name, commercial_name)')
+        .order('created_at', { ascending: false })
+        .limit(100),
+      'erros do servidor'
+    ),
+    count(sb().from('problem_reports').select('id', { count: 'exact', head: true }).neq('status', 'resuelto'), 'reportes abertos')
+  ]);
+
+  await logSecurity('admin_lista_reportes', `n=${reports.length}`, req.ip, {
+    userId: req.user.id, userAgent: req.headers['user-agent']
+  });
+
+  const reportedRefs = new Set(reports.map((r) => r.error_ref).filter(Boolean));
+  res.render('admin/reports', { reports, errors, openCount, estado, reportedRefs, query: req.query });
+});
+
+router.post('/admin/reportes/:id/estado', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+
+  const status = REPORT_STATUSES.includes(req.body.status) ? req.body.status : null;
+  if (!status) return res.redirect('/admin/reportes?err=' + encodeURIComponent('Estado no válido.'));
+
+  const updated = await many(
+    sb().from('problem_reports').update({ status }).eq('id', Number(req.params.id)).select('id'),
+    'estado do reporte'
+  );
+  if (!updated.length) return res.redirect('/admin/reportes?err=' + encodeURIComponent('Reporte no encontrado.'));
+
+  res.redirect('/admin/reportes?ok=' + encodeURIComponent(`Reporte #${req.params.id}: ${status}`) + '#r-' + req.params.id);
 });
 
 /* Divulgação: o QR único dos cartões que o admin entrega aos negócios.
