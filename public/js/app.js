@@ -66,3 +66,15 @@ document.addEventListener('click', function (e) {
 document.addEventListener('click', function (e) {
   if (e.target.closest('[data-print]')) window.print();
 });
+
+/* Guia de primeiros passos: «Abrir página» abre noutro separador. Ao voltar
+   a este, recarrega para o passo aparecer como concluído. */
+(function () {
+  var opened = false;
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('[data-refresh-on-return]')) opened = true;
+  });
+  document.addEventListener('visibilitychange', function () {
+    if (opened && document.visibilityState === 'visible') window.location.reload();
+  });
+})();

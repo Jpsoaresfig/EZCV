@@ -9,6 +9,7 @@ const { requireOwner } = require('../middleware/auth');
 const { verifyCsrf } = require('../middleware/csrf');
 const { rateLimit } = require('../middleware/rateLimit');
 const { hashPassword, verifyPassword } = require('../lib/crypto');
+const google = require('../lib/google');
 const { uploadRestaurantImages } = require('../middleware/uploads');
 const { destroyUserSessions } = require('../middleware/session');
 const { findProtectedTerms } = require('../lib/sensitive');
@@ -108,7 +109,7 @@ async function statusCounts(rid) {
 router.get('/panel', async (req, res) => {
   const rid = restaurantId(req);
 
-  const [counts, metrics, recent, profile] = await Promise.all([
+  const [counts, metrics, recent, profile, openJobList] = await Promise.all([
     statusCounts(rid),
     one(sb().from('restaurant_metrics').select('*').eq('restaurant_id', rid), 'métricas'),
     many(
@@ -120,8 +121,16 @@ router.get('/panel', async (req, res) => {
         .limit(8),
       'candidaturas recentes'
     ),
-    // só para o guia de primeiros passos (logo já carregado ou não)
-    one(sb().from('restaurants').select('logo_path').eq('id', rid), 'perfil do restaurante')
+    // só para o guia de primeiros passos
+    one(sb().from('restaurants').select('logo_path, page_viewed_at, qr_viewed_at').eq('id', rid), 'perfil do restaurante'),
+    // vagas abertas, para o ecrã «à espera da primeira candidatura»
+    many(
+      sb().from('job_list').select('id, title, applicants')
+        .eq('restaurant_id', rid).eq('active', true)
+        .order('created_at', { ascending: false })
+        .limit(6),
+      'vagas abertas'
+    )
   ]);
 
   const firstName = String(req.user.full_name || '').trim().split(/\s+/)[0] || '';
@@ -129,12 +138,15 @@ router.get('/panel', async (req, res) => {
   res.render('panel/dashboard', {
     firstName,
     hasLogo: Boolean(profile && profile.logo_path),
+    pageViewed: Boolean(profile && profile.page_viewed_at),
+    qrViewed: Boolean(profile && profile.qr_viewed_at),
     nfcUrl: `${config.appUrl}/r/${req.user.restaurant_slug}`,
     counts,
     total: Number(metrics && metrics.total) || 0,
     weekCount: Number(metrics && metrics.week) || 0,
     monthCount: Number(metrics && metrics.month) || 0,
     openJobs: Number(metrics && metrics.open_jobs) || 0,
+    openJobList,
     recent,
     restaurant: {
       name: req.user.restaurant_name,
@@ -665,9 +677,24 @@ async function ownRestaurantUrl(req) {
   return { restaurant, url: `${config.appUrl}/r/${restaurant.slug}` };
 }
 
+/* Passos 3 e 4 do guia de primeiros passos: só a primeira vez conta. Não é
+ * esperado com await — é um marcador, não deve atrasar a página. */
+function markOnboarding(req, column) {
+  run(sb().from('restaurants').update({ [column]: new Date().toISOString() })
+    .eq('id', restaurantId(req)).is(column, null), 'primeiros passos')
+    .catch((err) => console.error('[onboarding]', err.message));
+}
+
+/* «Abrir página» do guia: regista o passo e segue para a página pública. */
+router.get('/panel/ver-pagina', (req, res) => {
+  markOnboarding(req, 'page_viewed_at');
+  res.redirect(`${config.appUrl}/r/${req.user.restaurant_slug}`);
+});
+
 router.get('/panel/qr', async (req, res) => {
   const found = await ownRestaurantUrl(req);
   if (!found) return notFound(res);
+  markOnboarding(req, 'qr_viewed_at');
 
   const qrSvg = await QRCode.toString(found.url, { ...QR_OPTIONS, type: 'svg' });
 
@@ -803,8 +830,36 @@ router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
 /* ================================================================== *
  * Configurações: email de acesso e senha
  * ================================================================== */
-router.get('/panel/configuracion', (req, res) => {
-  res.render('panel/settings', { userEmail: req.user.email, query: req.query });
+router.get('/panel/configuracion', async (req, res) => {
+  const row = await one(sb().from('users').select('google_sub').eq('id', req.user.id), 'conta google');
+  res.render('panel/settings', {
+    userEmail: req.user.email,
+    query: req.query,
+    hasPassword: Boolean(req.user.password_hash),
+    hasGoogle: Boolean(row && row.google_sub),
+    googleEnabled: google.enabled()
+  });
+});
+
+/* Desvincular Google exige a senha atual: sem ela a conta ficaria sem forma
+ * de entrar (e uma sessão roubada não chega para o fazer). */
+router.post('/panel/configuracion/google', rateLimit({
+  windowMs: 15 * 60 * 1000, max: 10, name: 'settings', key: (req) => String(req.user && req.user.id)
+}), async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+  const back = (key, msg) => res.redirect(`/panel/configuracion?${key}=` + encodeURIComponent(msg));
+
+  if (!req.user.password_hash) return back('err', 'Antes de desvincular Google, crea una contraseña con «¿Has olvidado tu contraseña?».');
+  if (!verifyPassword(String(req.body.password_actual || ''), req.user.password_hash)) {
+    logSecurity('configuracion_password_incorrecta', `user=${req.user.id}`, req.ip, {
+      userId: req.user.id, restaurantId: restaurantId(req)
+    });
+    return back('err', 'La contraseña actual es incorrecta.');
+  }
+
+  await run(sb().from('users').update({ google_sub: null }).eq('id', req.user.id), 'desvincular google');
+  logSecurity('google_desvinculado', `user=${req.user.id}`, req.ip, { userId: req.user.id, restaurantId: restaurantId(req) });
+  back('ok', 'Cuenta de Google desvinculada.');
 });
 
 router.post('/panel/configuracion', rateLimit({
@@ -818,6 +873,12 @@ router.post('/panel/configuracion', rateLimit({
   const currentPassword = String(req.body.password_actual || '');
   const newPassword = String(req.body.password_nuevo || '').slice(0, 200);
   const confirmPassword = String(req.body.password_repetir || '').slice(0, 200);
+
+  /* Conta criada com Google: ainda não há senha para confirmar. A primeira
+   * define-se pelo email de recuperação, que prova o acesso à caixa de correio. */
+  if (!req.user.password_hash) {
+    return err('Tu cuenta entra con Google y aún no tiene contraseña. Para crear una, usa «¿Has olvidado tu contraseña?» en la página de inicio de sesión.');
+  }
 
   if (!verifyPassword(currentPassword, req.user.password_hash)) {
     logSecurity('configuracion_password_incorrecta', `user=${req.user.id}`, req.ip, {

@@ -86,6 +86,10 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 | GET/POST | `/registro` | Cadastro do estabelecimento (cria restaurante + dono + sessão) |
 | GET/POST | `/login` | Login (rate limit 10/15min por IP+email) |
 | POST | `/logout` | Destroi a sessão |
+| GET | `/login/google` | Inicia o login Google (OIDC + PKCE); `?modo=vincular` liga Google à conta com sessão. Só ativo com `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` |
+| GET | `/login/google/callback` | Valida state/nonce, troca o code pelo id_token e entra; conta nova → `/registro/google`. Liga a conta existente pelo email só se for @gmail.com ou Workspace (`hd`); contas admin nunca |
+| GET/POST | `/registro/google` | Formulário do negócio sem email nem senha (identidade Google num cookie assinado, 30 min) |
+| POST | `/panel/configuracion/google` | Desvincula Google (exige a senha atual) |
 
 ### Painel (exige sessão de dono + restaurante ativo)
 | Método | Rota | Descrição |

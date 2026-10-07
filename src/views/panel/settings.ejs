@@ -21,6 +21,12 @@
     <h2>Cuenta de acceso</h2>
     <p class="muted small">Email actual: <strong><%= userEmail %></strong></p>
 
+    <% if (!hasPassword) { %>
+    <div class="notice-box">
+      <strong>Entras con Google</strong>
+      <p>Tu cuenta aún no tiene contraseña. Si quieres poder entrar también con email y contraseña, créala desde <a href="/recuperar">«¿Has olvidado tu contraseña?»</a>: te enviaremos un enlace a <strong><%= userEmail %></strong>.</p>
+    </div>
+    <% } else { %>
     <form action="/panel/configuracion" method="post">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
@@ -49,7 +55,32 @@
 
       <button class="btn" type="submit">Guardar configuración</button>
     </form>
+    <% } %>
   </div>
+
+  <% if (googleEnabled || hasGoogle) { %>
+  <div class="card narrow-card">
+    <h2>Google</h2>
+    <% if (hasGoogle) { %>
+      <p class="muted small">Tu cuenta está vinculada a Google: puedes entrar con el botón «Continuar con Google».</p>
+      <% if (hasPassword) { %>
+      <form action="/panel/configuracion/google" method="post">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+        <div class="field">
+          <label for="google_password_actual">Contraseña actual *</label>
+          <input id="google_password_actual" type="password" name="password_actual" required autocomplete="current-password">
+        </div>
+        <button class="btn secondary" type="submit">Desvincular Google</button>
+      </form>
+      <% } else { %>
+      <p class="muted small">Para desvincularla, crea antes una contraseña: si no, no podrías entrar.</p>
+      <% } %>
+    <% } else { %>
+      <p class="muted small">Vincula tu cuenta de Google para entrar sin contraseña.</p>
+      <a class="btn secondary btn-google" href="/login/google?modo=vincular"><%- include('../partials/google_icon') %> Vincular Google</a>
+    <% } %>
+  </div>
+  <% } %>
 </main>
 
 <%- include('../partials/foot') %>

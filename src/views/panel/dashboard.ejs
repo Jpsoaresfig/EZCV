@@ -26,11 +26,12 @@
       var steps = [
         { done: openJobs > 0, title: 'Publica tu primera vacante', text: 'Camarero, dependiente, cocina… Los candidatos eligen a cuál se apuntan.', href: '/panel/vagas', cta: 'Crear vacante' },
         { done: hasLogo, title: 'Añade tu logo', text: 'Tu página se ve más profesional y los candidatos reconocen tu negocio.', href: '/panel/restaurante', cta: 'Subir logo' },
-        { done: false, title: 'Mira tu página como un candidato', text: 'Es lo que se abre al acercar el móvil a la etiqueta.', href: nfcUrl, cta: 'Abrir página', external: true },
-        { done: false, title: 'Coloca la etiqueta o imprime el QR', text: 'Graba tu enlace en la etiqueta NFC y ponla a la vista, en la puerta o el mostrador.', href: '/panel/qr', cta: 'Código QR' }
+        { done: pageViewed, title: 'Mira tu página como un candidato', text: 'Es lo que se abre al acercar el móvil a la etiqueta.', href: '/panel/ver-pagina', cta: 'Abrir página', external: true },
+        { done: qrViewed, title: 'Coloca la etiqueta o imprime el QR', text: 'Graba tu enlace en la etiqueta NFC y ponla a la vista, en la puerta o el mostrador.', href: '/panel/qr', cta: 'Código QR' }
       ];
       var doneCount = steps.filter(function (s) { return s.done; }).length;
     %>
+    <% if (doneCount < steps.length) { %>
     <section class="card onboarding">
       <div class="onboarding-head">
         <div>
@@ -49,12 +50,80 @@
               <span><%= s.text %></span>
             </div>
             <% if (!s.done) { %>
-              <a class="btn secondary small" href="<%= s.href %>"<% if (s.external) { %> target="_blank" rel="noopener"<% } %>><%= s.cta %></a>
+              <a class="btn secondary small" href="<%= s.href %>"<% if (s.external) { %> target="_blank" rel="noopener" data-refresh-on-return<% } %>><%= s.cta %></a>
             <% } %>
           </li>
         <% }) %>
       </ol>
     </section>
+    <% } else { %>
+    <%
+      /* Guia concluído, mas ainda sem candidaturas: em vez de um ecrã vazio,
+       * o que ajuda a chegar à primeira — divulgar o link, ver as vagas
+       * publicadas e saber onde vão aparecer as candidaturas. */
+      var shareText = 'Estamos contratando en ' + restaurant.name + '. Envía tu candidatura aquí: ' + nfcUrl;
+    %>
+    <div class="nfc-box">
+      <div class="label"><%- icon('check') %> Primeros pasos completados</div>
+      <p class="ready-title"><%= restaurant.hiring === 'open' ? 'Tu página ya puede recibir candidaturas' : 'Tu página está lista, pero las candidaturas están en pausa' %></p>
+      <div class="url"><%= nfcUrl %></div>
+      <div class="actions-row flat">
+        <button class="btn small" type="button" data-copy="<%= nfcUrl %>">Copiar enlace</button>
+        <a class="btn secondary small" href="https://wa.me/?text=<%= encodeURIComponent(shareText) %>" target="_blank" rel="noopener">Compartir por WhatsApp</a>
+        <a class="btn secondary small" href="<%= nfcUrl %>" target="_blank" rel="noopener">Ver página</a>
+        <a class="btn secondary small" href="/panel/qr">Código QR</a>
+      </div>
+      <p class="small nfc-note">Aún no ha llegado ninguna candidatura. Cuanta más gente vea tu enlace, antes llegará la primera.</p>
+    </div>
+
+    <div class="card">
+      <div class="onboarding-head">
+        <h2>Vacantes abiertas</h2>
+        <a class="btn ghost small" href="/panel/vagas">Gestionar →</a>
+      </div>
+      <div class="app-list">
+        <% openJobList.forEach(function (j) { %>
+          <a class="app-row" href="/panel/vagas">
+            <span class="avatar"><%- icon('jobs') %></span>
+            <div class="grow">
+              <div class="who"><%= j.title %></div>
+              <div class="meta"><%= j.applicants > 0 ? plural(j.applicants, 'candidatura', 'candidaturas') : 'Sin candidaturas todavía' %></div>
+            </div>
+          </a>
+        <% }) %>
+      </div>
+      <% if (openJobs > openJobList.length) { %>
+        <p class="small muted">Y <%= openJobs - openJobList.length %> más.</p>
+      <% } %>
+    </div>
+
+    <section class="card">
+      <h2>Cómo conseguir las primeras candidaturas</h2>
+      <ol class="steps-list">
+        <li class="step-item">
+          <span class="step-mark">1</span>
+          <div class="grow">
+            <strong>Comparte el enlace</strong>
+            <span>En el Instagram del negocio, en tu estado de WhatsApp y en tu ficha de Google. Funciona igual que la etiqueta.</span>
+          </div>
+        </li>
+        <li class="step-item">
+          <span class="step-mark">2</span>
+          <div class="grow">
+            <strong>Pon la etiqueta y el QR a la vista</strong>
+            <span>En la puerta, el escaparate o la caja, con un cartel de «Estamos contratando».</span>
+          </div>
+        </li>
+        <li class="step-item">
+          <span class="step-mark">3</span>
+          <div class="grow">
+            <strong>Responde rápido</strong>
+            <span>Cada candidatura nueva aparece aquí y en <a href="/panel/notificaciones">Avisos</a>. Quien recibe respuesta en uno o dos días suele seguir disponible.</span>
+          </div>
+        </li>
+      </ol>
+    </section>
+    <% } %>
   <% } %>
 
   <div class="status-strip <%= restaurant.hiring === 'open' ? 'is-open' : 'is-paused' %>">

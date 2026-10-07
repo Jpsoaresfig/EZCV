@@ -15,6 +15,8 @@ const assert = require('node:assert/strict');
  * porque estes testes não fazem pedidos ao Supabase. */
 process.env.SUPABASE_URL = process.env.SUPABASE_URL || 'http://127.0.0.1:54321';
 process.env.SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || 'chave-de-teste-unitario';
+process.env.GOOGLE_CLIENT_ID = 'cliente-teste.apps.googleusercontent.com';
+process.env.GOOGLE_CLIENT_SECRET = 'segredo-teste';
 
 const { inspectPdf, safeFilename, isPdf, sniffImage } = require('../src/middleware/uploads');
 const { findProtectedTerms } = require('../src/lib/sensitive');
@@ -22,6 +24,7 @@ const { truncateIp, emailTag } = require('../src/lib/privacy');
 const { passwordProblem } = require('../src/routes/auth');
 const { futureText, interestText, CONSENT_VERSION, PRIVACY_NOTICE_VERSION } = require('../src/lib/consent');
 const { hashPassword, verifyPassword, safeEqual } = require('../src/lib/crypto');
+const google = require('../src/lib/google');
 
 const pdf = (body) => Buffer.from(`%PDF-1.4\n${body}\n%%EOF\n`, 'latin1');
 
@@ -138,4 +141,55 @@ test('cabeçalhos de segurança, robots.txt e estáticos (sem BD)', async () => 
   } finally {
     server.close();
   }
+});
+
+/* ---------------------------------------------------------------- *
+ * Login com Google
+ * ---------------------------------------------------------------- */
+const jwt = (claims) => ['e30', Buffer.from(JSON.stringify(claims)).toString('base64url'), 'sig'].join('.');
+const goodClaims = {
+  iss: 'https://accounts.google.com', aud: 'cliente-teste.apps.googleusercontent.com', exp: 2000,
+  nonce: 'n1', sub: '1234567890', email: 'Ana@Gmail.com', email_verified: true, name: 'Ana'
+};
+
+test('google: id_token válido devolve sub, email normalizado e autoridade', () => {
+  const a = google.validateIdToken(jwt(goodClaims), 'n1', 1000);
+  assert.deepEqual(a, { sub: '1234567890', email: 'ana@gmail.com', name: 'Ana', authoritative: true });
+  assert.equal(google.validateIdToken(jwt({ ...goodClaims, email: 'ana@empresa.es' }), 'n1', 1000).authoritative, false);
+  assert.equal(google.validateIdToken(jwt({ ...goodClaims, email: 'ana@empresa.es', hd: 'empresa.es' }), 'n1', 1000).authoritative, true);
+});
+
+test('google: id_token com claims erradas é recusado', () => {
+  for (const [bad, nonce] of [
+    [{ iss: 'https://evil.example' }, 'n1'],
+    [{ aud: 'outro-cliente' }, 'n1'],
+    [{ exp: 100 }, 'n1'],
+    [{}, 'n2'],
+    [{ email_verified: false }, 'n1'],
+    [{ sub: '' }, 'n1']
+  ]) {
+    assert.throws(() => google.validateIdToken(jwt({ ...goodClaims, ...bad }), nonce, 1000), undefined, JSON.stringify(bad));
+  }
+  assert.throws(() => google.validateIdToken('nao-e-jwt', 'n1', 1000));
+});
+
+test('google: registo pendente assinado, à prova de alteração e com validade', () => {
+  const v = google.signPending({ sub: 's', email: 'a@gmail.com', name: 'A' }, 0);
+  assert.equal(google.verifyPending(v, 1000).sub, 's');
+  assert.equal(google.verifyPending(v, google.PENDING_TTL_MS + 1), null);
+  const [payload, mac] = v.split('.');
+  const forged = Buffer.from(JSON.stringify({ sub: 'outro', email: 'x@gmail.com', exp: 9e15 })).toString('base64url');
+  assert.equal(google.verifyPending(`${forged}.${mac}`, 1000), null);
+  assert.equal(google.verifyPending(payload, 1000), null);
+});
+
+test('google: URL de autorização com PKCE S256, state e nonce', () => {
+  const flow = google.newFlow('login');
+  const url = new URL(google.authUrl(flow));
+  assert.equal(url.origin, 'https://accounts.google.com');
+  assert.equal(url.searchParams.get('state'), flow.state);
+  assert.equal(url.searchParams.get('nonce'), flow.nonce);
+  assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
+  assert.notEqual(url.searchParams.get('code_challenge'), flow.verifier);
+  assert.equal(url.searchParams.get('scope'), 'openid email profile');
 });

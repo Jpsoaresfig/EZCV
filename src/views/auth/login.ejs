@@ -15,6 +15,11 @@
       <% if (error) { %><div class="flash err"><%= error %></div><% } %>
       <% if (info === 'restablecida') { %><div class="flash ok">Contraseña restablecida. Por seguridad, se han cerrado todas tus sesiones: inicia sesión de nuevo.</div><% } %>
 
+      <% if (locals.googleEnabled) { %>
+        <a class="btn secondary block lg btn-google" href="/login/google"><%- include('../partials/google_icon') %> Continuar con Google</a>
+        <div class="auth-sep"><span>o con tu email</span></div>
+      <% } %>
+
       <form action="/login" method="post">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">

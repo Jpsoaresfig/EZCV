@@ -7,7 +7,8 @@ const { sb, one, run, rpc, logSecurity } = require('../db');
 const { createSession, destroySession, destroyUserSessions, ensureSession } = require('../middleware/session');
 const { verifyCsrf } = require('../middleware/csrf');
 const { rateLimit, dbRateLimit } = require('../middleware/rateLimit');
-const { hashPassword, verifyPassword, randomToken, sha256 } = require('../lib/crypto');
+const { hashPassword, verifyPassword, randomToken, sha256, safeEqual } = require('../lib/crypto');
+const google = require('../lib/google');
 const { slugify } = require('../lib/slug');
 const { emailTag } = require('../lib/privacy');
 const { sendPasswordReset } = require('../lib/mailer');
@@ -15,6 +16,13 @@ const { TERMS_VERSION, DPA_VERSION } = require('../lib/legal');
 const { ESTABLISHMENT_TYPES } = require('../lib/statuses');
 
 const router = express.Router();
+
+/* Mostra o botão «Continuar con Google» só quando está configurado. */
+router.use((req, res, next) => {
+  res.locals.googleEnabled = google.enabled();
+  next();
+});
+
 
 const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]{2,}$/;
 const MIN_PASSWORD = 10;
@@ -70,101 +78,258 @@ router.get('/registro', ensureSession, (req, res) => {
   res.render('auth/register', { form: {}, errors: null, minPassword: MIN_PASSWORD });
 });
 
-router.post('/registro',
+const registerLimiters = [
   rateLimit({ windowMs: 15 * 60 * 1000, max: 10, name: 'register' }),
-  dbRateLimit({ windowMs: 60 * 60 * 1000, max: 10, name: 'register' }),
-  async (req, res) => {
-    if (!verifyCsrf(req)) return badCsrf(res);
+  dbRateLimit({ windowMs: 60 * 60 * 1000, max: 10, name: 'register' })
+];
 
-    const form = {
-      restaurant_name: clean(req.body.restaurant_name, 100),
-      commercial_name: clean(req.body.commercial_name, 100),
-      legal_name: clean(req.body.legal_name, 150),
-      owner_name: clean(req.body.owner_name, 100),
-      email: clean(req.body.email, 120),
-      phone: clean(req.body.telefono, 30),
-      address: clean(req.body.direccion, 200),
-      postal_code: clean(req.body.cp, 10),
-      city: clean(req.body.ciudad, 100),
-      establishment_type: clean(req.body.establecimiento, 40),
-      description: clean(req.body.descripcion, 1500),
-      accept: req.body.acepto === '1',
-      password: String(req.body.password || '').slice(0, 200),
-      password2: String(req.body.password2 || '').slice(0, 200)
-    };
+/* Formulário do negócio, comum ao registo com senha e com Google. Com
+ * `googleAccount` o email vem da Google (já verificado) e não há senha. */
+async function handleRegister(req, res, googleAccount = null) {
+  const form = {
+    restaurant_name: clean(req.body.restaurant_name, 100),
+    commercial_name: clean(req.body.commercial_name, 100),
+    legal_name: clean(req.body.legal_name, 150),
+    owner_name: clean(req.body.owner_name, 100),
+    email: googleAccount ? googleAccount.email : clean(req.body.email, 120),
+    phone: clean(req.body.telefono, 30),
+    address: clean(req.body.direccion, 200),
+    postal_code: clean(req.body.cp, 10),
+    city: clean(req.body.ciudad, 100),
+    establishment_type: clean(req.body.establecimiento, 40),
+    description: clean(req.body.descripcion, 1500),
+    accept: req.body.acepto === '1',
+    password: String(req.body.password || '').slice(0, 200),
+    password2: String(req.body.password2 || '').slice(0, 200)
+  };
 
-    const errors = {};
-    if (form.restaurant_name.length < 2) errors.restaurant_name = 'Indica el nombre del establecimiento.';
-    if (form.legal_name.length < 2) errors.legal_name = 'Indica la razón social o el nombre del titular del negocio.';
-    if (form.owner_name.length < 2) errors.owner_name = 'Indica el responsable.';
-    if (!EMAIL_RE.test(form.email)) errors.email = 'Indica un email válido.';
-    if (form.phone && !/^[\d\s()+-]{6,20}$/.test(form.phone)) errors.phone = 'Indica un teléfono válido.';
-    if (form.city.length < 2) errors.city = 'Indica la ciudad.';
-    if (form.postal_code && !/^\d{5}$/.test(form.postal_code)) errors.postal_code = 'El código postal debe tener 5 dígitos (ej.: 28013).';
-    if (!Object.prototype.hasOwnProperty.call(ESTABLISHMENT_TYPES, form.establishment_type)) {
-      errors.establishment_type = 'Selecciona el tipo de establecimiento.';
-    }
+  const errors = {};
+  if (form.restaurant_name.length < 2) errors.restaurant_name = 'Indica el nombre del establecimiento.';
+  if (form.legal_name.length < 2) errors.legal_name = 'Indica la razón social o el nombre del titular del negocio.';
+  if (form.owner_name.length < 2) errors.owner_name = 'Indica el responsable.';
+  if (!EMAIL_RE.test(form.email)) errors.email = 'Indica un email válido.';
+  if (form.phone && !/^[\d\s()+-]{6,20}$/.test(form.phone)) errors.phone = 'Indica un teléfono válido.';
+  if (form.city.length < 2) errors.city = 'Indica la ciudad.';
+  if (form.postal_code && !/^\d{5}$/.test(form.postal_code)) errors.postal_code = 'El código postal debe tener 5 dígitos (ej.: 28013).';
+  if (!Object.prototype.hasOwnProperty.call(ESTABLISHMENT_TYPES, form.establishment_type)) {
+    errors.establishment_type = 'Selecciona el tipo de establecimiento.';
+  }
+  if (!googleAccount) {
     const pwErr = passwordProblem(form.password, form.email);
     if (pwErr) errors.password = pwErr;
     if (form.password !== form.password2) errors.password2 = 'Las contraseñas no coinciden.';
-    if (!form.accept) errors.acepto = 'Debes aceptar los Términos y el Acuerdo de encargo del tratamiento.';
+  }
+  if (!form.accept) errors.acepto = 'Debes aceptar los Términos y el Acuerdo de encargo del tratamiento.';
 
-    const rejectWith = (fieldErrors) => {
-      delete form.password;
-      delete form.password2;
-      return res.status(422).render('auth/register', { form, errors: fieldErrors, minPassword: MIN_PASSWORD });
-    };
+  const rejectWith = (fieldErrors) => {
+    delete form.password;
+    delete form.password2;
+    return res.status(422).render('auth/register', {
+      form, errors: fieldErrors, minPassword: MIN_PASSWORD, google: googleAccount
+    });
+  };
 
-    if (Object.keys(errors).length > 0) return rejectWith(errors);
+  if (Object.keys(errors).length > 0) return rejectWith(errors);
 
-    const result = await rpc('register_restaurant', {
-      slug_base: slugify(form.restaurant_name),
-      name: form.restaurant_name,
-      commercial_name: form.commercial_name,
-      owner_name: form.owner_name,
-      email: form.email,
-      phone: form.phone,
-      address: form.address,
-      postal_code: form.postal_code,
-      city: form.city,
-      establishment_type: form.establishment_type,
-      description: form.description,
-      password_hash: hashPassword(form.password),
-      test_prefix: config.testPrefix
-    }, 'registar estabelecimento');
+  const result = await rpc('register_restaurant', {
+    slug_base: slugify(form.restaurant_name),
+    name: form.restaurant_name,
+    commercial_name: form.commercial_name,
+    owner_name: form.owner_name,
+    email: form.email,
+    phone: form.phone,
+    address: form.address,
+    postal_code: form.postal_code,
+    city: form.city,
+    establishment_type: form.establishment_type,
+    description: form.description,
+    password_hash: googleAccount ? '' : hashPassword(form.password),
+    google_sub: googleAccount ? googleAccount.sub : '',
+    test_prefix: config.testPrefix
+  }, 'registar estabelecimento');
 
-    if (!result || !result.ok) {
-      /* LIMITAÇÃO conhecida: sem verificação de email no registo, dizer que o
-       * email já existe permite enumerar contas de negócios. Mitigado por rate
-       * limit; ver docs/security/production-compliance-gate.md (WARNING). */
-      if (result && result.reason === 'email_taken') {
-        return rejectWith({ email: 'No se pudo crear la cuenta con este email. Si ya tienes cuenta, inicia sesión o recupera tu contraseña.' });
-      }
-      return res.status(500).render('error', {
-        status: 500, title: 'Error', message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
-      });
+  if (!result || !result.ok) {
+    /* LIMITAÇÃO conhecida: sem verificação de email no registo, dizer que o
+     * email já existe permite enumerar contas de negócios. Mitigado por rate
+     * limit; ver docs/security/production-compliance-gate.md (WARNING). */
+    if (result && result.reason === 'email_taken') {
+      return rejectWith({ email: 'No se pudo crear la cuenta con este email. Si ya tienes cuenta, inicia sesión o recupera tu contraseña.' });
+    }
+    return res.status(500).render('error', {
+      status: 500, title: 'Error', message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+    });
+  }
+
+  await run(sb().from('restaurants').update({
+    legal_name: form.legal_name,
+    privacy_email: form.email,
+    terms_version: TERMS_VERSION,
+    dpa_version: DPA_VERSION,
+    terms_accepted_at: new Date().toISOString()
+  }).eq('id', result.restaurant_id), 'aceitação dos termos');
+
+  logSecurity('registro_restaurante', `rid=${result.restaurant_id} terms=${TERMS_VERSION} dpa=${DPA_VERSION}${googleAccount ? ' via=google' : ''}`, req.ip, {
+    userId: result.user_id,
+    restaurantId: result.restaurant_id,
+    userAgent: req.headers['user-agent']
+  });
+
+  if (googleAccount) res.clearCookie(GOOGLE_PENDING_COOKIE, { path: '/' });
+
+  /* Sessão nova depois de autenticar: o id anterior (anónimo) é descartado
+   * (proteção contra session fixation). */
+  await destroySession(req, res);
+  await createSession(req, res, result.user_id);
+  res.redirect('/panel/privacidad?bienvenida=1');
+}
+
+router.post('/registro', ...registerLimiters, async (req, res) => {
+  if (!verifyCsrf(req)) return badCsrf(res);
+  return handleRegister(req, res);
+});
+
+/* ------------------------------------------------------------------ *
+ * Login com Google (OpenID Connect)
+ * ------------------------------------------------------------------ *
+ *  - state + nonce + PKCE num cookie HttpOnly de 10 min: o callback só é
+ *    aceite no browser que iniciou o fluxo (sem login CSRF);
+ *  - a conta é encontrada pelo `sub` da Google; pelo email só se a Google
+ *    for autoritativa para esse email (gmail.com ou Workspace). Senão, quem
+ *    controlasse uma conta Google com um email antigo de outra pessoa
+ *    entraria na conta dela;
+ *  - sem conta: o registo continua no formulário do negócio (os Termos e o
+ *    Acordo de encargo têm de ser aceites na mesma); a identidade Google
+ *    fica num cookie assinado até lá;
+ *  - contas de administração não entram com Google.
+ */
+const GOOGLE_FLOW_COOKIE = config.cookieSecure ? '__Host-fichame_gflow' : 'fichame_gflow';
+const GOOGLE_PENDING_COOKIE = config.cookieSecure ? '__Host-fichame_greg' : 'fichame_greg';
+
+function shortCookie(res, name, value, maxAge) {
+  res.cookie(name, value, { httpOnly: true, sameSite: 'lax', secure: config.cookieSecure, path: '/', maxAge });
+}
+
+function googleFail(res, message, status = 400) {
+  return res.status(status).render('auth/login', { error: message, email: '', info: '' });
+}
+
+function notFound(res) {
+  return res.status(404).render('error', { status: 404, title: 'Página no encontrada', message: '' });
+}
+
+router.get('/login/google',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 30, name: 'google-start' }),
+  (req, res) => {
+    if (!google.enabled()) return notFound(res);
+    const intent = req.query.modo === 'vincular' ? 'link' : 'login';
+    if (intent === 'link' && !req.user) return res.redirect('/login');
+    if (intent === 'login' && req.user) return res.redirect(req.user.role === 'admin' ? '/admin' : '/panel');
+
+    const flow = google.newFlow(intent);
+    shortCookie(res, GOOGLE_FLOW_COOKIE, Buffer.from(JSON.stringify(flow)).toString('base64url'), 10 * 60 * 1000);
+    res.redirect(google.authUrl(flow));
+  });
+
+router.get('/login/google/callback',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 30, name: 'google-callback' }),
+  dbRateLimit({ windowMs: 15 * 60 * 1000, max: 60, name: 'google-ip', key: (req) => String(req.ip) }),
+  async (req, res) => {
+    if (!google.enabled()) return notFound(res);
+
+    let flow = null;
+    try {
+      flow = JSON.parse(Buffer.from(String(req.cookies[GOOGLE_FLOW_COOKIE] || ''), 'base64url').toString('utf8'));
+    } catch { flow = null; }
+    res.clearCookie(GOOGLE_FLOW_COOKIE, { path: '/' });
+
+    // a pessoa cancelou no ecrã da Google
+    if (req.query.error) return res.redirect(flow && flow.intent === 'link' ? '/panel/configuracion' : '/login');
+
+    const tryAgain = 'No se pudo iniciar sesión con Google. Inténtalo de nuevo.';
+    if (!flow || !flow.state || !req.query.code || !safeEqual(String(req.query.state || ''), flow.state)) {
+      return googleFail(res, tryAgain);
     }
 
-    await run(sb().from('restaurants').update({
-      legal_name: form.legal_name,
-      privacy_email: form.email,
-      terms_version: TERMS_VERSION,
-      dpa_version: DPA_VERSION,
-      terms_accepted_at: new Date().toISOString()
-    }).eq('id', result.restaurant_id), 'aceitação dos termos');
+    let account;
+    try {
+      account = await google.exchangeCode(String(req.query.code).slice(0, 2000), flow);
+    } catch (err) {
+      logSecurity('google_fallido', String(err.message).slice(0, 100), req.ip, { userAgent: req.headers['user-agent'] });
+      return googleFail(res, tryAgain);
+    }
 
-    logSecurity('registro_restaurante', `rid=${result.restaurant_id} terms=${TERMS_VERSION} dpa=${DPA_VERSION}`, req.ip, {
-      userId: result.user_id,
-      restaurantId: result.restaurant_id,
-      userAgent: req.headers['user-agent']
-    });
+    const bySub = await one(
+      sb().from('users').select('id, email, role, blocked, google_sub').eq('google_sub', account.sub),
+      'login google (sub)'
+    );
 
-    /* Sessão nova depois de autenticar: o id anterior (anónimo) é descartado
-     * (proteção contra session fixation). */
+    /* Vincular a uma conta já autenticada (Configuración). */
+    if (flow.intent === 'link') {
+      if (!req.user) return res.redirect('/login');
+      const back = (key, msg) => res.redirect(`/panel/configuracion?${key}=` + encodeURIComponent(msg));
+      if (req.user.role === 'admin') return back('err', 'Las cuentas de administración no pueden usar Google.');
+      if (bySub && bySub.id !== req.user.id) return back('err', 'Esa cuenta de Google ya está vinculada a otra cuenta de Fíchame.');
+      await run(sb().from('users').update({ google_sub: account.sub }).eq('id', req.user.id), 'vincular google');
+      logSecurity('google_vinculado', `user=${req.user.id}`, req.ip, { userId: req.user.id, userAgent: req.headers['user-agent'] });
+      return back('ok', 'Cuenta de Google vinculada.');
+    }
+
+    let user = bySub;
+    if (!user) {
+      const byEmail = await one(
+        sb().from('users').select('id, email, role, blocked, google_sub').eq('email', account.email),
+        'login google (email)'
+      );
+      if (byEmail) {
+        if (byEmail.google_sub || !account.authoritative || byEmail.role === 'admin') {
+          logSecurity('google_sin_vincular', `user=${byEmail.id}`, req.ip, { userId: byEmail.id, userAgent: req.headers['user-agent'] });
+          return googleFail(res, 'Ya existe una cuenta con este email. Inicia sesión con tu contraseña y vincula Google desde Configuración.', 409);
+        }
+        await run(sb().from('users').update({ google_sub: account.sub }).eq('id', byEmail.id), 'vincular google por email');
+        logSecurity('google_vinculado', `user=${byEmail.id} auto=email`, req.ip, { userId: byEmail.id, userAgent: req.headers['user-agent'] });
+        user = byEmail;
+      }
+    }
+
+    if (!user) {
+      shortCookie(res, GOOGLE_PENDING_COOKIE,
+        google.signPending({ sub: account.sub, email: account.email, name: account.name }), google.PENDING_TTL_MS);
+      return res.redirect('/registro/google');
+    }
+
+    if (user.role === 'admin') return googleFail(res, 'Las cuentas de administración entran con contraseña.', 403);
+    if (user.blocked) {
+      logSecurity('login_bloqueado', `user=${user.id} via=google`, req.ip, { userId: user.id, userAgent: req.headers['user-agent'] });
+      return googleFail(res, 'Tu cuenta ha sido bloqueada.', 403);
+    }
+
     await destroySession(req, res);
-    await createSession(req, res, result.user_id);
-    res.redirect('/panel/privacidad?bienvenida=1');
+    await createSession(req, res, user.id);
+    logSecurity('login_ok', `user=${user.id} role=${user.role} via=google`, req.ip, {
+      userId: user.id, userAgent: req.headers['user-agent']
+    });
+    res.redirect('/panel');
   });
+
+function pendingGoogle(req) {
+  return google.enabled() ? google.verifyPending(req.cookies && req.cookies[GOOGLE_PENDING_COOKIE]) : null;
+}
+
+router.get('/registro/google', ensureSession, (req, res) => {
+  if (req.user) return res.redirect('/panel');
+  const account = pendingGoogle(req);
+  if (!account) return res.redirect('/registro');
+  res.render('auth/register', {
+    form: { owner_name: account.name, email: account.email }, errors: null, minPassword: MIN_PASSWORD, google: account
+  });
+});
+
+router.post('/registro/google', ...registerLimiters, async (req, res) => {
+  if (!verifyCsrf(req)) return badCsrf(res);
+  const account = pendingGoogle(req);
+  if (!account) return res.redirect('/registro');
+  return handleRegister(req, res, account);
+});
 
 /* ------------------------------------------------------------------ *
  * Login

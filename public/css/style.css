@@ -731,6 +731,7 @@ details > summary:hover { color: var(--brand); }
 .onboarding-fill-2 { width: 50%; }
 .onboarding-fill-3 { width: 75%; }
 .onboarding-fill-4 { width: 100%; }
+.nfc-box .ready-title { position: relative; margin: 10px 0 4px; font-size: 1.15rem; font-weight: 700; color: #faf8f6; }
 .steps-list { list-style: none; padding: 0; margin: 0; }
 .step-item {
   display: flex;
@@ -1587,6 +1588,16 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
 .auth-head .brand-mark { width: 34px; height: 34px; }
 .auth-head p { color: var(--ink-2); margin: 10px 0 0; font-size: .94rem; }
 .auth-alt { margin: 18px 0 0; }
+
+/* Login com Google: botão neutro (a Google pede o «G» sobre fundo claro ou
+ * escuro, sem recolorir) e separador «o con tu email». */
+.btn-google { gap: 10px; }
+.btn-google .google-g { flex: none; }
+.auth-sep {
+  display: flex; align-items: center; gap: 12px;
+  margin: 18px 0; color: var(--ink-3); font-size: .86rem;
+}
+.auth-sep::before, .auth-sep::after { content: ""; flex: 1; height: 1px; background: var(--line); }
 
 /* Páginas de erro e de confirmação */
 .pad-lg { padding: 34px 24px; }
