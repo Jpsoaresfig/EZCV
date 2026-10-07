@@ -49,6 +49,7 @@ left join restaurants r on r.id = u.restaurant_id;
 -- ---------------------------------------------------------------------------
 -- application_list — candidatura achatada com o candidato e a vaga.
 -- `search_text` concentra num só campo tudo o que a busca livre cobre (§12),
+-- exceto o número de documento (minimização: ver 0005).
 -- permitindo um único .ilike() em vez de um OR sobre 7 colunas de 2 tabelas.
 -- ---------------------------------------------------------------------------
 create or replace view application_list
@@ -77,7 +78,7 @@ select
   j.title  as job_name,
   j.active as job_active,
   lower(concat_ws(' ',
-    c.first_name, c.last_name, c.email, c.phone, c.doc_number,
+    c.first_name, c.last_name, c.email, c.phone,
     a.job_title, a.experience, a.observations
   )) as search_text
 from applications a
@@ -147,10 +148,16 @@ select
 -- ---------------------------------------------------------------------------
 -- admin_restaurant_list / admin_user_list (§22)
 -- ---------------------------------------------------------------------------
-create or replace view admin_restaurant_list
+-- Colunas explícitas (não r.*): o admin vê só o que o painel mostra, e a
+-- view não muda de forma quando `restaurants` ganha colunas (r.* fazia
+-- falhar a reaplicação desta migration depois de 0005). drop + create porque
+-- versões antigas da view tinham mais colunas.
+drop view if exists admin_restaurant_list;
+create view admin_restaurant_list
 with (security_invoker = on) as
 select
-  r.*,
+  r.id, r.slug, r.name, r.owner_name, r.email, r.city,
+  r.active, r.hiring_status, r.created_at,
   (select count(*) from applications a where a.restaurant_id = r.id)::int as apps,
   (select count(*) from users u where u.restaurant_id = r.id)::int        as owners
 from restaurants r;

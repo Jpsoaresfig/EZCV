@@ -10,7 +10,12 @@
     "setup": "node src/db/seed.js",
     "check": "node src/db/check.js",
     "retention": "node src/db/retention.js",
-    "test": "node test/smoke.js"
+    "delete-account": "node src/db/delete-account.js",
+    "test": "node --test test/unit.test.js && node test/db.js && node test/smoke.js",
+    "test:unit": "node --test test/unit.test.js",
+    "test:db": "node test/db.js",
+    "test:e2e": "node test/smoke.js",
+    "audit": "npm audit --omit=dev"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.117.2",

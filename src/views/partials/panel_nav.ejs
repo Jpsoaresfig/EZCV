@@ -10,6 +10,8 @@ var navItems = [
   { href: '/panel/candidaturas',    icon: 'people', label: 'Candidaturas',  short: 'Candidatos', badge: true },
   { href: '/panel/vagas',           icon: 'jobs',   label: 'Vacantes',      short: 'Vacantes' },
   { href: '/panel/notificaciones',  icon: 'bell',   label: 'Avisos',        short: 'Avisos' },
+  { href: '/panel/derechos',        icon: 'shield', label: 'Derechos RGPD', short: 'Derechos', sideOnly: true },
+  { href: '/panel/privacidad',      icon: 'lock',   label: 'Privacidad',    short: 'Privacidad', sideOnly: true },
   { href: '/panel/restaurante',     icon: 'store',  label: 'Mi negocio',     short: 'Mi negocio' },
   { href: '/panel/configuracion',   icon: 'cog',    label: 'Configuración', short: 'Ajustes' }
 ];
@@ -59,7 +61,8 @@ var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCou
 </header>
 
 <nav class="tabbar" aria-label="Navegación principal">
-  <% navItems.forEach(function(item) { %>
+  <%# No telemóvel, Derechos e Privacidad estão em Ajustes (6 separadores no máximo). %>
+  <% navItems.filter(function(item) { return !item.sideOnly; }).forEach(function(item) { %>
     <a class="<%= isActive(item) ? 'active' : '' %>" href="<%= item.href %>">
       <%- icon(item.icon) %>
       <span><%= item.short %></span>

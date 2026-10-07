@@ -41,7 +41,14 @@
         </div>
 
         <div class="field">
-          <label for="owner_name">Nombre del responsable *</label>
+          <label for="legal_name">Razón social o nombre del titular *</label>
+          <input id="legal_name" type="text" name="legal_name" maxlength="150" required value="<%= form.legal_name || '' %>" autocomplete="organization">
+          <div class="help">La empresa o persona autónoma titular del negocio. Se muestra a los candidatos como <strong>responsable del tratamiento</strong> de sus datos (art. 13 RGPD).</div>
+          <% if (errors && errors.legal_name) { %><div class="field-error"><%= errors.legal_name %></div><% } %>
+        </div>
+
+        <div class="field">
+          <label for="owner_name">Nombre de la persona de contacto *</label>
           <input id="owner_name" type="text" name="owner_name" maxlength="100" required value="<%= form.owner_name || '' %>">
           <% if (errors && errors.owner_name) { %><div class="field-error"><%= errors.owner_name %></div><% } %>
         </div>
@@ -53,8 +60,8 @@
         </div>
 
         <div class="field">
-          <label for="telefono">Número de teléfono *</label>
-          <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= form.phone || '' %>" inputmode="tel">
+          <label for="telefono">Teléfono <span class="dim label-hint">(opcional)</span></label>
+          <input id="telefono" type="tel" name="telefono" maxlength="30" value="<%= form.phone || '' %>" inputmode="tel">
           <% if (errors && errors.phone) { %><div class="field-error"><%= errors.phone %></div><% } %>
         </div>
 
@@ -83,8 +90,8 @@
         </div>
 
         <div class="field">
-          <label for="password">Contraseña * <span class="dim label-hint">(mínimo 8 caracteres)</span></label>
-          <input id="password" type="password" name="password" required minlength="8" autocomplete="new-password">
+          <label for="password">Contraseña * <span class="dim label-hint">(mínimo <%= minPassword %> caracteres)</span></label>
+          <input id="password" type="password" name="password" required minlength="<%= minPassword %>" autocomplete="new-password">
           <% if (errors && errors.password) { %><div class="field-error"><%= errors.password %></div><% } %>
         </div>
 
@@ -94,7 +101,18 @@
           <% if (errors && errors.password2) { %><div class="field-error"><%= errors.password2 %></div><% } %>
         </div>
 
-        <button class="btn block lg" type="submit">Crear cuenta</button>
+        <div class="notice-box">
+          <strong>Antes de crear la cuenta</strong>
+          <p>Tu negocio será el <strong>responsable del tratamiento</strong> de los datos de las personas que se candidaten. Fíchame trata esos datos solo por tu cuenta y siguiendo tus instrucciones (<strong>encargado del tratamiento</strong>). Fíchame no selecciona candidatos ni decide por ti.</p>
+        </div>
+
+        <label class="check">
+          <input type="checkbox" name="acepto" value="1" <%= form.accept ? 'checked' : '' %>>
+          <span>He leído y acepto los <a href="/terminos" target="_blank" rel="noopener">Términos de uso</a> y el <a href="/encargo" target="_blank" rel="noopener">Acuerdo de encargo del tratamiento</a>, y he leído la <a href="/privacidad" target="_blank" rel="noopener">Política de privacidad</a>. *</span>
+        </label>
+        <% if (errors && errors.acepto) { %><div class="field-error consent-error"><%= errors.acepto %></div><% } %>
+
+        <button class="btn block lg spaced" type="submit">Crear cuenta</button>
       </form>
 
       <p class="small muted center auth-alt">

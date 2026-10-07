@@ -54,13 +54,59 @@ function isPdf(buffer) {
   return buffer.toString('latin1', 0, 5) === '%PDF-';
 }
 
+/* Conteúdo ativo que um CV não precisa de ter. Um CV exportado do Word, do
+ * Google Docs ou do Canva não leva JavaScript, ações de lançamento, ficheiros
+ * embebidos nem formulários XFA — e são estes os vetores habituais de PDFs
+ * maliciosos contra leitores de PDF.
+ *
+ * LIMITAÇÃO (documentada em docs/security/data-protection-risk-assessment.md):
+ * é uma heurística sobre o texto do ficheiro. Não descomprime object streams e
+ * não substitui um antivírus; um PDF ofuscado pode passar. O servidor nunca
+ * abre, renderiza nem executa o PDF — só o guarda e o devolve ao dono. */
+const PDF_ACTIVE_KEYS = ['/JavaScript', '/JS', '/Launch', '/EmbeddedFile', '/RichMedia', '/XFA', '/SubmitForm', '/ImportData'];
+
+function inspectPdf(buffer) {
+  if (!isPdf(buffer)) return { ok: false, reason: 'NO_PDF' };
+
+  /* Ficheiro truncado ou corrompido: um PDF termina em %%EOF (com, no máximo,
+   * algum lixo final). Procura-se nos últimos 2 KB. */
+  const tail = buffer.toString('latin1', Math.max(0, buffer.length - 2048));
+  if (!tail.includes('%%EOF')) return { ok: false, reason: 'CORRUPTO' };
+
+  /* Nomes PDF podem vir com escapes hexadecimais (/J#61vaScript). */
+  const text = buffer.toString('latin1').replace(/#([0-9A-Fa-f]{2})/g, (m, h) => String.fromCharCode(parseInt(h, 16)));
+  for (const key of PDF_ACTIVE_KEYS) {
+    const re = new RegExp(key.replace('/', '\\/') + '(?![A-Za-z])');
+    if (re.test(text)) return { ok: false, reason: 'ACTIVO' };
+  }
+  return { ok: true };
+}
+
+/* Nome original só para mostrar ao recrutador. Nunca entra no caminho do
+ * Storage (que é aleatório). Remove diretórios, controlo e caracteres que
+ * confundem cabeçalhos ou HTML; o EJS escapa à mesma na saída. */
+function safeFilename(name) {
+  const base = String(name || '').split(/[\\/]/).pop();
+  const cleaned = base
+    .replace(/[\u0000-\u001f\u007f<>:"|?*;]/g, '_')
+    .replace(/^\.+/, '')
+    .trim()
+    .slice(0, 120);
+  if (!cleaned) return 'cv.pdf';
+  return /\.pdf$/i.test(cleaned) ? cleaned : `${cleaned}.pdf`;
+}
+
 /* ------------------------------------------------------------------ *
  * CV (PDF, um só ficheiro)
  * ------------------------------------------------------------------ */
 
+/* Limites de multipart além do ficheiro: um pedido com milhares de campos ou
+ * campos de vários MB é rejeitado antes de chegar à rota. */
+const FORM_LIMITS = { fields: 30, fieldSize: 16 * 1024, parts: 32, headerPairs: 200 };
+
 const cvUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: config.maxUploadBytes, files: 1 },
+  limits: { ...FORM_LIMITS, fileSize: config.maxUploadBytes, files: 1 },
   fileFilter: (req, file, cb) => {
     const name = String(file.originalname || '').toLowerCase();
     const mime = String(file.mimetype || '').toLowerCase();
@@ -98,7 +144,7 @@ function uploadCvFile(req, res, next) {
 
 const imageUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: config.maxImageBytes, files: 2 },
+  limits: { ...FORM_LIMITS, fileSize: config.maxImageBytes, files: 2 },
   fileFilter: (req, file, cb) => {
     const name = String(file.originalname || '').toLowerCase();
     const mime = String(file.mimetype || '').toLowerCase();
@@ -159,5 +205,7 @@ module.exports = {
   uploadCvFile,
   uploadRestaurantImages,
   sniffImage,
-  isPdf
+  isPdf,
+  inspectPdf,
+  safeFilename
 };

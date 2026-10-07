@@ -63,16 +63,15 @@
             <div class="k">Teléfono</div>
             <div class="v"><%= a.phone %></div>
           </div>
-          <div class="detail-item">
-            <div class="k">Documento</div>
-            <div class="v">
-              <% if (a.doc_number) { %>
-                <%= docTypeLabel(a.doc_type) %> · <%= a.doc_number %>
-              <% } else { %>
-                <span class="dim">No facilitado</span>
-              <% } %>
+          <% if (a.doc_number) { %>
+            <%# Só candidaturas antigas: o documento deixou de ser recolhido (minimização). %>
+            <div class="detail-item">
+              <div class="k">Documento</div>
+              <div class="v"><%= docTypeLabel(a.doc_type) %> · <%= a.doc_number %>
+                <div class="dim tiny">Dato antiguo: ya no se recoge. No lo copies fuera de Fíchame salvo que lo necesites para contratar.</div>
+              </div>
             </div>
-          </div>
+          <% } %>
         </div>
 
         <div class="section-title">Información profesional</div>
@@ -91,14 +90,23 @@
             <div class="v"><%= availabilityLabel(a.availability) || '—' %></div>
           </div>
           <div class="detail-item">
-            <div class="k">Consentimiento</div>
+            <div class="k">Protección de datos</div>
             <div class="v">
               <% if (consent) { %>
-                Proceso: <%= consent.selection_consent ? 'Sí' : 'No' %> ·
-                Futuras oportunidades: <%= consent.future_opportunity_consent ? 'Sí' : 'No' %>
-                <% if (consent.consent_version) { %>
-                  <div class="dim tiny">versión <%= consent.consent_version %> · <%= fmtDate(consent.created_at) %></div>
-                <% } %>
+                <div class="small">
+                  <% if (consent.selection_basis === 'rgpd_6_1_b') { %>Candidatura: medidas precontractuales (art. 6.1.b RGPD)
+                  <% } else if (consent.selection_basis === 'rgpd_6_1_a') { %>Solo interés futuro: consentimiento (art. 6.1.a RGPD)
+                  <% } else { %>Candidatura anterior a 2026-10 (registro histórico)<% } %>
+                  <% if (consent.privacy_notice_version) { %><span class="dim tiny"> · aviso v<%= consent.privacy_notice_version %></span><% } %>
+                </div>
+                <div class="small">
+                  Futuras oportunidades:
+                  <% if (consent.future_opportunity_consent && !consent.future_withdrawn_at) { %>
+                    <strong>Sí</strong> <span class="dim tiny">desde <%= fmtDate(consent.future_granted_at || consent.created_at) %></span>
+                  <% } else if (consent.future_withdrawn_at) { %>
+                    <strong>Retirado</strong> <span class="dim tiny">el <%= fmtDate(consent.future_withdrawn_at) %></span>
+                  <% } else { %>No<% } %>
+                </div>
               <% } else { %>—<% } %>
             </div>
           </div>
@@ -116,14 +124,27 @@
 
       <div class="card o-notas">
         <h2>Notas internas</h2>
-        <p class="help help-lift">Solo visibles para tu establecimiento. El candidato nunca las verá.</p>
+        <p class="help help-lift">
+          Solo visibles para tu establecimiento. Pero son datos personales del candidato:
+          si ejerce su <strong>derecho de acceso</strong>, tendrás que entregárselas.
+        </p>
+        <div class="notice-box">
+          Escribe solo hechos relevantes para el puesto (experiencia, disponibilidad, próximos pasos).
+          <strong>No anotes</strong> salud, embarazo, discapacidad, religión, origen, nacionalidad, edad,
+          situación familiar, orientación sexual, ideas políticas ni afiliación sindical: son datos
+          especialmente protegidos o pueden constituir discriminación en el acceso al empleo.
+        </div>
 
         <form action="/panel/candidaturas/<%= a.id %>/notas" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="field">
             <label for="nota">Añadir nota</label>
-            <textarea id="nota" name="nota" maxlength="2000" placeholder="Ej.: Tiene 2 años de experiencia. Buen nivel de español. Llamar el viernes."></textarea>
+            <textarea id="nota" name="nota" maxlength="2000" placeholder="Ej.: 2 años en sala. Disponible tardes. Entrevista el viernes a las 11."></textarea>
           </div>
+          <label class="check check-plain">
+            <input type="checkbox" name="confirmar_sensible" value="1">
+            <span class="small">Confirmo que esta nota no contiene datos protegidos o que son imprescindibles y legítimos para el puesto (queda registrado).</span>
+          </label>
           <button class="btn small" type="submit">Guardar nota</button>
         </form>
 
@@ -177,7 +198,51 @@
           </div>
           <button class="btn small block" type="submit">Guardar estado</button>
         </form>
-        <p class="help">«Reserva / Futuras oportunidades» deja al candidato disponible para próximas vacantes.</p>
+        <p class="help">«Reserva / Futuras oportunidades» solo está disponible si el candidato dio su consentimiento para ello.</p>
+      </div>
+
+      <div class="card o-conservacion">
+        <h2>Conservación de datos</h2>
+        <% if (a.legal_hold) { %>
+          <p class="small"><span class="badge amber">Bloqueo activo</span> <%= a.legal_hold_reason %></p>
+          <p class="help">Mientras esté activo, la candidatura no se borrará automáticamente ni se podrá eliminar.</p>
+          <form action="/panel/candidaturas/<%= a.id %>/bloqueo" method="post">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <input type="hidden" name="accion" value="retirar">
+            <button class="btn secondary small" type="submit">Retirar bloqueo</button>
+          </form>
+        <% } else { %>
+          <p class="small">
+            <% if (a.retention_until) { %>Se borrará automáticamente a partir del <strong><%= fmtDate(a.retention_until) %></strong><% } else { %>Sin fecha de borrado calculada<% } %>.
+          </p>
+          <details>
+            <summary class="small">Bloquear el borrado (obligación legal o reclamación)…</summary>
+            <div class="details-body">
+              <form action="/panel/candidaturas/<%= a.id %>/bloqueo" method="post">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <input type="hidden" name="accion" value="activar">
+                <div class="field">
+                  <label for="motivo">Motivo *</label>
+                  <input id="motivo" type="text" name="motivo" maxlength="300" placeholder="Ej.: reclamación laboral en curso">
+                </div>
+                <button class="btn secondary small" type="submit">Activar bloqueo</button>
+              </form>
+            </div>
+          </details>
+        <% } %>
+        <% if (consent && consent.future_opportunity_consent && !consent.future_withdrawn_at) { %>
+          <form action="/panel/candidaturas/<%= a.id %>/retirar-consentimiento" method="post" class="spaced-sm">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn secondary small" type="submit">Registrar retirada del consentimiento</button>
+          </form>
+          <p class="help">Úsalo si el candidato te pide que dejes de guardar sus datos para futuras vacantes.</p>
+        <% } %>
+      </div>
+
+      <div class="card o-derechos">
+        <h2>Derechos del candidato</h2>
+        <p class="help help-lift">Para atender una solicitud de acceso o portabilidad, descarga todos sus datos en este establecimiento (el CV se descarga aparte).</p>
+        <a class="btn secondary small" href="/panel/candidaturas/<%= a.id %>/exportar">Exportar datos (JSON)</a>
       </div>
 
       <div class="card o-historial">
@@ -220,6 +285,20 @@
             <form action="/panel/candidaturas/<%= a.id %>/eliminar" method="post">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <button class="btn danger small" type="submit">Sí, eliminar definitivamente</button>
+            </form>
+          </div>
+        </details>
+        <details class="spaced-sm">
+          <summary class="summary-danger">Suprimir todos los datos de esta persona (derecho de supresión)…</summary>
+          <div class="details-body">
+            <p class="help">Borra todas sus candidaturas en tu establecimiento, con CV, notas, historial y consentimientos. No afecta a otros establecimientos.</p>
+            <form action="/panel/candidaturas/<%= a.id %>/eliminar-candidato" method="post">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <label class="check check-plain">
+                <input type="checkbox" name="confirmo" value="1">
+                <span class="small">Confirmo la supresión definitiva.</span>
+              </label>
+              <button class="btn danger small" type="submit">Suprimir datos del candidato</button>
             </form>
           </div>
         </details>

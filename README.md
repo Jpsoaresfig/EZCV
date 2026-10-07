@@ -13,6 +13,8 @@ A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o don
 > 🎨 Logo e cores da marca: [`brand/`](brand/README.md)
 >
 > 📄 Documentação técnica completa (rotas, fluxos, modelo de dados, segurança, testes): [`docs/DOCUMENTACAO.md`](docs/DOCUMENTACAO.md)
+>
+> ⚖️ Auditoria jurídica e de segurança (2026-10): [`docs/legal/`](docs/legal/00-legal-review-required.md) (em espanhol, para o assessor jurídico) e [`docs/security/`](docs/security/production-compliance-gate.md)
 
 ---
 
@@ -21,8 +23,10 @@ A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o don
 **Candidato** — sem conta, mobile-first, em espanhol
 - Página pública `/r/:slug` com logo, descrição e estado de contratação (🟢 / 🔴).
 - Formulário com vaga, disponibilidade, experiência e CV em PDF validado.
-- Documento de identidade opcional (minimização de dados).
-- Consentimentos RGPD separados, com versão e texto exato registados; página `/privacidad`.
+- Minimização: sem documento de identidade, data de nascimento, nacionalidade nem foto; aviso para não incluir dados sensíveis.
+- Informação por camadas (responsável, finalidade, base jurídica 6.1.b, conservação, direitos) antes de enviar; 2.ª camada em `/r/:slug/privacidad`.
+- Consentimento **opcional** e específico do negócio para futuras oportunidades (texto exato, versão, data, retirada).
+- Canal de exercício de direitos (`/r/:slug/privacidad#derechos`) que chega ao painel do negócio com prazo de 1 mês.
 - Com as candidaturas em pausa: formulário para guardar dados para futuras oportunidades.
 
 **Restaurante** — painel `/panel`
@@ -40,7 +44,7 @@ A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o don
 
 **Admin da plataforma** — `/admin`
 - Métricas globais, ativação de estabelecimentos, bloqueio de utilizadores e logs de segurança.
-- **Sem acesso a dados de candidatos**, por desenho.
+- **Sem acesso a dados de candidatos**, por desenho (testado: admin → rotas de candidatos = 403).
 
 ---
 
@@ -92,6 +96,8 @@ npm run migrate
 2. `migrations/0002_views_rpc.sql`
 3. `migrations/0003_storage.sql`
 4. `migrations/0004_notifications_cascade.sql`
+5. `migrations/0005_privacy_hardening.sql`
+6. `migrations/0006_tenant_fk_cleanup.sql`
 
 As migrations são idempotentes. `0000_reset.sql` é **destrutivo** (apaga o schema) e só corre com `npm run migrate -- --reset`.
 
@@ -124,8 +130,11 @@ O servidor verifica o Supabase no arranque e recusa-se a servir se faltar uma mi
 | `npm run migrate` | Aplica as migrations via `psql` (`--reset`, `--so <n>`) |
 | `npm run check` | Diagnóstico do ambiente e do Supabase |
 | `npm run setup` | Cria o admin da plataforma |
-| `npm run retention` | Política de retenção — **simula** por omissão (`--dias <n>`, `--aplicar`) |
-| `npm test` | Teste E2E completo contra o Supabase real |
+| `npm run retention` | Retenção por negócio — **simula** por omissão; `--aplicar` suprime candidaturas vencidas, CVs (BD + Storage), CVs órfãos, sessões/tokens/logs expirados |
+| `npm run delete-account` | Fecho de conta sem órfãos (`--id`, `--slug`, `--aplicar`) |
+| `npm test` | Unitários + migrations numa BD temporária + E2E contra o Supabase |
+| `npm run test:unit` / `test:db` / `test:e2e` | Cada suite isoladamente |
+| `npm run audit` | `npm audit` das dependências de produção |
 
 ---
 
@@ -142,11 +151,14 @@ Ver [`.env.example`](.env.example) para a lista comentada.
 | `SUPABASE_SERVICE_ROLE_KEY` | — | **Obrigatória.** Nunca no frontend, no git ou em logs |
 | `SUPABASE_BUCKET_CVS` / `_MEDIA` | `cvs` / `media` | Buckets privados |
 | `DATABASE_URL` | — | Só para `npm run migrate`; a app não a usa |
-| `SESSION_TTL_DAYS` | `30` | Validade da sessão |
+| `SESSION_TTL_DAYS` | `30` | Validade da sessão de negócio (sessões anónimas: 2 h) |
 | `COOKIE_SECURE` / `TRUST_PROXY` | `0` | `1` em produção com HTTPS / atrás de proxy |
 | `MAX_CV_MB` / `MAX_IMAGE_MB` | `5` / `2` | Limites de upload |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` / `ADMIN_NAME` | — | Seed do admin |
-| `SMTP_*` | vazio | Email opcional; sem SMTP, os avisos vão para o log |
+| `SMTP_*` | vazio | Sem SMTP não há avisos por email nem recuperação de senha (o conteúdo nunca vai para o log) |
+| `OPERATOR_*` | marcadores | Identificação do titular do Fíchame nas páginas legais |
+| `CRON_SECRET` / `RETENTION_AUTO` | — / `0` | Retenção automática via `GET /internal/retention` |
+| `SECURITY_LOG_DAYS` / `RIGHTS_REQUEST_DAYS` | `365` / `1095` | Conservação de logs e pedidos de direitos fechados |
 
 ---
 
@@ -176,13 +188,17 @@ docs/                documentação técnica
 - Row Level Security **deny-all** em todas as tabelas e direitos revogados a `anon`/`authenticated`.
 - CVs em bucket privado com nomes aleatórios, servidos só pela rota autenticada após verificação de posse; sem URLs públicas nem assinadas.
 - Uploads validados por extensão, MIME, magic bytes e tamanho.
-- Senhas com `scrypt`; sessões com token opaco em cookie `httpOnly`/`SameSite=Lax` (só o hash vai para a BD).
-- CSRF em todos os POST, rate limiting, honeypot e deteção de candidaturas duplicadas.
-- CSP estrita sem scripts inline, `X-Frame-Options: DENY`, `nosniff`, `Referrer-Policy`, `Permissions-Policy`.
+- Integridade por tenant também na BD: FKs compostas `(id, restaurant_id)` e CHECK da pasta do CV no Storage.
+- Senhas com `scrypt` (mín. 10); login sem enumeração; recuperação de senha com token de uso único (hash, 30 min); mudar/repor a senha termina as outras sessões.
+- Sessões com token opaco (só o hash na BD), cookie `__Host-` + `Secure` em produção, `HttpOnly`, `SameSite=Lax`.
+- CSRF em todos os POST; rate limiting em memória e partilhado na BD; honeypot; duplicados tratados sem revelar nada.
+- PDF: magic bytes, conteúdo ativo (JavaScript, ficheiros embebidos, XFA…) e ficheiros truncados recusados.
+- CSP estrita sem scripts inline, HSTS (produção), `no-store` em respostas dinâmicas, `noindex` fora das páginas públicas.
+- Auditoria (sem conteúdo pessoal): acessos a CV, exportações, supressões, notas, mudanças de estado, configuração; IP truncado nos eventos de candidatos.
 
 Inventário completo em [`docs/DOCUMENTACAO.md` §8](docs/DOCUMENTACAO.md#8-segurança-inventário).
 
-> **RGPD:** a arquitetura está preparada para conformidade, mas isso não é uma declaração de conformidade. O texto de `/privacidad` precisa de revisão jurídica antes de uso real. Cada estabelecimento é responsável pelo tratamento; o Fíchame é encarregado.
+> **Proteção de dados:** o Fíchame foi desenhado com medidas de proteção de dados e segurança, sujeitas à configuração adequada, às responsabilidades de cada parte e à revisão jurídica aplicável. **Não é uma declaração de conformidade.** Há PRODUCTION BLOCKERS e pontos de LEGAL REVIEW REQUIRED — ver [`docs/security/production-compliance-gate.md`](docs/security/production-compliance-gate.md) e [`docs/legal/00-legal-review-required.md`](docs/legal/00-legal-review-required.md). Para os dados de candidatos, o papel proposto é: negócio = responsável, Fíchame = encarregado (análise por tratamento em `docs/legal/02-…`).
 
 ---
 
@@ -192,7 +208,9 @@ Inventário completo em [`docs/DOCUMENTACAO.md` §8](docs/DOCUMENTACAO.md#8-segu
 npm test
 ```
 
-`test/smoke.js` sobe o servidor e percorre o fluxo completo contra o Supabase real: registo, vagas, candidatura com CV, validação de PDF, CSRF, filtros, favoritos, pausa, isolamento entre restaurantes (BD e Storage), RLS com a chave anon, rate limiting e admin.
+- `test/unit.test.js` — sem rede: validação de PDF e nomes de ficheiro, detetor de características protegidas, truncagem de IP, política de senha, textos de consentimento, cabeçalhos.
+- `test/db.js` — cria um PostgreSQL **temporário** (initdb), simula o Supabase, aplica as migrations 2× e testa isolamento entre tenants na BD, reserva/consentimento, retenção por tenant, `legal_hold`, supressão, permissões de `anon` e autodiagnóstico. Requer os binários do PostgreSQL (`PG_BIN`).
+- `test/smoke.js` — E2E contra o Supabase real: fluxo completo, informação legal, IDOR A↔B, uploads maliciosos, XSS, CSRF, cabeçalhos, enumeração, força bruta, recuperação de senha, invalidação de sessões, direitos (exportação, supressão, retirada), auditoria, admin sem acesso a candidatos.
 
 Cada execução marca os seus dados com um prefixo único e apaga-os no fim com `purge_test_data`, incluindo os objetos no Storage.
 
@@ -200,13 +218,14 @@ Cada execução marca os seus dados com um prefixo único e apaga-os no fim com 
 
 ## Antes de ir para produção
 
-- HTTPS com `COOKIE_SECURE=1` e `TRUST_PROXY=1`.
-- Backups: point-in-time recovery no Supabase e export do bucket `cvs`.
-- SMTP real configurado.
-- Revisão jurídica de `/privacidad` e canal formal para exercício de direitos.
-- Política de retenção definida e anonimização efetiva em `npm run retention`.
-- Recuperação de senha e verificação de email.
-- Rate limit persistente se houver mais de uma instância (hoje é em memória).
+Resolver os **BLOCKERS** de [`docs/security/production-compliance-gate.md`](docs/security/production-compliance-gate.md), em especial:
+
+- Dictamen sobre **agência de colocação** (Ley 3/2023) — [`docs/legal/01-…`](docs/legal/01-analisis-agencia-colocacion.md).
+- Dados do operador (`OPERATOR_*`), regiões UE e DPA de Supabase/Vercel, textos legais revistos.
+- HTTPS com `COOKIE_SECURE=1`, `TRUST_PROXY=1`, `APP_URL=https://…`; SMTP real.
+- Prazos de retenção validados e agendador ligado (`CRON_SECRET`, `RETENTION_AUTO=1`).
+- Backups (retenção, restauro testado) e 2FA em Supabase/Vercel/GitHub.
+- Pendente técnico: verificação de email no registo, 2FA para negócios, utilizadores múltiplos por negócio (RBAC).
 - Paginação real na lista de candidaturas (hoje: as 200 mais recentes).
 
 Lista completa em [`docs/DOCUMENTACAO.md` §12](docs/DOCUMENTACAO.md#12-pendências-produção).

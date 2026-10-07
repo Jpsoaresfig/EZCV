@@ -108,14 +108,22 @@ function escapeLike(value) {
  * pessoais (§22) é auditoria, e uma auditoria que às vezes não chega não é
  * auditoria. Nesses casos, usar await.
  */
+/* Minimização (docs/security/incident-response.md, «Logs»):
+ *   - `detail` nunca leva emails, nomes, telefones, notas nem conteúdo de
+ *     candidaturas — só ids internos e o tipo de ação;
+ *   - eventos originados por candidatos (extra.anonymous) guardam o IP
+ *     truncado e não guardam user-agent;
+ *   - retenção: purge_expired apaga logs com mais de SECURITY_LOG_DAYS.
+ */
 function logSecurity(event, detail = '', ip = '', extra = {}) {
+  const { truncateIp } = require('../lib/privacy');
   const row = {
     event: String(event).slice(0, 80),
     detail: String(detail).slice(0, 500),
-    ip: String(ip || '').slice(0, 60),
+    ip: extra.anonymous ? truncateIp(ip) : String(ip || '').slice(0, 60),
     user_id: extra.userId || null,
     restaurant_id: extra.restaurantId || null,
-    user_agent: String(extra.userAgent || '').slice(0, 200),
+    user_agent: extra.anonymous ? '' : String(extra.userAgent || '').slice(0, 200),
     metadata: extra.metadata || {}
   };
 

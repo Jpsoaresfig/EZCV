@@ -10,6 +10,9 @@ const { verifyCsrf } = require('../middleware/csrf');
 const { rateLimit } = require('../middleware/rateLimit');
 const { hashPassword, verifyPassword } = require('../lib/crypto');
 const { uploadRestaurantImages } = require('../middleware/uploads');
+const { destroyUserSessions } = require('../middleware/session');
+const { findProtectedTerms } = require('../lib/sensitive');
+const { passwordProblem } = require('./auth');
 const storage = require('../lib/storage');
 const {
   STATUSES, STATUS_KEYS, AVAILABILITIES, ESTABLISHMENT_TYPES,
@@ -208,7 +211,13 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
 
   const rid = restaurantId(req);
 
-  const [notes, cv, consent, history, markedRead] = await Promise.all([
+  const [extra, notes, cv, consent, history, markedRead] = await Promise.all([
+    one(
+      sb().from('applications')
+        .select('legal_hold, legal_hold_reason, retention_until, closed_at')
+        .eq('id', application.id).eq('restaurant_id', rid),
+      'retenção da candidatura'
+    ),
     many(
       sb().from('application_notes')
         .select('id, body, created_at, user_id, users(full_name)')
@@ -222,6 +231,8 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
       sb().from('cvs').select('*').eq('application_id', application.id).eq('restaurant_id', rid),
       'cv'
     ),
+    /* consents não tem restaurant_id; a posse já foi verificada em
+     * ownApplication (a candidatura é deste restaurante). */
     one(
       sb().from('consents').select('*').eq('application_id', application.id),
       'consentimentos'
@@ -249,6 +260,8 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
     )
   ]);
 
+  logSecurity('candidatura_vista', `app=${application.id}`, req.ip, { userId: req.user.id, restaurantId: rid });
+
   if (markedRead.length > 0 && res.locals.unreadCount > 0) {
     res.locals.unreadCount = Math.max(0, res.locals.unreadCount - markedRead.length);
   }
@@ -260,7 +273,7 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
   }));
 
   res.render('panel/application', {
-    a: application,
+    a: { ...application, ...(extra || {}) },
     notes: withAuthor(notes),
     history: withAuthor(history),
     cv,
@@ -295,6 +308,11 @@ router.post('/panel/candidaturas/:id/estado', async (req, res) => {
     status
   }, 'alterar estado');
 
+  if (result && result.reason === 'no_consent') {
+    return res.redirect(`/panel/candidaturas/${id}?err=` + encodeURIComponent(
+      'Solo se puede pasar a «Reserva» si el candidato ha dado su consentimiento para futuras oportunidades. ' +
+      'Sin él, al terminar el proceso los datos deben borrarse.'));
+  }
   if (!result || !result.ok) return notFound(res);
 
   if (result.old_status !== result.new_status) {
@@ -344,6 +362,20 @@ router.post('/panel/candidaturas/:id/notas', rateLimit({
     return res.redirect(`/panel/candidaturas/${application.id}?err=` + encodeURIComponent('La nota está vacía.'));
   }
 
+  /* Fricção contra notas com características protegidas (ver
+   * lib/sensitive.js — não é uma garantia). Sem confirmação explícita a nota
+   * não é gravada; com confirmação fica registado que o foi (sem o texto). */
+  const terms = findProtectedTerms(body);
+  if (terms.length > 0 && req.body.confirmar_sensible !== '1') {
+    logSecurity('nota_sensible_bloqueada', `app=${application.id}`, req.ip, {
+      userId: req.user.id, restaurantId: restaurantId(req), metadata: { terms }
+    });
+    return res.redirect(`/panel/candidaturas/${application.id}?err=` + encodeURIComponent(
+      'La nota no se ha guardado: parece mencionar salud, religión, origen, edad, situación familiar u otra ' +
+      'característica protegida. No registres esa información: es un dato especialmente protegido o puede ser ' +
+      'discriminatorio. Si es imprescindible y legítimo para el puesto, reescribe la nota y marca la casilla de confirmación.'));
+  }
+
   await run(
     sb().from('application_notes').insert({
       application_id: application.id,
@@ -353,6 +385,10 @@ router.post('/panel/candidaturas/:id/notas', rateLimit({
     }),
     'guardar nota'
   );
+
+  logSecurity(terms.length > 0 ? 'nota_sensible_confirmada' : 'nota_creada', `app=${application.id}`, req.ip, {
+    userId: req.user.id, restaurantId: restaurantId(req), metadata: terms.length > 0 ? { terms } : {}
+  });
 
   res.redirect(`/panel/candidaturas/${application.id}?ok=` + encodeURIComponent('Nota guardada.'));
 });
@@ -372,6 +408,10 @@ router.post('/panel/candidaturas/:id/notas/:noteId/eliminar', async (req, res) =
     'eliminar nota'
   );
 
+  logSecurity('nota_eliminada', `app=${application.id} nota=${Number(req.params.noteId)}`, req.ip, {
+    userId: req.user.id, restaurantId: restaurantId(req)
+  });
+
   res.redirect(`/panel/candidaturas/${application.id}?ok=` + encodeURIComponent('Nota eliminada.'));
 });
 
@@ -389,6 +429,10 @@ router.post('/panel/candidaturas/:id/eliminar', async (req, res) => {
     restaurant_id: rid
   }, 'eliminar candidatura');
 
+  if (result && result.reason === 'legal_hold') {
+    return res.redirect(`/panel/candidaturas/${id}?err=` + encodeURIComponent(
+      'Esta candidatura tiene un bloqueo de conservación activo. Retíralo antes de eliminarla.'));
+  }
   if (!result || !result.ok) return notFound(res);
 
   /* A função devolve o caminho do objeto porque não tem acesso ao Storage.
@@ -417,7 +461,17 @@ router.get('/panel/cv/:id', async (req, res) => {
     'cv'
   );
 
-  if (!cv) return notFound(res);
+  /* Defesa em profundidade: além do filtro por restaurant_id na BD, o objeto
+   * tem de estar na pasta do próprio restaurante no bucket. */
+  if (!cv || !String(cv.storage_path).startsWith(`r/${Number(restaurantId(req))}/`)) return notFound(res);
+
+  const download = req.query.descargar === '1';
+
+  /* Auditoria: quem abriu que CV e quando (sem dados do candidato). Esperado
+   * com await: um acesso a um CV sem registo não é auditável. */
+  await logSecurity(download ? 'cv_descargado' : 'cv_visto', `cv=${cv.id} app=${cv.application_id}`, req.ip, {
+    userId: req.user.id, restaurantId: restaurantId(req), userAgent: req.headers['user-agent']
+  });
 
   const buffer = await storage.downloadCv(cv.storage_path);
   if (!buffer) {
@@ -428,8 +482,7 @@ router.get('/panel/cv/:id', async (req, res) => {
 
   const asciiName = String(cv.original_filename)
     .replace(/[^\x20-\x7E]/g, '_')
-    .replace(/["\\]/g, '_') || 'cv.pdf';
-  const download = req.query.descargar === '1';
+    .replace(/["\\;]/g, '_') || 'cv.pdf';
 
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader('Content-Length', buffer.length);
@@ -655,8 +708,10 @@ router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
   const form = {
     name: clean(req.body.name, 100),
     commercial_name: clean(req.body.commercial_name, 100),
+    legal_name: clean(req.body.legal_name, 150),
     owner_name: clean(req.body.owner_name, 100),
     email: clean(req.body.email, 120),
+    privacy_email: clean(req.body.privacy_email, 120),
     phone: clean(req.body.telefono, 30),
     address: clean(req.body.direccion, 200),
     postal_code: clean(req.body.cp, 10),
@@ -665,11 +720,14 @@ router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
     description: clean(req.body.descripcion, 1500)
   };
 
+  const EMAIL_OK = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]{2,}$/;
   const errors = {};
   if (form.name.length < 2) errors.name = 'Indica el nombre del establecimiento.';
+  if (form.legal_name.length < 2) errors.legal_name = 'Indica la razón social o el nombre del titular.';
   if (form.owner_name.length < 2) errors.owner_name = 'Indica el responsable.';
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(form.email)) errors.email = 'Indica un email válido.';
-  if (!/^[\d\s()+-]{6,20}$/.test(form.phone)) errors.phone = 'Indica un teléfono válido.';
+  if (!EMAIL_OK.test(form.email)) errors.email = 'Indica un email válido.';
+  if (!EMAIL_OK.test(form.privacy_email)) errors.privacy_email = 'Indica un email de contacto para privacidad.';
+  if (form.phone && !/^[\d\s()+-]{6,20}$/.test(form.phone)) errors.phone = 'Indica un teléfono válido.';
   if (form.city.length < 2) errors.city = 'Indica la ciudad.';
   if (form.postal_code && !/^\d{5}$/.test(form.postal_code)) errors.postal_code = 'El código postal debe tener 5 dígitos.';
   if (!Object.prototype.hasOwnProperty.call(ESTABLISHMENT_TYPES, form.establishment_type)) {
@@ -730,6 +788,8 @@ router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
     throw err;
   }
 
+  logSecurity('restaurante_actualizado', `rid=${rid}`, req.ip, { userId: req.user.id, restaurantId: rid });
+
   /* Só agora se apagam as imagens que deixaram de ser referenciadas. */
   const orphans = [
     current.logo_path && current.logo_path !== updates.logo_path ? current.logo_path : '',
@@ -760,6 +820,9 @@ router.post('/panel/configuracion', rateLimit({
   const confirmPassword = String(req.body.password_repetir || '').slice(0, 200);
 
   if (!verifyPassword(currentPassword, req.user.password_hash)) {
+    logSecurity('configuracion_password_incorrecta', `user=${req.user.id}`, req.ip, {
+      userId: req.user.id, restaurantId: restaurantId(req)
+    });
     return err('La contraseña actual es incorrecta.');
   }
 
@@ -779,7 +842,8 @@ router.post('/panel/configuracion', rateLimit({
   }
 
   if (doPassword) {
-    if (newPassword.length < 8) return err('La nueva contraseña debe tener al menos 8 caracteres.');
+    const problem = passwordProblem(newPassword, doEmail ? newEmail : req.user.email);
+    if (problem) return err(problem);
     if (newPassword !== confirmPassword) return err('Las contraseñas nuevas no coinciden.');
   }
 
@@ -789,11 +853,13 @@ router.post('/panel/configuracion', rateLimit({
 
   if (Object.keys(updates).length > 0) {
     await run(sb().from('users').update(updates).eq('id', req.user.id), 'atualizar conta');
+    /* Credenciais mudaram: todas as OUTRAS sessões deste utilizador terminam
+     * (um atacante com uma sessão roubada perde-a). A atual mantém-se. */
+    await destroyUserSessions(req.user.id, req.session && req.session.tokenHash);
   }
 
-  logSecurity('configuracion_actualizada', `user=${req.user.id}`, req.ip, {
-    userId: req.user.id, restaurantId: restaurantId(req)
-  });
+  logSecurity(doPassword ? 'password_cambiada' : (doEmail ? 'email_cambiado' : 'configuracion_actualizada'),
+    `user=${req.user.id}`, req.ip, { userId: req.user.id, restaurantId: restaurantId(req) });
 
   res.redirect('/panel/configuracion?ok=' + encodeURIComponent('Configuración actualizada.'));
 });
@@ -820,7 +886,7 @@ router.get('/panel/notificaciones', async (req, res) => {
     return {
       ...n,
       candidateName: cand ? `${cand.first_name} ${cand.last_name || ''}`.trim() : '',
-      jobTitle: (app && app.job_title) || ''
+      jobTitle: n.type === 'solicitud_derechos' ? 'Solicitud de derechos (RGPD)' : ((app && app.job_title) || '')
     };
   });
 
@@ -840,6 +906,234 @@ router.post('/panel/notificaciones/marcar-leidas', async (req, res) => {
     : '/panel';
 
   res.redirect(back);
+});
+
+/* ================================================================== *
+ * Privacidade do estabelecimento: guia + prazos de conservação
+ * ================================================================== */
+router.get('/panel/privacidad', async (req, res) => {
+  const r = await one(
+    sb().from('restaurants')
+      .select('slug, name, legal_name, privacy_email, terms_version, dpa_version, terms_accepted_at, retention_closed_days, retention_inactive_days, retention_reserve_days')
+      .eq('id', restaurantId(req)),
+    'privacidade do restaurante'
+  );
+  if (!r) return notFound(res);
+  res.render('panel/privacy', { r, query: req.query, welcome: req.query.bienvenida === '1' });
+});
+
+router.post('/panel/privacidad/conservacion', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+
+  const toInt = (v) => parseInt(String(v || ''), 10);
+  const result = await rpc('set_retention_settings', {
+    restaurant_id: restaurantId(req),
+    closed_days: toInt(req.body.cerrados),
+    inactive_days: toInt(req.body.inactivos),
+    reserve_days: toInt(req.body.reserva)
+  }, 'prazos de conservação');
+
+  if (!result || !result.ok) {
+    return res.redirect('/panel/privacidad?err=' + encodeURIComponent('Plazos fuera de los límites permitidos.'));
+  }
+
+  logSecurity('retencion_configurada',
+    `rid=${restaurantId(req)} cerrados=${toInt(req.body.cerrados)} inactivos=${toInt(req.body.inactivos)} reserva=${toInt(req.body.reserva)}`,
+    req.ip, { userId: req.user.id, restaurantId: restaurantId(req) });
+
+  res.redirect('/panel/privacidad?ok=' + encodeURIComponent('Plazos guardados y aplicados a las candidaturas existentes.'));
+});
+
+/* ================================================================== *
+ * Pedidos de exercício de direitos (arts. 15-22 RGPD)
+ * ================================================================== */
+const RIGHTS_STATUS = ['recibida', 'en_curso', 'resuelta', 'denegada'];
+
+router.get('/panel/derechos', async (req, res) => {
+  const rid = restaurantId(req);
+  const requests = await many(
+    sb().from('rights_requests')
+      .select('id, public_ref, kind, requester_name, requester_email, message, status, due_at, extended, resolution_note, resolved_at, created_at')
+      .eq('restaurant_id', rid)
+      .order('status', { ascending: true })
+      .order('due_at', { ascending: true })
+      .limit(200),
+    'pedidos de direitos'
+  );
+
+  /* Para cada pedido, as candidaturas DESTE restaurante com o mesmo email —
+   * é assim que o estabelecimento localiza os dados do titular. */
+  const emails = [...new Set(requests.map((r) => String(r.requester_email).toLowerCase()))];
+  const matches = emails.length === 0 ? [] : await many(
+    sb().from('application_list').select('id, candidate_id, email, first_name, last_name, job_title, applied_at')
+      .eq('restaurant_id', rid).in('email', emails),
+    'candidaturas do titular'
+  );
+  const byEmail = {};
+  for (const m of matches) {
+    const k = String(m.email).toLowerCase();
+    (byEmail[k] = byEmail[k] || []).push(m);
+  }
+
+  res.render('panel/rights', { requests, byEmail, query: req.query, now: Date.now() });
+});
+
+router.post('/panel/derechos/:id', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+
+  const status = clean(req.body.estado, 20);
+  if (!RIGHTS_STATUS.includes(status)) {
+    return res.redirect('/panel/derechos?err=' + encodeURIComponent('Estado no válido.'));
+  }
+
+  const result = await rpc('update_rights_request', {
+    id: Number(req.params.id),
+    restaurant_id: restaurantId(req),
+    status,
+    note: clean(req.body.nota, 2000),
+    extend: req.body.prorrogar === '1',
+    user_id: req.user.id
+  }, 'atualizar pedido de direitos');
+
+  if (!result || !result.ok) return notFound(res);
+
+  logSecurity('derechos_actualizada', `req=${Number(req.params.id)} estado=${status}${req.body.prorrogar === '1' ? ' prorroga' : ''}`,
+    req.ip, { userId: req.user.id, restaurantId: restaurantId(req) });
+
+  res.redirect('/panel/derechos?ok=' + encodeURIComponent('Solicitud actualizada.'));
+});
+
+/* ================================================================== *
+ * Acesso / portabilidade: exportação dos dados de UM candidato
+ * ================================================================== *
+ * Tudo o que este restaurante tem sobre a pessoa (por candidate_id, dentro do
+ * tenant): dados, candidaturas, notas internas (as valorações subjetivas
+ * também são dados pessoais — AEPD, relações laborais, III.1), histórico,
+ * consentimentos e metadados do CV (o PDF descarrega-se à parte). Nunca
+ * dados de outros candidatos nem de outros restaurantes.
+ */
+router.get('/panel/candidaturas/:id/exportar', async (req, res) => {
+  const application = await ownApplication(req);
+  if (!application) return notFound(res);
+  const rid = restaurantId(req);
+
+  const candidate = await one(
+    sb().from('candidates').select('first_name, last_name, email, phone, doc_type, doc_number, created_at, updated_at')
+      .eq('id', application.candidate_id).eq('restaurant_id', rid),
+    'candidato (exportação)'
+  );
+  const apps = await many(
+    sb().from('applications')
+      .select('id, job_title, status, availability, experience, observations, future_interest, applied_at, updated_at, closed_at, retention_until')
+      .eq('candidate_id', application.candidate_id).eq('restaurant_id', rid).order('applied_at'),
+    'candidaturas (exportação)'
+  );
+  const ids = apps.map((a) => a.id);
+  const [notes, history, consents, cvs] = ids.length === 0 ? [[], [], [], []] : await Promise.all([
+    many(sb().from('application_notes').select('application_id, body, created_at').eq('restaurant_id', rid).in('application_id', ids), 'notas (exportação)'),
+    many(sb().from('application_history').select('application_id, event, old_status, new_status, detail, created_at').eq('restaurant_id', rid).in('application_id', ids), 'histórico (exportação)'),
+    many(sb().from('consents').select('application_id, selection_basis, privacy_notice_version, future_opportunity_consent, future_text, future_granted_at, future_withdrawn_at, consent_version').in('application_id', ids), 'consentimentos (exportação)'),
+    many(sb().from('cvs').select('application_id, original_filename, size_bytes, created_at').eq('restaurant_id', rid).in('application_id', ids), 'cvs (exportação)')
+  ]);
+
+  const out = {
+    generated_at: new Date().toISOString(),
+    controller: req.user.restaurant_name,
+    note: 'Datos personales del candidato tratados por este establecimiento a través de Fíchame. Los currículums se entregan aparte en PDF.',
+    candidate: { ...candidate, doc_type: candidate && candidate.doc_type ? candidate.doc_type : undefined, doc_number: candidate && candidate.doc_number ? candidate.doc_number : undefined },
+    applications: apps.map((a) => ({
+      ...a,
+      notes: notes.filter((n) => n.application_id === a.id).map(({ application_id, ...n }) => n),
+      history: history.filter((h) => h.application_id === a.id).map(({ application_id, ...h }) => h),
+      consent: consents.find((c) => c.application_id === a.id) || null,
+      cv: cvs.find((c) => c.application_id === a.id) || null
+    }))
+  };
+
+  await logSecurity('candidato_exportado', `app=${application.id} apps=${apps.length}`, req.ip, {
+    userId: req.user.id, restaurantId: rid
+  });
+
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="datos-candidato-${application.id}.json"`);
+  res.send(JSON.stringify(out, null, 2));
+});
+
+/* ================================================================== *
+ * Supressão de TODOS os dados do candidato neste restaurante (art. 17)
+ * ================================================================== */
+router.post('/panel/candidaturas/:id/eliminar-candidato', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+  const application = await ownApplication(req);
+  if (!application) return notFound(res);
+
+  if (req.body.confirmo !== '1') {
+    return res.redirect(`/panel/candidaturas/${application.id}?err=` + encodeURIComponent('Marca la casilla de confirmación.'));
+  }
+
+  const result = await rpc('delete_candidate', {
+    candidate_id: application.candidate_id,
+    restaurant_id: restaurantId(req)
+  }, 'suprimir candidato');
+
+  if (result && result.reason === 'legal_hold') {
+    return res.redirect(`/panel/candidaturas/${application.id}?err=` + encodeURIComponent(
+      'Alguna candidatura de esta persona tiene un bloqueo de conservación. Retíralo antes de suprimir sus datos.'));
+  }
+  if (!result || !result.ok) return notFound(res);
+
+  if (result.paths && result.paths.length > 0) await storage.removeCv(result.paths);
+
+  logSecurity('candidato_suprimido', `app=${application.id} apps=${result.applications} cvs=${(result.paths || []).length}`, req.ip, {
+    userId: req.user.id, restaurantId: restaurantId(req)
+  });
+
+  res.redirect('/panel/candidaturas?ok=' + encodeURIComponent(
+    `Datos del candidato suprimidos: ${result.applications} candidatura(s) con sus CV, notas, historial y consentimientos.`));
+});
+
+/* ================================================================== *
+ * Retirada do consentimento de futuras oportunidades (art. 7.3)
+ * ================================================================== */
+router.post('/panel/candidaturas/:id/retirar-consentimiento', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+  const id = Number(req.params.id);
+  const result = await rpc('withdraw_future_consent', {
+    application_id: id, restaurant_id: restaurantId(req), user_id: req.user.id
+  }, 'retirar consentimento');
+
+  if (result && result.reason === 'no_consent') {
+    return res.redirect(`/panel/candidaturas/${id}?err=` + encodeURIComponent('Este candidato no tiene un consentimiento activo.'));
+  }
+  if (!result || !result.ok) return notFound(res);
+
+  logSecurity('consentimiento_retirado', `app=${id}`, req.ip, { userId: req.user.id, restaurantId: restaurantId(req) });
+  res.redirect(`/panel/candidaturas/${id}?ok=` + encodeURIComponent(
+    'Consentimiento retirado. Si la candidatura estaba en reserva, sus datos se borrarán en la próxima limpieza automática.'));
+});
+
+/* ================================================================== *
+ * Bloqueio de conservação (legal_hold)
+ * ================================================================== */
+router.post('/panel/candidaturas/:id/bloqueo', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+  const id = Number(req.params.id);
+  const hold = req.body.accion === 'activar';
+
+  const result = await rpc('set_legal_hold', {
+    application_id: id, restaurant_id: restaurantId(req), user_id: req.user.id,
+    hold, reason: clean(req.body.motivo, 300)
+  }, 'bloqueio legal');
+
+  if (result && result.reason === 'reason_required') {
+    return res.redirect(`/panel/candidaturas/${id}?err=` + encodeURIComponent('Indica el motivo del bloqueo (p. ej., reclamación en curso).'));
+  }
+  if (!result || !result.ok) return notFound(res);
+
+  logSecurity(hold ? 'bloqueo_activado' : 'bloqueo_retirado', `app=${id}`, req.ip, {
+    userId: req.user.id, restaurantId: restaurantId(req)
+  });
+  res.redirect(`/panel/candidaturas/${id}?ok=` + encodeURIComponent(hold ? 'Bloqueo de conservación activado.' : 'Bloqueo retirado.'));
 });
 
 module.exports = router;

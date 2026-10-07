@@ -1,32 +1,65 @@
 'use strict';
 
-/* Consentimentos (§6, §29).
+/* Informação e consentimentos (arts. 6, 7, 13 RGPD; art. 11 LOPDGDD).
  *
- * Dois consentimentos independentes: um obrigatório para participar no
- * processo, outro opcional para conservação de dados para vagas futuras.
+ * Correção da auditoria de 2026-10: a gestão da candidatura deixou de ser
+ * tratada como «consentimento». A base é o art. 6.1.b RGPD — medidas
+ * pré-contratuais a pedido do candidato —, como indica a AEPD («La protección
+ * de datos en las relaciones laborales», III.1). Um checkbox obrigatório de
+ * «consentimento» para se candidatar seria um consentimento não livre e uma
+ * base jurídica errada. O candidato é INFORMADO (não consente) e o envio do
+ * formulário é o pedido.
  *
- * O texto é guardado junto com a candidatura, não apenas a versão: se amanhã
- * o texto mudar, continua a ser possível provar o que o candidato leu e
- * aceitou naquele momento. Ao alterar qualquer texto aqui, incrementar
- * CONSENT_VERSION — nunca editar um texto mantendo a versão.
+ * Consentimento real só existe para uma finalidade distinta e opcional: manter
+ * os dados para futuras oportunidades NESTE estabelecimento. Nunca para outros
+ * estabelecimentos nem para um banco global da plataforma.
+ *
+ * Versões: ao mudar o significado de qualquer texto, incrementar a versão
+ * correspondente — nunca editar um texto mantendo a versão. Cada candidatura
+ * guarda a versão do aviso informativo e o texto exato do consentimento.
+ *
+ * REQUIERE REVISIÓN JURÍDICA: os textos são uma base técnica.
  */
 
-const CONSENT_VERSION = 'v2-2026-10';
+/* Aviso informativo (1.ª camada no formulário + /r/:slug/privacidad). */
+const PRIVACY_NOTICE_VERSION = '2026-10';
 
-const SELECTION_TEXT =
-  'Autorizo el tratamiento de mis datos personales y de mi currículum por parte ' +
-  'del establecimiento con la finalidad exclusiva de gestionar mi candidatura en ' +
-  'este proceso de selección. Mis datos no se cederán a terceros ni se utilizarán ' +
-  'para otras finalidades.';
+/* Texto do consentimento de futuras oportunidades. */
+const CONSENT_VERSION = 'v3-2026-10';
 
-const FUTURE_TEXT =
-  'Autorizo además, de forma voluntaria, que el establecimiento conserve mis datos ' +
-  'y mi currículum para considerarme en futuras oportunidades de empleo. Puedo ' +
-  'retirar este consentimiento en cualquier momento.';
-
-/* Texto completo associado a uma candidatura, conforme o que foi aceite. */
-function consentSnapshot(futureAccepted) {
-  return futureAccepted ? `${SELECTION_TEXT}\n\n${FUTURE_TEXT}` : SELECTION_TEXT;
+function days2months(days) {
+  const m = Math.round(Number(days) / 30);
+  return m <= 1 ? '1 mes' : `${m} meses`;
 }
 
-module.exports = { CONSENT_VERSION, SELECTION_TEXT, FUTURE_TEXT, consentSnapshot };
+/* O texto inclui o nome do estabelecimento e o prazo: o consentimento é
+ * específico (art. 4.11 RGPD) e é gravado tal como o candidato o leu. */
+function futureText(restaurantName, reserveDays) {
+  return (
+    `Quiero que ${restaurantName} conserve mis datos y mi currículum durante ` +
+    `${days2months(reserveDays)} para tenerme en cuenta en futuras vacantes de este ` +
+    'mismo establecimiento. No autorizo que se compartan con otros establecimientos ' +
+    'ni con terceros. Es voluntario: puedo retirarlo en cualquier momento sin que ' +
+    'afecte a mi candidatura actual.'
+  );
+}
+
+/* Formulário de interesse (contratação pausada): a única finalidade do
+ * formulário é a reserva, por isso o consentimento é a base e é exigido para
+ * enviar — é o próprio pedido, não uma condição imposta a outra coisa. */
+function interestText(restaurantName, reserveDays) {
+  return (
+    `Quiero que ${restaurantName} guarde mis datos de contacto durante ` +
+    `${days2months(reserveDays)} para avisarme si surge una vacante en este ` +
+    'establecimiento. No autorizo que se compartan con otros establecimientos ni con ' +
+    'terceros. Puedo retirarlo en cualquier momento.'
+  );
+}
+
+module.exports = {
+  PRIVACY_NOTICE_VERSION,
+  CONSENT_VERSION,
+  futureText,
+  interestText,
+  days2months
+};

@@ -13,6 +13,7 @@
     <div class="card">
       <h2>Iniciar sesión</h2>
       <% if (error) { %><div class="flash err"><%= error %></div><% } %>
+      <% if (info === 'restablecida') { %><div class="flash ok">Contraseña restablecida. Por seguridad, se han cerrado todas tus sesiones: inicia sesión de nuevo.</div><% } %>
 
       <form action="/login" method="post">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -26,6 +27,8 @@
         </div>
         <button class="btn block lg" type="submit">Entrar</button>
       </form>
+
+      <p class="small muted center auth-alt"><a href="/recuperar">¿Has olvidado tu contraseña?</a></p>
 
       <p class="small muted center auth-alt">
         ¿Todavía no tienes cuenta? <a href="/registro">Registra tu establecimiento</a>

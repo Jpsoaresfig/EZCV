@@ -98,15 +98,57 @@ function createApp() {
   app.set('views', path.join(__dirname, 'views'));
   app.set('x-powered-by', false);
 
+  /* Em produção (COOKIE_SECURE=1 e TRUST_PROXY=1) um pedido HTTP é
+   * redirecionado para HTTPS. Só com os dois: sem TRUST_PROXY o Express não
+   * sabe que o proxy terminou TLS e redirecionaria em ciclo. */
+  if (config.cookieSecure && config.trustProxy) {
+    app.use((req, res, next) => {
+      if (req.secure) return next();
+      if (!['GET', 'HEAD'].includes(req.method)) return res.status(400).send('HTTPS requerido.');
+      return res.redirect(308, `https://${req.get('host')}${req.originalUrl}`);
+    });
+  }
+
   app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('X-Frame-Options', 'DENY');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    res.setHeader('Permissions-Policy',
+      'camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=(), browsing-topics=()');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    /* CSP sem 'unsafe-inline' nem domínios externos: não há scripts, estilos,
+     * fontes, analytics nem pixels de terceiros (ver /cookies). img data: é
+     * usado por ícones em CSS. */
     res.setHeader('Content-Security-Policy',
       "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; " +
-      "font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'");
+      "font-src 'self'; connect-src 'self'; object-src 'none'; frame-ancestors 'none'; " +
+      "base-uri 'self'; form-action 'self'" + (config.cookieSecure ? '; upgrade-insecure-requests' : ''));
+    if (config.cookieSecure) {
+      /* Só com HTTPS confirmado: HSTS num ambiente sem TLS bloquearia o site. */
+      res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
+    }
     next();
+  });
+
+  /* Indexação: só a landing e as páginas legais e públicas de cada negócio
+   * podem aparecer em buscadores. Painel, admin, autenticação, confirmações e
+   * formulários de direitos ficam fora (X-Robots-Tag + robots.txt). Nenhuma
+   * página contém dados de candidatos sem sessão. */
+  app.get('/robots.txt', (req, res) => {
+    res.type('text/plain').setHeader('Cache-Control', 'public, max-age=3600');
+    res.send([
+      'User-agent: *',
+      'Disallow: /panel',
+      'Disallow: /admin',
+      'Disallow: /login',
+      'Disallow: /registro',
+      'Disallow: /recuperar',
+      'Disallow: /internal',
+      'Disallow: /r/*/enviado',
+      'Disallow: /r/*/derechos',
+      ''
+    ].join('\n'));
   });
 
   /* Os ficheiros estáticos vêm antes da sessão de propósito: carregar a sessão
@@ -120,6 +162,21 @@ function createApp() {
     maxAge: '30d',
     etag: true
   }));
+
+  /* Tudo o que vem depois dos estáticos é dinâmico e pode conter dados
+   * pessoais: sem cache em browser, proxy ou CDN. Rotas que servem conteúdo
+   * público (imagens do negócio) substituem este cabeçalho. */
+  app.use((req, res, next) => {
+    res.setHeader('Cache-Control', 'no-store');
+    const indexable = req.path === '/' || /^\/(privacidad|cookies|terminos|aviso-legal|encargo)$/.test(req.path) ||
+      /^\/r\/[a-z0-9-]+\/?$/.test(req.path);
+    if (!indexable) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+    next();
+  });
+
+  /* Retenção automática (Vercel Cron ou outro agendador). Antes da sessão: não
+   * usa cookies. Desativada sem CRON_SECRET. */
+  app.use('/', require('./routes/internal'));
 
   app.use(loadSession);
   app.use((req, res, next) => {

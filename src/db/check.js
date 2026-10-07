@@ -10,7 +10,10 @@ const config = require('../config');
 const { sb, many } = require('../db');
 const storage = require('../lib/storage');
 
-const REQUIRED_MIGRATIONS = ['0001_init', '0002_views_rpc', '0003_storage', '0004_notifications_cascade'];
+const REQUIRED_MIGRATIONS = [
+  '0001_init', '0002_views_rpc', '0003_storage', '0004_notifications_cascade', '0005_privacy_hardening',
+  '0006_tenant_fk_cleanup'
+];
 
 /* As views e funções de que o código depende. Sem isto, uma migration
  * esquecida só daria erro no primeiro pedido que a usasse. */
@@ -77,6 +80,23 @@ async function assertSchema() {
   return true;
 }
 
+/* Autodiagnóstico de segurança da BD (função security_self_check, 0005):
+ * tabelas sem RLS, tabelas concedidas a anon/authenticated, funções SECURITY
+ * DEFINER e buckets públicos. Qualquer item é um PRODUCTION BLOCKER
+ * (docs/security/production-compliance-gate.md). */
+async function securityProblems() {
+  const { rpc } = require('./index');
+  const r = await rpc('security_self_check', {}, 'autodiagnóstico');
+  const problems = [];
+  if (r.tables_without_rls.length) problems.push(`tabelas sem RLS: ${r.tables_without_rls.join(', ')}`);
+  if (r.tables_granted_to_anon_or_authenticated.length) {
+    problems.push(`tabelas/views acessíveis a anon/authenticated: ${r.tables_granted_to_anon_or_authenticated.join(', ')}`);
+  }
+  if (r.security_definer_functions.length) problems.push(`funções SECURITY DEFINER: ${r.security_definer_functions.join(', ')}`);
+  if (r.public_buckets.length) problems.push(`buckets públicos: ${r.public_buckets.join(', ')}`);
+  return problems;
+}
+
 /* `npm run check` */
 async function main() {
   console.log('');
@@ -108,11 +128,22 @@ async function main() {
     process.exit(1);
   }
 
+  const problems = await securityProblems();
+  if (problems.length > 0) {
+    console.error('  ✗ segurança da BD (PRODUCTION BLOCKER):');
+    for (const p of problems) console.error(`      - ${p}`);
+    process.exit(1);
+  }
+  console.log('  ✓ segurança  RLS em todas as tabelas, nada concedido a anon, sem SECURITY DEFINER');
+
+  if (!config.cookieSecure) console.log('  ! COOKIE_SECURE=0 — tem de ser 1 em produção (HTTPS, HSTS, cookie __Host-)');
+  if (!config.smtp.host) console.log('  ! SMTP não configurado — sem avisos por email nem recuperação de senha');
+
   console.log('');
   console.log('  Tudo pronto.');
   console.log('');
 }
 
-module.exports = { assertSchema, appliedMigrations };
+module.exports = { assertSchema, appliedMigrations, securityProblems };
 
 if (require.main === module) main();

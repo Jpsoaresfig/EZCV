@@ -9,6 +9,14 @@ const { verifyCsrf } = require('../middleware/csrf');
 const router = express.Router();
 router.use('/admin', requireAdmin);
 
+/* Ids sempre inteiros positivos: /admin/usuarios/abc/bloquear dava 500. */
+router.param('id', (req, res, next, value) => {
+  if (!/^\d{1,18}$/.test(String(value))) {
+    return res.status(404).render('error', { status: 404, title: 'No encontrado', message: 'Página no disponible.' });
+  }
+  next();
+});
+
 function clean(value, max = 200) {
   return String(value == null ? '' : value).trim().slice(0, max);
 }

@@ -44,11 +44,13 @@
                   <div class="dim tiny"><%= fmtRelative(n.created_at) %></div>
                 </td>
                 <td>
-                  <strong><%= n.type === 'nueva_candidatura' ? 'Nueva candidatura' : n.type %></strong>
+                  <strong><%= n.type === 'nueva_candidatura' ? 'Nueva candidatura' : (n.type === 'solicitud_derechos' ? 'Solicitud de derechos' : n.type) %></strong>
                   <% if (n.jobTitle) { %><div class="dim tiny"><%= n.jobTitle %></div><% } %>
                 </td>
                 <td>
-                  <% if (n.application_id) { %>
+                  <% if (n.type === 'solicitud_derechos') { %>
+                    <a href="/panel/derechos">Gestionar (plazo 1 mes)</a>
+                  <% } else if (n.application_id) { %>
                     <a href="/panel/candidaturas/<%= n.application_id %>"><%= n.candidateName || 'Ver candidatura' %></a>
                   <% } else { %>
                     <span class="dim">—</span>

@@ -1,0 +1,73 @@
+<%- include('../partials/head', { title: 'Términos de uso' }) %>
+
+<main class="container-narrow public-main legal">
+  <h1>Términos de uso de Fíchame</h1>
+  <p class="dim small">Versión <%= version %></p>
+
+  <%- include('draft_banner') %>
+
+  <div class="card">
+    <h2>1. Titular del servicio (art. 10 LSSI)</h2>
+    <p>
+      <%= operator.name %> · NIF <%= operator.nif %><br>
+      Domicilio: <%= operator.address %><br>
+      Email: <%= operator.email %><br>
+      <%= operator.registry %>
+    </p>
+  </div>
+
+  <div class="card">
+    <h2>2. Qué es Fíchame</h2>
+    <p>Fíchame es una <strong>herramienta tecnológica</strong> que permite a un negocio publicar una página para recibir candidaturas (accesible por etiqueta NFC, código QR o enlace) y organizarlas en un panel privado.</p>
+    <ul>
+      <li>Fíchame <strong>no selecciona</strong> candidatos, no los recomienda, no los puntúa, no los busca ni los presenta a negocios, y no comparte candidatos entre negocios.</li>
+      <li>Fíchame <strong>no garantiza</strong> la contratación ni promete empleo a ningún candidato.</li>
+      <li>Las <strong>decisiones de selección y contratación</strong> son exclusivamente del negocio, que debe tomarlas conforme a la ley.</li>
+    </ul>
+    <p class="help">El encaje de esta actividad en la normativa de intermediación laboral (Ley 3/2023, de Empleo) está en análisis jurídico.</p>
+  </div>
+
+  <div class="card">
+    <h2>3. Obligaciones del negocio</h2>
+    <ul>
+      <li>Usar los datos de candidatos solo para sus procesos de selección, como responsable del tratamiento, cumpliendo el RGPD y la LOPDGDD, y el <a href="/encargo">Acuerdo de encargo del tratamiento</a>, que forma parte de estos términos.</li>
+      <li>Respetar la igualdad y no discriminación en el acceso al empleo. Está prohibido usar Fíchame para pedir, anotar o filtrar por sexo, edad, origen racial o étnico, nacionalidad, religión o convicciones, discapacidad, salud, orientación sexual, identidad de género, opinión política, afiliación sindical, estado civil, lengua u otra circunstancia personal o social.</li>
+      <li>Identificarse correctamente (razón social y contacto de privacidad), porque se muestran a los candidatos como responsable.</li>
+      <li>Atender en plazo los derechos de los candidatos y respetar los plazos de conservación.</li>
+      <li>Custodiar sus credenciales y avisar sin demora a Fíchame de cualquier acceso no autorizado.</li>
+    </ul>
+    <p class="help">Estos términos no trasladan al negocio obligaciones que la ley atribuye a Fíchame, ni a la inversa.</p>
+  </div>
+
+  <div class="card">
+    <h2>4. Obligaciones de los candidatos</h2>
+    <p>Facilitar información veraz y propia, y no incluir datos innecesarios ni de terceros. Enviar una candidatura no requiere crear una cuenta.</p>
+  </div>
+
+  <div class="card">
+    <h2>5. Usos prohibidos</h2>
+    <ul>
+      <li>Intentar acceder a datos de otro negocio, de otra cuenta o de la plataforma, o eludir sus controles de seguridad.</li>
+      <li>Subir archivos maliciosos, ilícitos o que no sean un currículum.</li>
+      <li>Enviar candidaturas falsas, automatizadas o masivas, o usar la plataforma para spam o fraude.</li>
+      <li>Extraer datos de forma automatizada (scraping) o revender el acceso.</li>
+    </ul>
+    <p>El incumplimiento puede dar lugar a la suspensión de la cuenta, sin perjuicio de otras acciones legales.</p>
+  </div>
+
+  <div class="card">
+    <h2>6. Disponibilidad y responsabilidad</h2>
+    <p>Fíchame aplica medidas técnicas y organizativas razonables, pero no garantiza un funcionamiento ininterrumpido. <em>[CLÁUSULAS DE RESPONSABILIDAD, PRECIO, DURACIÓN Y RESOLUCIÓN — PENDIENTES DE REDACCIÓN JURÍDICA]</em></p>
+  </div>
+
+  <div class="card">
+    <h2>7. Ley aplicable</h2>
+    <p>Legislación española. <em>[FUERO Y CONDICIONES PARA CONSUMIDORES, SI APLICA — PENDIENTE DE REVISIÓN JURÍDICA]</em></p>
+  </div>
+
+  <div class="actions-row center-row spaced">
+    <a class="btn secondary small" href="/">Volver</a>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

@@ -10,6 +10,14 @@
   <%- include('../partials/flash') %>
 
   <div class="card narrow-card">
+    <h2>Privacidad</h2>
+    <div class="actions-row flat">
+      <a class="btn secondary small" href="/panel/derechos">Solicitudes de derechos</a>
+      <a class="btn secondary small" href="/panel/privacidad">Guía y plazos de conservación</a>
+    </div>
+  </div>
+
+  <div class="card narrow-card">
     <h2>Cuenta de acceso</h2>
     <p class="muted small">Email actual: <strong><%= userEmail %></strong></p>
 
@@ -31,8 +39,8 @@
       </div>
       <div class="field">
         <label for="password_nuevo">Contraseña nueva</label>
-        <input id="password_nuevo" type="password" name="password_nuevo" minlength="8" autocomplete="new-password">
-        <div class="help">Mínimo 8 caracteres. Déjalo vacío para no cambiarla.</div>
+        <input id="password_nuevo" type="password" name="password_nuevo" minlength="10" autocomplete="new-password">
+        <div class="help">Mínimo 10 caracteres. Déjalo vacío para no cambiarla. Al cambiarla se cierran tus demás sesiones.</div>
       </div>
       <div class="field">
         <label for="password_repetir">Repetir contraseña nueva</label>

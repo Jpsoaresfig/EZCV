@@ -47,6 +47,21 @@ document.addEventListener('click', function (e) {
   }
 });
 
+/* Recuperação de senha: o token vem no fragmento (#t=…), que o browser não
+   envia ao servidor. Copia-o para o formulário e limpa-o da barra de
+   endereço (não fica no histórico). */
+(function () {
+  var input = document.querySelector('[data-reset-token]');
+  if (!input) return;
+  var m = /(?:^#|&)t=([a-f0-9]{64})/.exec(window.location.hash || '');
+  if (m) {
+    input.value = m[1];
+    if (window.history && window.history.replaceState) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }
+})();
+
 /* Botão «Imprimir» da página do QR — sem onclick inline por causa do CSP. */
 document.addEventListener('click', function (e) {
   if (e.target.closest('[data-print]')) window.print();

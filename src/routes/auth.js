@@ -3,17 +3,28 @@
 const express = require('express');
 
 const config = require('../config');
-const { sb, one, rpc, logSecurity } = require('../db');
-const { createSession, destroySession, ensureSession } = require('../middleware/session');
+const { sb, one, run, rpc, logSecurity } = require('../db');
+const { createSession, destroySession, destroyUserSessions, ensureSession } = require('../middleware/session');
 const { verifyCsrf } = require('../middleware/csrf');
-const { rateLimit } = require('../middleware/rateLimit');
-const { hashPassword, verifyPassword } = require('../lib/crypto');
+const { rateLimit, dbRateLimit } = require('../middleware/rateLimit');
+const { hashPassword, verifyPassword, randomToken, sha256 } = require('../lib/crypto');
 const { slugify } = require('../lib/slug');
+const { emailTag } = require('../lib/privacy');
+const { sendPasswordReset } = require('../lib/mailer');
+const { TERMS_VERSION, DPA_VERSION } = require('../lib/legal');
 const { ESTABLISHMENT_TYPES } = require('../lib/statuses');
 
 const router = express.Router();
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]{2,}$/;
+const MIN_PASSWORD = 10;
+
+/* Hash fictício: quando o email não existe, verifica-se a senha contra isto
+ * para que a resposta demore o mesmo que com um email existente. Sem isto,
+ * o tempo de resposta revelaria que contas existem. */
+const DUMMY_HASH = hashPassword(randomToken(16));
+
+const RESET_TTL_MS = 30 * 60 * 1000;
 
 /* Landing page para quem ainda não tem conta; quem já entrou vai direto
  * para o painel, como antes. */
@@ -26,143 +37,199 @@ function clean(value, max = 200) {
   return String(value == null ? '' : value).trim().slice(0, max);
 }
 
+function badCsrf(res) {
+  return res.status(403).render('error', {
+    status: 403, title: 'Sesión no válida', message: 'Recarga la página e inténtalo de nuevo.'
+  });
+}
+
+/* Senha: comprimento mínimo e recusa das mais óbvias. Sem regras de
+ * composição (que levam a senhas previsíveis), como recomenda o NIST SP 800-63B. */
+const COMMON = new Set(['1234567890', '12345678910', 'contraseña', 'contrasena1', 'password123', 'qwertyuiop', '123456789a', 'fichame123']);
+function passwordProblem(pw, email) {
+  if (pw.length < MIN_PASSWORD) return `La contraseña debe tener al menos ${MIN_PASSWORD} caracteres.`;
+  if (COMMON.has(pw.toLowerCase())) return 'Esa contraseña es demasiado común. Elige otra.';
+  if (email && pw.toLowerCase().includes(String(email).split('@')[0].toLowerCase()) && String(email).split('@')[0].length >= 4) {
+    return 'La contraseña no debe contener tu email.';
+  }
+  if (/^(.)\1+$/.test(pw)) return 'La contraseña es demasiado simple.';
+  return '';
+}
+
 /* ------------------------------------------------------------------ *
  * Registro de establecimiento (§9)
- * ------------------------------------------------------------------ */
+ * ------------------------------------------------------------------ *
+ * Minimização: só o necessário para a conta e para que o estabelecimento
+ * possa ser identificado como responsável do tratamento perante os
+ * candidatos (art. 13.1.a RGPD). Telefone e morada são opcionais.
+ * A aceitação dos Termos e do Acordo de Encargo é contratual (não é um
+ * consentimento RGPD) e fica registada com a versão e a data.
+ */
 router.get('/registro', ensureSession, (req, res) => {
   if (req.user) return res.redirect(req.user.role === 'admin' ? '/admin' : '/panel');
-  res.render('auth/register', { form: {}, errors: null });
+  res.render('auth/register', { form: {}, errors: null, minPassword: MIN_PASSWORD });
 });
 
-router.post('/registro', rateLimit({ windowMs: 15 * 60 * 1000, max: 10, name: 'register' }), async (req, res) => {
-  if (!verifyCsrf(req)) {
-    return res.status(403).render('error', {
-      status: 403, title: 'Sesión no válida', message: 'Recarga la página e inténtalo de nuevo.'
-    });
-  }
+router.post('/registro',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 10, name: 'register' }),
+  dbRateLimit({ windowMs: 60 * 60 * 1000, max: 10, name: 'register' }),
+  async (req, res) => {
+    if (!verifyCsrf(req)) return badCsrf(res);
 
-  const form = {
-    restaurant_name: clean(req.body.restaurant_name, 100),
-    commercial_name: clean(req.body.commercial_name, 100),
-    owner_name: clean(req.body.owner_name, 100),
-    email: clean(req.body.email, 120),
-    phone: clean(req.body.telefono, 30),
-    address: clean(req.body.direccion, 200),
-    postal_code: clean(req.body.cp, 10),
-    city: clean(req.body.ciudad, 100),
-    establishment_type: clean(req.body.establecimiento, 40),
-    description: clean(req.body.descripcion, 1500),
-    password: String(req.body.password || '').slice(0, 200),
-    password2: String(req.body.password2 || '').slice(0, 200)
-  };
+    const form = {
+      restaurant_name: clean(req.body.restaurant_name, 100),
+      commercial_name: clean(req.body.commercial_name, 100),
+      legal_name: clean(req.body.legal_name, 150),
+      owner_name: clean(req.body.owner_name, 100),
+      email: clean(req.body.email, 120),
+      phone: clean(req.body.telefono, 30),
+      address: clean(req.body.direccion, 200),
+      postal_code: clean(req.body.cp, 10),
+      city: clean(req.body.ciudad, 100),
+      establishment_type: clean(req.body.establecimiento, 40),
+      description: clean(req.body.descripcion, 1500),
+      accept: req.body.acepto === '1',
+      password: String(req.body.password || '').slice(0, 200),
+      password2: String(req.body.password2 || '').slice(0, 200)
+    };
 
-  const errors = {};
-  if (form.restaurant_name.length < 2) errors.restaurant_name = 'Indica el nombre del establecimiento.';
-  if (form.owner_name.length < 2) errors.owner_name = 'Indica el responsable.';
-  if (!EMAIL_RE.test(form.email)) errors.email = 'Indica un email válido.';
-  if (!/^[\d\s()+-]{6,20}$/.test(form.phone)) errors.phone = 'Indica un teléfono válido.';
-  if (form.city.length < 2) errors.city = 'Indica la ciudad.';
-  if (form.postal_code && !/^\d{5}$/.test(form.postal_code)) errors.postal_code = 'El código postal debe tener 5 dígitos (ej.: 28013).';
-  if (!Object.prototype.hasOwnProperty.call(ESTABLISHMENT_TYPES, form.establishment_type)) {
-    errors.establishment_type = 'Selecciona el tipo de establecimiento.';
-  }
-  if (form.password.length < 8) errors.password = 'La contraseña debe tener al menos 8 caracteres.';
-  if (form.password !== form.password2) errors.password2 = 'Las contraseñas no coinciden.';
-
-  const rejectWith = (fieldErrors) => {
-    delete form.password;
-    delete form.password2;
-    return res.status(422).render('auth/register', { form, errors: fieldErrors });
-  };
-
-  if (Object.keys(errors).length > 0) return rejectWith(errors);
-
-  /* Restaurante + utilizador owner + slug único numa só transação.
-   * O slug é gerado dentro da função para ser à prova de corrida. */
-  const result = await rpc('register_restaurant', {
-    slug_base: slugify(form.restaurant_name),
-    name: form.restaurant_name,
-    commercial_name: form.commercial_name,
-    owner_name: form.owner_name,
-    email: form.email,
-    phone: form.phone,
-    address: form.address,
-    postal_code: form.postal_code,
-    city: form.city,
-    establishment_type: form.establishment_type,
-    description: form.description,
-    password_hash: hashPassword(form.password),
-    test_prefix: config.testPrefix
-  }, 'registar estabelecimento');
-
-  if (!result || !result.ok) {
-    if (result && result.reason === 'email_taken') {
-      return rejectWith({ email: 'Ya existe una cuenta con este email. Inicia sesión.' });
+    const errors = {};
+    if (form.restaurant_name.length < 2) errors.restaurant_name = 'Indica el nombre del establecimiento.';
+    if (form.legal_name.length < 2) errors.legal_name = 'Indica la razón social o el nombre del titular del negocio.';
+    if (form.owner_name.length < 2) errors.owner_name = 'Indica el responsable.';
+    if (!EMAIL_RE.test(form.email)) errors.email = 'Indica un email válido.';
+    if (form.phone && !/^[\d\s()+-]{6,20}$/.test(form.phone)) errors.phone = 'Indica un teléfono válido.';
+    if (form.city.length < 2) errors.city = 'Indica la ciudad.';
+    if (form.postal_code && !/^\d{5}$/.test(form.postal_code)) errors.postal_code = 'El código postal debe tener 5 dígitos (ej.: 28013).';
+    if (!Object.prototype.hasOwnProperty.call(ESTABLISHMENT_TYPES, form.establishment_type)) {
+      errors.establishment_type = 'Selecciona el tipo de establecimiento.';
     }
-    return res.status(500).render('error', {
-      status: 500, title: 'Error', message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+    const pwErr = passwordProblem(form.password, form.email);
+    if (pwErr) errors.password = pwErr;
+    if (form.password !== form.password2) errors.password2 = 'Las contraseñas no coinciden.';
+    if (!form.accept) errors.acepto = 'Debes aceptar los Términos y el Acuerdo de encargo del tratamiento.';
+
+    const rejectWith = (fieldErrors) => {
+      delete form.password;
+      delete form.password2;
+      return res.status(422).render('auth/register', { form, errors: fieldErrors, minPassword: MIN_PASSWORD });
+    };
+
+    if (Object.keys(errors).length > 0) return rejectWith(errors);
+
+    const result = await rpc('register_restaurant', {
+      slug_base: slugify(form.restaurant_name),
+      name: form.restaurant_name,
+      commercial_name: form.commercial_name,
+      owner_name: form.owner_name,
+      email: form.email,
+      phone: form.phone,
+      address: form.address,
+      postal_code: form.postal_code,
+      city: form.city,
+      establishment_type: form.establishment_type,
+      description: form.description,
+      password_hash: hashPassword(form.password),
+      test_prefix: config.testPrefix
+    }, 'registar estabelecimento');
+
+    if (!result || !result.ok) {
+      /* LIMITAÇÃO conhecida: sem verificação de email no registo, dizer que o
+       * email já existe permite enumerar contas de negócios. Mitigado por rate
+       * limit; ver docs/security/production-compliance-gate.md (WARNING). */
+      if (result && result.reason === 'email_taken') {
+        return rejectWith({ email: 'No se pudo crear la cuenta con este email. Si ya tienes cuenta, inicia sesión o recupera tu contraseña.' });
+      }
+      return res.status(500).render('error', {
+        status: 500, title: 'Error', message: 'No se pudo crear la cuenta. Inténtalo de nuevo.'
+      });
+    }
+
+    await run(sb().from('restaurants').update({
+      legal_name: form.legal_name,
+      privacy_email: form.email,
+      terms_version: TERMS_VERSION,
+      dpa_version: DPA_VERSION,
+      terms_accepted_at: new Date().toISOString()
+    }).eq('id', result.restaurant_id), 'aceitação dos termos');
+
+    logSecurity('registro_restaurante', `rid=${result.restaurant_id} terms=${TERMS_VERSION} dpa=${DPA_VERSION}`, req.ip, {
+      userId: result.user_id,
+      restaurantId: result.restaurant_id,
+      userAgent: req.headers['user-agent']
     });
-  }
 
-  logSecurity('registro_restaurante', `slug=${result.slug} email=${form.email}`, req.ip, {
-    userId: result.user_id,
-    restaurantId: result.restaurant_id,
-    userAgent: req.headers['user-agent']
+    /* Sessão nova depois de autenticar: o id anterior (anónimo) é descartado
+     * (proteção contra session fixation). */
+    await destroySession(req, res);
+    await createSession(req, res, result.user_id);
+    res.redirect('/panel/privacidad?bienvenida=1');
   });
-
-  await destroySession(req, res);
-  await createSession(req, res, result.user_id);
-  res.redirect('/panel?ok=' + encodeURIComponent('Cuenta creada. ¡Bienvenido!'));
-});
 
 /* ------------------------------------------------------------------ *
  * Login
  * ------------------------------------------------------------------ */
 router.get('/login', ensureSession, (req, res) => {
   if (req.user) return res.redirect(req.user.role === 'admin' ? '/admin' : '/panel');
-  res.render('auth/login', { error: req.query.error || '', email: req.query.email || '' });
+  res.render('auth/login', { error: req.query.error ? 'Tu cuenta ha sido bloqueada.' : '', email: '', info: req.query.info || '' });
 });
 
-router.post('/login', rateLimit({
-  windowMs: 15 * 60 * 1000, max: 10, name: 'login',
-  key: (req) => `${req.ip}|${clean(req.body.email, 120).toLowerCase()}`,
-  message: 'Demasiados intentos. Espera unos minutos.'
-}), async (req, res) => {
-  if (!verifyCsrf(req)) {
-    return res.status(403).render('error', {
-      status: 403, title: 'Sesión no válida', message: 'Recarga la página e inténtalo de nuevo.'
-    });
-  }
+const loginLimiters = [
+  // por IP + email (erros de digitação de um utilizador real)
+  rateLimit({
+    windowMs: 15 * 60 * 1000, max: 10, name: 'login',
+    key: (req) => `${req.ip}|${clean(req.body.email, 120).toLowerCase()}`,
+    message: 'Demasiados intentos. Espera unos minutos.'
+  }),
+  // por IP, todas as contas (credential stuffing a partir de um IP)
+  dbRateLimit({
+    windowMs: 15 * 60 * 1000, max: 30, name: 'login-ip',
+    key: (req) => String(req.ip),
+    message: 'Demasiados intentos desde esta conexión. Espera unos minutos.'
+  }),
+  // por conta, todos os IPs (força bruta distribuída contra uma conta)
+  dbRateLimit({
+    windowMs: 60 * 60 * 1000, max: 20, name: 'login-account',
+    key: (req) => clean(req.body.email, 120).toLowerCase(),
+    message: 'Demasiados intentos para esta cuenta. Espera una hora o recupera tu contraseña.'
+  })
+];
+
+router.post('/login', ...loginLimiters, async (req, res) => {
+  if (!verifyCsrf(req)) return badCsrf(res);
 
   const email = clean(req.body.email, 120);
   const password = String(req.body.password || '').slice(0, 200);
 
   /* `email` é citext: a comparação é insensível a maiúsculas no Postgres. */
-  const user = await one(
+  const user = EMAIL_RE.test(email) ? await one(
     sb().from('users').select('id, email, password_hash, role, blocked').eq('email', email),
     'login'
-  );
+  ) : null;
 
-  const invalid = () => {
-    logSecurity('login_fallido', `email=${email}`, req.ip, { userAgent: req.headers['user-agent'] });
-    res.status(401).render('auth/login', { error: 'Email o contraseña incorrectos.', email });
-  };
+  /* A senha é sempre verificada (contra o hash real ou o fictício) ANTES de
+   * dizer qualquer coisa sobre a conta: «conta bloqueada» só aparece a quem
+   * sabe a senha, e o tempo de resposta não distingue contas existentes. */
+  const passwordOk = verifyPassword(password, user ? user.password_hash : DUMMY_HASH) && Boolean(user);
 
-  if (!user) return invalid();
-
-  if (user.blocked) {
-    logSecurity('login_bloqueado', `email=${email}`, req.ip, {
-      userId: user.id, userAgent: req.headers['user-agent']
+  if (!passwordOk) {
+    logSecurity('login_fallido', user ? `user=${user.id}` : emailTag(email), req.ip, {
+      userId: user ? user.id : null, userAgent: req.headers['user-agent']
     });
-    return res.status(403).render('auth/login', { error: 'Tu cuenta ha sido bloqueada.', email });
+    return res.status(401).render('auth/login', { error: 'Email o contraseña incorrectos.', email, info: '' });
   }
 
-  if (!verifyPassword(password, user.password_hash)) return invalid();
+  if (user.blocked) {
+    logSecurity('login_bloqueado', `user=${user.id}`, req.ip, {
+      userId: user.id, userAgent: req.headers['user-agent']
+    });
+    return res.status(403).render('auth/login', { error: 'Tu cuenta ha sido bloqueada.', email, info: '' });
+  }
 
   await destroySession(req, res);
   await createSession(req, res, user.id);
 
-  logSecurity('login_ok', `email=${user.email} role=${user.role}`, req.ip, {
+  logSecurity('login_ok', `user=${user.id} role=${user.role}`, req.ip, {
     userId: user.id, userAgent: req.headers['user-agent']
   });
 
@@ -178,8 +245,107 @@ router.post('/logout', async (req, res) => {
       status: 403, title: 'Sesión no válida', message: 'Operación no válida.'
     });
   }
+  if (req.user) logSecurity('logout', `user=${req.user.id}`, req.ip, { userId: req.user.id });
   await destroySession(req, res);
   res.redirect('/login');
 });
 
+/* ------------------------------------------------------------------ *
+ * Recuperação de senha
+ * ------------------------------------------------------------------ *
+ *  - resposta idêntica exista ou não a conta (sem enumeração);
+ *  - token aleatório de 256 bits, guardado só como sha256, 30 min, uso único;
+ *  - o link leva o token no fragmento (#t=…), que não chega ao servidor nem
+ *    aos logs de acesso; o JS da página copia-o para o formulário;
+ *  - ao repor: todos os tokens e TODAS as sessões do utilizador são anulados.
+ */
+const GENERIC_RESET_MSG = 'Si existe una cuenta con ese email, te hemos enviado un enlace para restablecer la contraseña. Caduca en 30 minutos.';
+
+router.get('/recuperar', ensureSession, (req, res) => {
+  res.render('auth/forgot', { sent: false });
+});
+
+router.post('/recuperar',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 5, name: 'forgot' }),
+  dbRateLimit({ windowMs: 60 * 60 * 1000, max: 10, name: 'forgot-ip', key: (req) => String(req.ip) }),
+  dbRateLimit({ windowMs: 60 * 60 * 1000, max: 3, name: 'forgot-account', key: (req) => clean(req.body.email, 120).toLowerCase() }),
+  async (req, res) => {
+    if (!verifyCsrf(req)) return badCsrf(res);
+    const email = clean(req.body.email, 120);
+
+    if (EMAIL_RE.test(email)) {
+      const user = await one(sb().from('users').select('id, email, blocked, role').eq('email', email), 'recuperar');
+      if (user && !user.blocked) {
+        const token = randomToken(32);
+        await run(sb().from('password_resets').insert({
+          token_hash: sha256(token),
+          user_id: user.id,
+          expires_at: new Date(Date.now() + RESET_TTL_MS).toISOString()
+        }), 'criar token de senha');
+        sendPasswordReset({ to: user.email, token }).catch(() => {});
+        logSecurity('password_reset_pedido', `user=${user.id}`, req.ip, { userId: user.id, userAgent: req.headers['user-agent'] });
+      } else {
+        logSecurity('password_reset_pedido', emailTag(email), req.ip, { userAgent: req.headers['user-agent'] });
+      }
+    }
+    res.render('auth/forgot', { sent: true, message: GENERIC_RESET_MSG });
+  });
+
+router.get('/recuperar/nueva', ensureSession, (req, res) => {
+  /* Página sem recursos externos e sem Referer: o token nunca sai do browser
+   * a não ser no POST para este servidor. */
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.render('auth/reset', { error: '', minPassword: MIN_PASSWORD });
+});
+
+router.post('/recuperar/nueva',
+  rateLimit({ windowMs: 15 * 60 * 1000, max: 10, name: 'reset' }),
+  dbRateLimit({ windowMs: 60 * 60 * 1000, max: 20, name: 'reset-ip', key: (req) => String(req.ip) }),
+  async (req, res) => {
+    if (!verifyCsrf(req)) return badCsrf(res);
+    res.setHeader('Referrer-Policy', 'no-referrer');
+
+    const token = clean(req.body.token, 200);
+    const pw = String(req.body.password || '').slice(0, 200);
+    const pw2 = String(req.body.password2 || '').slice(0, 200);
+    const fail = (msg, status = 422) => res.status(status).render('auth/reset', { error: msg, minPassword: MIN_PASSWORD });
+
+    if (!/^[a-f0-9]{64}$/.test(token)) return fail('El enlace no es válido o ha caducado. Solicita uno nuevo.', 400);
+
+    const row = await one(
+      sb().from('password_resets').select('token_hash, user_id, expires_at, used_at').eq('token_hash', sha256(token)),
+      'token de senha'
+    );
+    if (!row || row.used_at || Date.parse(row.expires_at) < Date.now()) {
+      return fail('El enlace no es válido o ha caducado. Solicita uno nuevo.', 400);
+    }
+
+    const user = await one(sb().from('users').select('id, email, blocked').eq('id', row.user_id), 'utilizador do token');
+    if (!user || user.blocked) return fail('El enlace no es válido o ha caducado. Solicita uno nuevo.', 400);
+
+    const problem = passwordProblem(pw, user.email);
+    if (problem) return fail(problem);
+    if (pw !== pw2) return fail('Las contraseñas no coinciden.');
+
+    /* Marca como usado ANTES de mudar a senha e só se ainda não estava usado:
+     * dois pedidos simultâneos com o mesmo token não passam os dois. */
+    const claimed = await run(
+      sb().from('password_resets').update({ used_at: new Date().toISOString() })
+        .eq('token_hash', row.token_hash).is('used_at', null).select('token_hash'),
+      'consumir token'
+    );
+    if (!claimed || claimed.length === 0) return fail('El enlace no es válido o ha caducado. Solicita uno nuevo.', 400);
+
+    await run(sb().from('users').update({ password_hash: hashPassword(pw) }).eq('id', user.id), 'repor senha');
+    await run(sb().from('password_resets').delete().eq('user_id', user.id), 'anular tokens');
+    await destroyUserSessions(user.id);
+
+    logSecurity('password_reset_completado', `user=${user.id}`, req.ip, { userId: user.id, userAgent: req.headers['user-agent'] });
+
+    await destroySession(req, res);
+    res.redirect('/login?info=' + encodeURIComponent('restablecida'));
+  });
+
 module.exports = router;
+module.exports.passwordProblem = passwordProblem;
+module.exports.MIN_PASSWORD = MIN_PASSWORD;

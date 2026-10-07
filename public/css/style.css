@@ -2503,3 +2503,40 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
   border-color: var(--brand-tint-2);
   color: var(--brand-ink);
 }
+
+/* ------------------------------------------------------------------ *
+ * Privacidade: avisos, 1.ª camada de informação, páginas legais
+ * ------------------------------------------------------------------ */
+.notice-box {
+  margin: 14px 0;
+  padding: 12px 14px;
+  border: 1px solid var(--warn-line);
+  background: var(--warn-bg);
+  border-radius: var(--r-md);
+  font-size: .9rem;
+  line-height: 1.5;
+}
+.notice-box p { margin: 6px 0 0; }
+
+.privacy-layer {
+  margin: 10px 0 14px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  font-size: .85rem;
+  line-height: 1.45;
+}
+.privacy-layer dl { margin: 0; display: grid; grid-template-columns: 1fr; gap: 2px 12px; }
+.privacy-layer dt { font-weight: 600; margin-top: 6px; }
+.privacy-layer dd { margin: 0; overflow-wrap: anywhere; }
+@media (min-width: 560px) {
+  .privacy-layer dl { grid-template-columns: 9.5rem 1fr; }
+  .privacy-layer dt { margin-top: 0; }
+}
+
+.plain-list { padding-left: 1.2rem; line-height: 1.55; }
+.plain-list li { margin-bottom: 8px; }
+
+.legal h3 { margin-top: 18px; }
+.legal .table td { vertical-align: top; font-size: .88rem; }

@@ -12,16 +12,25 @@
 -- anteriores. Idempotente.
 -- ===========================================================================
 
-alter table notifications
-  drop constraint if exists notifications_application_id_fkey;
+-- Desde 0005/0006 a FK é composta (notifications_application_same_tenant, também
+-- ON DELETE CASCADE). Reaplicar esta migration não pode recriar a FK simples:
+-- duas relações entre as mesmas tabelas partem os embeds do PostgREST.
+do $$
+begin
+  if not exists (select 1 from pg_constraint where conname = 'notifications_application_same_tenant') then
+    alter table notifications drop constraint if exists notifications_application_id_fkey;
+    alter table notifications
+      add constraint notifications_application_id_fkey
+      foreign key (application_id) references applications(id) on delete cascade;
+  end if;
+end;
+$$;
 
-alter table notifications
-  add constraint notifications_application_id_fkey
-  foreign key (application_id) references applications(id) on delete cascade;
-
--- Todas as notificações são de candidaturas (type 'nueva_candidatura'):
--- sem application_id só podem ser restos de candidaturas eliminadas.
-delete from notifications where application_id is null;
+-- Notificações de candidatura sem application_id só podem ser restos de
+-- candidaturas eliminadas. (Desde 0005 há avisos sem candidatura —
+-- 'solicitud_derechos' —, por isso o filtro pelo tipo: reaplicar esta
+-- migration não os pode apagar.)
+delete from notifications where application_id is null and type = 'nueva_candidatura';
 
 insert into schema_migrations (version) values ('0004_notifications_cascade')
 on conflict (version) do nothing;

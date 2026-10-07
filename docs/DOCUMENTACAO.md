@@ -397,13 +397,26 @@ A `SUPABASE_SERVICE_ROLE_KEY` ignora RLS e existe exclusivamente no backend: nun
 
 ## 12. Pendências (produção)
 
-1. HTTPS + `COOKIE_SECURE=1` + `TRUST_PROXY=1` (Nginx/Caddy)
-2. Backup automático de `data/` (BD WAL + CVs)
-3. SMTP real + alertas de falha (hoje: console + `/admin`)
-4. Páginas legais RGPD completas (política de privacidade, canal de direitos)
-5. Retenção/anonimização automática por prazo configurável
-6. Recuperação de senha ("esqueci a senha") + verificação de email do responsável
-7. Rate limit persistente (Redis) para deploy multi-instância
-8. Paginação real na lista de candidaturas (hoje: 200 mais recentes + filtros)
-9. Multi-utilizador por restaurante (gerentes/permissões) e auditoria de alterações
-10. Monitorização: healthcheck, métricas, alertas
+Estado atualizado pela auditoria de 2026-10-06 — fonte de verdade: [`security/production-compliance-gate.md`](security/production-compliance-gate.md).
+
+| Antes | Estado |
+|---|---|
+| HTTPS + `COOKIE_SECURE=1` + `TRUST_PROXY=1` | Código pronto (HSTS, `__Host-`, redirect HTTPS); falta configurar na Vercel |
+| Backups | Por confirmar no plano Supabase; restauro por testar |
+| SMTP real | Por configurar |
+| Páginas legais e canal de direitos | **Feito** (borradores): `/privacidad`, `/cookies`, `/terminos`, `/encargo`, `/r/:slug/privacidad`, `/panel/derechos` — revisão jurídica pendente |
+| Retenção automática | **Feito**: prazos por negócio, `npm run retention`, `/internal/retention`; prazos por validar |
+| Recuperação de senha | **Feito**; verificação de email no registo pendente |
+| Rate limit persistente | **Feito** (tabela `rate_limit_hits`) |
+| Paginação | Pendente (200 mais recentes) |
+| Multi-utilizador / RBAC | Pendente; auditoria de alterações **feita** (`security_logs`) |
+| Monitorização | Pendente |
+
+---
+
+## 13. Auditoria de privacidade e segurança (2026-10)
+
+- Documentos jurídicos (espanhol, borradores): [`legal/`](legal/00-legal-review-required.md) — agência de colocação, papéis RGPD, minimização, discriminação, IA, direitos, fornecedores, RAT, EIPD/DPD, acordo de encargo.
+- Segurança (português): [`security/`](security/production-compliance-gate.md) — gate de produção e matriz, avaliação de riscos, resposta a incidentes, auditoria de rotas, segurança operacional.
+- Migrations: `0005_privacy_hardening` (default privileges, FKs por tenant, base jurídica e consentimentos, retenção por tenant, direitos, recuperação de senha, rate limit, autodiagnóstico, minimização retroativa) e `0006_tenant_fk_cleanup` (uma FK por par de tabelas para os embeds do PostgREST).
+- Mudanças de comportamento visíveis: o formulário deixou de pedir documento de identidade e de ter checkbox obrigatório de «consentimento»; «Reserva» exige consentimento; email de nova candidatura sem dados do candidato; senha mínima 10; sessões anónimas de 2 h sem IP.

@@ -1,0 +1,120 @@
+<%- include('../partials/head', { title: 'Privacidad · ' + (restaurant.commercial_name || restaurant.name) }) %>
+
+<header class="hero">
+  <div class="container-narrow hero-body">
+    <h1><%= restaurant.commercial_name || restaurant.name %></h1>
+    <p class="sub">Protección de datos de las candidaturas</p>
+  </div>
+</header>
+
+<main class="container-narrow public-main">
+
+<% if (sentRef) { %>
+  <div class="card center pad-lg">
+    <div class="success-mark">✓</div>
+    <h2>Solicitud registrada</h2>
+    <p>Referencia: <strong><%= sentRef %></strong></p>
+    <p class="muted">
+      La solicitud se ha enviado al establecimiento, que es quien decide sobre tus
+      datos. Debe responderte en el plazo de <strong>un mes</strong> (ampliable dos
+      meses más en casos complejos, avisándote). Te contestará al email que has
+      indicado; para proteger tus datos, puede pedirte que confirmes tu identidad.
+    </p>
+    <p class="help">Si no recibes respuesta, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
+    <div class="actions-row center-row spaced">
+      <a class="btn secondary" href="/r/<%= restaurant.slug %>">Volver a la página</a>
+    </div>
+  </div>
+<% } else { %>
+
+  <div class="card">
+    <h2>Información sobre el tratamiento de tus datos</h2>
+    <p class="dim tiny">Versión del texto: <%= noticeVersion %></p>
+
+    <h3>Responsable del tratamiento</h3>
+    <p>
+      <strong><%= restaurant.controller %></strong><% if (restaurant.controller !== restaurant.name) { %> (<%= restaurant.commercial_name || restaurant.name %>)<% } %><br>
+      <% if (restaurant.address || restaurant.city) { %><%= restaurant.address %><% if (restaurant.postal_code) { %>, <%= restaurant.postal_code %><% } %> <%= restaurant.city %><br><% } %>
+      Contacto de privacidad: <%= restaurant.contact %>
+    </p>
+
+    <h3>Finalidades y bases jurídicas</h3>
+    <ul>
+      <li><strong>Gestionar tu candidatura</strong> a un empleo en este establecimiento: valorar tu perfil, contactarte y, si procede, entrevistarte. Base: medidas precontractuales a petición tuya (art. 6.1.b RGPD). No hace falta tu consentimiento.</li>
+      <li><strong>Tenerte en cuenta para futuras vacantes</strong> de este establecimiento, solo si lo marcaste. Base: tu consentimiento (art. 6.1.a RGPD), que puedes retirar en cualquier momento sin consecuencias para tu candidatura actual.</li>
+    </ul>
+
+    <h3>Qué datos</h3>
+    <p>Nombre y apellidos, email, teléfono, puesto, disponibilidad, experiencia, observaciones y tu CV en PDF. El establecimiento puede añadir notas internas sobre el proceso, que también son datos tuyos y a las que tienes derecho de acceso. No pedimos documento de identidad, fecha de nacimiento, nacionalidad, fotografía ni datos especialmente protegidos.</p>
+
+    <h3>Decisiones automatizadas</h3>
+    <p>No se toman decisiones automatizadas ni se elaboran perfiles. Ningún sistema puntúa, ordena ni descarta candidaturas: las valora una persona del establecimiento.</p>
+
+    <h3>Destinatarios</h3>
+    <p>
+      Tus datos no se ceden a terceros ni a otros establecimientos que usan Fíchame.
+      Fíchame (<%= operator.name %>) presta la plataforma y trata los datos únicamente por cuenta del
+      establecimiento, como <strong>encargado del tratamiento</strong> (art. 28 RGPD), con
+      proveedores técnicos (subencargados) de alojamiento web y base de datos. La lista de
+      subencargados y su ubicación está en la <a href="/privacidad#subencargados">política de privacidad de Fíchame</a>.
+    </p>
+
+    <h3>Transferencias internacionales</h3>
+    <p>Algunos proveedores técnicos pertenecen a grupos con sede fuera del Espacio Económico Europeo. Cuando hay transferencia, se ampara en una decisión de adecuación o en cláusulas contractuales tipo de la Comisión Europea. Detalle en la <a href="/privacidad#transferencias">política de privacidad de Fíchame</a>.</p>
+
+    <h3>Conservación</h3>
+    <ul>
+      <li>Proceso abierto: mientras siga activo y como máximo <%= retention.inactive %> sin actividad.</li>
+      <li>Proceso terminado (contratación o descarte): se borran en <%= retention.closed %>.</li>
+      <li>Futuras oportunidades (si lo marcaste): <%= retention.reserve %> desde que lo aceptaste, o hasta que lo retires.</li>
+    </ul>
+    <p class="help">Excepcionalmente, si existe una obligación legal o una reclamación en curso, los datos pueden conservarse bloqueados el tiempo imprescindible.</p>
+
+    <h3>Tus derechos</h3>
+    <p>Acceso, rectificación, supresión, oposición, limitación del tratamiento, portabilidad y retirada del consentimiento. Puedes ejercerlos con el formulario de abajo o escribiendo a <%= restaurant.contact %>. Si consideras que no se han atendido, puedes reclamar ante la <strong>Agencia Española de Protección de Datos</strong> (www.aepd.es).</p>
+  </div>
+
+  <div class="card" id="derechos">
+    <h2>Ejercer mis derechos</h2>
+    <p class="help help-lift">La solicitud llega al establecimiento, que debe responderte en un mes. Usa el mismo email con el que enviaste la candidatura: así pueden encontrar tus datos.</p>
+
+    <form action="/r/<%= restaurant.slug %>/derechos" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="hp" aria-hidden="true">
+        <label>Sitio web</label>
+        <input type="text" name="sitio_web" tabindex="-1" autocomplete="off">
+      </div>
+
+      <div class="field">
+        <label for="tipo">¿Qué quieres solicitar? *</label>
+        <select id="tipo" name="tipo" required>
+          <option value="">Selecciona…</option>
+          <% Object.keys(kinds).forEach(function(k) { %>
+            <option value="<%= k %>" <%= form.kind === k ? 'selected' : '' %>><%= kinds[k] %></option>
+          <% }) %>
+        </select>
+        <% if (errors && errors.tipo) { %><div class="field-error"><%= errors.tipo %></div><% } %>
+      </div>
+      <div class="field">
+        <label for="nombre">Nombre *</label>
+        <input id="nombre" type="text" name="nombre" maxlength="100" required value="<%= form.name || '' %>" autocomplete="name">
+        <% if (errors && errors.nombre) { %><div class="field-error"><%= errors.nombre %></div><% } %>
+      </div>
+      <div class="field">
+        <label for="email">Email con el que te candidataste *</label>
+        <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" autocomplete="email" inputmode="email">
+        <% if (errors && errors.email) { %><div class="field-error"><%= errors.email %></div><% } %>
+      </div>
+      <div class="field">
+        <label for="mensaje">Detalles <span class="dim label-hint">(opcional)</span></label>
+        <textarea id="mensaje" name="mensaje" maxlength="1500" rows="3" placeholder="Ej.: quiero que corrijan mi teléfono."><%= form.message || '' %></textarea>
+        <div class="help">No incluyas documentos de identidad ni datos sensibles.</div>
+      </div>
+      <button class="btn block" type="submit">Enviar solicitud</button>
+    </form>
+  </div>
+
+<% } %>
+</main>
+
+<%- include('../partials/foot') %>

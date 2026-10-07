@@ -1,130 +1,109 @@
-<%- include('../partials/head', { title: 'Privacidad' }) %>
+<%- include('../partials/head', { title: 'Política de privacidad' }) %>
 
-<main class="container-narrow public-main">
-  <h1>Privacidad y protección de datos</h1>
+<main class="container-narrow public-main legal">
+  <h1>Política de privacidad de Fíchame</h1>
+  <p class="dim small">Versión <%= noticeVersion %></p>
 
-  <div class="card">
-    <h2>Quién trata tus datos</h2>
-    <p>
-      Fíchame es la plataforma que el establecimiento utiliza para recibir y
-      organizar candidaturas. El <strong>responsable del tratamiento de tus
-      datos es el establecimiento</strong> al que envías tu candidatura, no
-      Fíchame. Fíchame actúa como encargado del tratamiento: almacena y procesa los
-      datos por cuenta del establecimiento y siguiendo sus instrucciones.
-    </p>
-    <p class="help">
-      Cada establecimiento tiene sus propios datos completamente separados de
-      los demás. Un establecimiento nunca puede ver las candidaturas de otro.
-    </p>
-  </div>
+  <%- include('draft_banner') %>
 
   <div class="card">
-    <h2>Qué datos recogemos</h2>
+    <h2>1. Dos papeles distintos</h2>
+    <p>Fíchame trata datos personales en dos situaciones diferentes, y el responsable no es el mismo en cada una:</p>
     <ul>
-      <li><strong>Datos de contacto:</strong> nombre, apellidos, email y teléfono.</li>
-      <li><strong>Datos profesionales:</strong> puesto al que aspiras, disponibilidad, experiencia y observaciones.</li>
-      <li><strong>Currículum:</strong> el archivo PDF que adjuntas.</li>
-      <li><strong>Documento de identidad:</strong> tipo y número, <strong>solo si decides facilitarlos</strong>.</li>
+      <li><strong>Datos de las personas que se candidatan</strong> a un empleo en un negocio a través de su página Fíchame (formulario, CV, notas del proceso). El <strong>responsable del tratamiento es ese negocio</strong>. Fíchame solo presta la plataforma y trata esos datos por cuenta del negocio, como <strong>encargado del tratamiento</strong> (art. 28 RGPD). La información sobre ese tratamiento, y el formulario para ejercer tus derechos, están en la página de privacidad de cada negocio (enlace «Información completa» en su formulario).</li>
+      <li><strong>Datos de los negocios usuarios y de sus personas usuarias</strong> (cuenta, acceso, seguridad, soporte, comunicaciones del servicio). Aquí el <strong>responsable es el titular de Fíchame</strong>, identificado abajo. Esta política explica sobre todo este segundo caso.</li>
     </ul>
+  </div>
+
+  <div class="card">
+    <h2>2. Responsable (cuentas de negocio)</h2>
+    <p>
+      <%= operator.name %> · NIF <%= operator.nif %><br>
+      <%= operator.address %><br>
+      Contacto de privacidad: <%= operator.email %>
+    </p>
     <p class="help">
-      El número de documento es <strong>opcional</strong>. No es necesario para
-      valorar tu candidatura y puedes dejarlo en blanco: el establecimiento te
-      lo pedirá únicamente si avanzas hacia una contratación. Esto es
-      minimización de datos: no pedimos lo que no hace falta.
+      Delegado de Protección de Datos: <%= operator.dpo ? operator.dpo : 'no designado. La obligación de designarlo está pendiente de análisis jurídico (art. 37 RGPD y art. 34 LOPDGDD).' %>
     </p>
   </div>
 
   <div class="card">
-    <h2>Para qué los usamos</h2>
-    <p>
-      Exclusivamente para gestionar procesos de selección del establecimiento al
-      que te has candidatado. Tus datos y tu currículum:
-    </p>
+    <h2>3. Qué datos tratamos como responsable, para qué y con qué base</h2>
+    <div class="table-wrap">
+      <table class="table">
+        <thead><tr><th>Finalidad</th><th>Datos</th><th>Base jurídica</th><th>Conservación</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Crear y gestionar la cuenta del negocio y prestar el servicio contratado</td>
+            <td>Nombre del negocio, razón social, persona de contacto, email, teléfono (opcional), dirección (opcional), contraseña (cifrada con hash)</td>
+            <td>Ejecución del contrato (art. 6.1.b RGPD)</td>
+            <td>Mientras la cuenta esté activa; después, el tiempo necesario por obligaciones legales — <em>plazo pendiente de revisión jurídica</em></td>
+          </tr>
+          <tr>
+            <td>Seguridad de la plataforma: inicios de sesión, prevención de abusos y fraude, investigación de incidentes</td>
+            <td>Identificador de usuario, tipo de acción, fecha, IP y navegador (en las acciones de candidatos, la IP se guarda truncada y sin navegador)</td>
+            <td>Interés legítimo en proteger la plataforma y los datos que aloja (art. 6.1.f RGPD) y obligación de seguridad (art. 32 RGPD)</td>
+            <td>Registros de seguridad: 12 meses. Sesiones: hasta su caducidad</td>
+          </tr>
+          <tr>
+            <td>Avisos del servicio (nueva candidatura, solicitudes de derechos, recuperación de contraseña)</td>
+            <td>Email de la cuenta</td>
+            <td>Ejecución del contrato (art. 6.1.b RGPD)</td>
+            <td>Registro del envío mientras exista la candidatura o solicitud asociada</td>
+          </tr>
+          <tr>
+            <td>Atender tus derechos y consultas</td>
+            <td>Los datos de la solicitud</td>
+            <td>Obligación legal (art. 6.1.c RGPD)</td>
+            <td>Hasta 3 años tras cerrarse — <em>pendiente de revisión jurídica</em></td>
+          </tr>
+          <tr>
+            <td>Estadísticas internas agregadas (número de negocios y candidaturas)</td>
+            <td>Recuentos sin datos identificativos</td>
+            <td>Interés legítimo (art. 6.1.f RGPD)</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="help">No enviamos comunicaciones comerciales ni newsletters. No usamos herramientas de analítica, publicidad ni seguimiento (ver <a href="/cookies">política de cookies</a>). No usamos los datos de candidatos para fines propios, para entrenar sistemas ni para mejorar el producto.</p>
+  </div>
+
+  <div class="card" id="subencargados">
+    <h2>4. Destinatarios y proveedores (subencargados)</h2>
+    <p>No cedemos datos a terceros salvo obligación legal. Para prestar el servicio usamos estos proveedores técnicos, que tratan datos por nuestra cuenta con contrato de encargo:</p>
     <ul>
-      <li>no se ceden a terceros;</li>
-      <li>no se usan para publicidad;</li>
-      <li>no se publican en ningún listado ni mercado de currículums;</li>
-      <li>no son accesibles por otros establecimientos de la plataforma.</li>
+      <li><strong>Supabase, Inc.</strong> — base de datos y almacenamiento de archivos (incluidos los CV). Región de alojamiento del proyecto: <em>[REGIÓN DEL PROYECTO SUPABASE — PENDIENTE DE CONFIRMAR]</em>.</li>
+      <li><strong>Vercel Inc.</strong> — alojamiento de la aplicación web. Región de ejecución: <em>[REGIÓN DE FUNCIONES VERCEL — PENDIENTE DE CONFIRMAR]</em>.</li>
+      <li><strong>[PROVEEDOR DE EMAIL SMTP]</strong> — envío de avisos por email (no incluyen datos de candidatos).</li>
     </ul>
-    <p class="help">
-      Tu currículum se guarda en almacenamiento privado. No existe ninguna
-      dirección pública permanente desde la que se pueda descargar: solo el
-      establecimiento al que te has candidatado puede abrirlo, después de
-      identificarse.
-    </p>
+    <p class="help">La lista se mantiene actualizada en esta página y los negocios clientes son informados de los cambios (art. 28.2 RGPD).</p>
+  </div>
+
+  <div class="card" id="transferencias">
+    <h2>5. Transferencias internacionales</h2>
+    <p>Supabase, Inc. y Vercel Inc. son empresas con sede en Estados Unidos. Cuando un tratamiento implica una transferencia fuera del Espacio Económico Europeo, se ampara en la decisión de adecuación UE-EE. UU. (Data Privacy Framework) para empresas certificadas, o en las cláusulas contractuales tipo de la Comisión Europea incluidas en sus acuerdos de tratamiento de datos. <em>Pendiente de verificación por proveedor y región: ver documentación interna de proveedores.</em></p>
   </div>
 
   <div class="card">
-    <h2>Los dos consentimientos</h2>
-    <p>Son independientes y se registran por separado, con la fecha y el texto exacto que aceptaste.</p>
-
-    <h3>Obligatorio — proceso de selección</h3>
-    <p class="help pre"><%= selectionText %></p>
-
-    <h3>Opcional — futuras oportunidades</h3>
-    <p class="help pre"><%= futureText %></p>
-
-    <p class="muted small flat">
-      Versión actual del texto de consentimiento: <strong><%= consentVersion %></strong>.
-      Cada candidatura guarda la versión y el texto vigentes en el momento del envío.
-    </p>
+    <h2>6. Tus derechos</h2>
+    <p>Puedes ejercer los derechos de acceso, rectificación, supresión, oposición, limitación del tratamiento y portabilidad escribiendo a <%= operator.email %>. Te responderemos en el plazo de un mes. Si eres candidato/a, dirígete al negocio en el que te candidataste (formulario en su página de privacidad); si nos escribes a nosotros, trasladaremos tu solicitud a ese negocio, que es quien decide.</p>
+    <p>Si consideras que no se han atendido tus derechos, puedes reclamar ante la <strong>Agencia Española de Protección de Datos</strong> (C/ Jorge Juan 6, 28001 Madrid · www.aepd.es).</p>
   </div>
 
   <div class="card">
-    <h2>Cuánto tiempo los conservamos</h2>
-    <p>
-      Mientras el proceso de selección esté activo. Si aceptaste el
-      consentimiento opcional, el establecimiento puede conservarlos para
-      considerarte en futuras vacantes hasta que retires ese consentimiento.
-    </p>
-    <p class="help">
-      Puedes pedir la supresión de tus datos en cualquier momento, también
-      durante un proceso en curso.
-    </p>
+    <h2>7. Decisiones automatizadas y perfiles</h2>
+    <p>Fíchame no toma decisiones automatizadas ni elabora perfiles sobre candidatos ni sobre usuarios. No hay puntuaciones, rankings ni filtros automáticos de candidaturas: cada candidatura la valora una persona del negocio.</p>
   </div>
 
   <div class="card">
-    <h2>Tus derechos</h2>
-    <p>Puedes ejercer en cualquier momento tus derechos de:</p>
-    <ul>
-      <li><strong>Acceso</strong> — saber qué datos tuyos se conservan.</li>
-      <li><strong>Rectificación</strong> — corregir datos incorrectos.</li>
-      <li><strong>Supresión</strong> — pedir que se eliminen tus datos y tu currículum.</li>
-      <li><strong>Oposición y limitación</strong> — pedir que se deje de tratar tus datos.</li>
-      <li><strong>Portabilidad</strong> — recibir una copia de los datos que facilitaste.</li>
-      <li><strong>Retirada del consentimiento</strong> — en especial el de futuras oportunidades.</li>
-    </ul>
-    <p>
-      Para ejercerlos, contacta directamente con el establecimiento al que
-      enviaste tu candidatura: es quien decide sobre tus datos. Encontrarás sus
-      datos de contacto en su página pública.
-    </p>
-    <p class="help">
-      Si consideras que tus derechos no han sido atendidos, puedes presentar una
-      reclamación ante la Agencia Española de Protección de Datos (AEPD).
-    </p>
+    <h2>8. Seguridad</h2>
+    <p>Los datos de cada negocio están separados de los de los demás; los CV se guardan en almacenamiento privado sin enlaces públicos y solo se entregan al negocio correspondiente tras iniciar sesión; las contraseñas se guardan cifradas con un algoritmo de hash; las comunicaciones van cifradas (HTTPS); y los accesos a CV y las acciones relevantes quedan registrados. Ningún sistema es infalible: si detectamos una brecha de seguridad, actuaremos según nuestro procedimiento de gestión de incidentes y las obligaciones legales aplicables.</p>
   </div>
 
   <div class="card">
-    <h2>Decisiones automatizadas</h2>
-    <p>
-      No se toman decisiones automatizadas sobre tu candidatura. Ninguna
-      selección, descarte o contratación se decide por un sistema: la decisión
-      es siempre de una persona del establecimiento.
-    </p>
-  </div>
-
-  <div class="card attention">
-    <h2>Nota sobre el estado de este texto</h2>
-    <p class="flat">
-      Esta plataforma está construida para cumplir el RGPD —consentimientos
-      independientes y registrados, datos aislados por establecimiento,
-      currículums privados, minimización de datos y estructura para retención y
-      supresión—, pero este texto es una base técnica y
-      <strong>debe ser revisado jurídicamente</strong> antes de un uso real,
-      incluyendo la identificación concreta del responsable del tratamiento y
-      sus datos de contacto.
-    </p>
+    <h2>9. Cambios</h2>
+    <p>Si cambiamos esta política, publicaremos la nueva versión con su fecha. Las versiones anteriores se conservan para poder acreditar qué información estaba vigente en cada momento.</p>
   </div>
 
   <div class="actions-row center-row spaced">

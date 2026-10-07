@@ -20,14 +20,14 @@ async function main() {
   if (!password) {
     console.error('');
     console.error('  Define ADMIN_PASSWORD no .env antes de correr `npm run setup`.');
-    console.error('  Usa uma senha longa e única (mínimo 8 caracteres).');
+    console.error('  Usa uma senha longa e única (mínimo 12 caracteres).');
     console.error('');
     process.exit(1);
   }
 
-  if (password.length < 8) {
+  if (password.length < 12) {
     console.error('');
-    console.error('  ADMIN_PASSWORD tem de ter pelo menos 8 caracteres.');
+    console.error('  ADMIN_PASSWORD tem de ter pelo menos 12 caracteres (conta com acesso a toda a plataforma).');
     console.error('');
     process.exit(1);
   }

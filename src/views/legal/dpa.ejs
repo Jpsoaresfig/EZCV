@@ -1,0 +1,77 @@
+<%- include('../partials/head', { title: 'Acuerdo de encargo del tratamiento' }) %>
+
+<main class="container-narrow public-main legal">
+  <h1>Acuerdo de encargo del tratamiento</h1>
+  <p class="dim small">Versión <%= version %> · art. 28 RGPD</p>
+
+  <%- include('draft_banner') %>
+
+  <div class="card">
+    <h2>Partes</h2>
+    <p><strong>Responsable:</strong> el negocio titular de la cuenta (razón social indicada en su perfil).<br>
+       <strong>Encargado:</strong> <%= operator.name %>, NIF <%= operator.nif %>, <%= operator.address %>.</p>
+    <p class="help">Se acepta al crear la cuenta; la versión y la fecha quedan registradas.</p>
+  </div>
+
+  <div class="card">
+    <h2>1. Objeto, naturaleza y finalidad</h2>
+    <p>Prestación de la plataforma Fíchame: alojamiento de la página de candidaturas, recepción, almacenamiento y organización de candidaturas y CV, notificaciones, herramientas de atención de derechos y supresión automática según los plazos configurados. El encargado no trata los datos para fines propios.</p>
+  </div>
+
+  <div class="card">
+    <h2>2. Duración</h2>
+    <p>Mientras la cuenta esté activa. Al terminar, se aplica la cláusula 11.</p>
+  </div>
+
+  <div class="card">
+    <h2>3. Interesados y datos</h2>
+    <p><strong>Interesados:</strong> personas que se candidatan o dejan sus datos para futuras oportunidades; personas que ejercen derechos.<br>
+       <strong>Datos:</strong> identificativos y de contacto (nombre, apellidos, email, teléfono), profesionales (puesto, disponibilidad, experiencia, observaciones, CV), notas y estados del proceso, registros de consentimiento. El formulario no solicita categorías especiales de datos (art. 9 RGPD); pueden aparecer si el candidato las incluye en su CV.</p>
+  </div>
+
+  <div class="card">
+    <h2>4. Instrucciones documentadas</h2>
+    <p>El encargado trata los datos solo siguiendo las instrucciones del responsable, que son las que resultan de este acuerdo, de la configuración que el responsable hace en el panel y de las que comunique por escrito. Si una instrucción infringe la normativa, el encargado lo comunicará de inmediato (art. 28.3 RGPD).</p>
+  </div>
+
+  <div class="card">
+    <h2>5. Confidencialidad</h2>
+    <p>Las personas autorizadas por el encargado están sujetas a deber de confidencialidad. La administración de la plataforma no accede por defecto a candidaturas ni CV; cualquier acceso excepcional (p. ej., investigación de un incidente) se limita a lo imprescindible y queda registrado.</p>
+  </div>
+
+  <div class="card">
+    <h2>6. Seguridad (art. 32 RGPD)</h2>
+    <p>Separación de datos por negocio en aplicación y base de datos; almacenamiento privado de CV sin enlaces públicos; cifrado en tránsito; contraseñas con hash; control de acceso en servidor; registro de accesos a CV y de acciones relevantes; limitación de intentos; copias de seguridad del proveedor de base de datos. Detalle disponible para el responsable bajo petición.</p>
+  </div>
+
+  <div class="card">
+    <h2>7. Subencargados</h2>
+    <p>El responsable autoriza de forma general a los subencargados listados en la <a href="/privacidad#subencargados">política de privacidad</a>. El encargado informará de cualquier cambio con antelación para que el responsable pueda oponerse, e impondrá a cada subencargado las mismas obligaciones de protección de datos.</p>
+  </div>
+
+  <div class="card">
+    <h2>8. Asistencia con los derechos de los interesados</h2>
+    <p>La plataforma ofrece al responsable un canal de solicitudes con plazo, la exportación de los datos de un candidato y su supresión. Si un interesado se dirige al encargado, este trasladará la solicitud al responsable sin demora y no la resolverá por su cuenta.</p>
+  </div>
+
+  <div class="card">
+    <h2>9. Brechas de seguridad</h2>
+    <p>El encargado notificará al responsable, sin dilación indebida, las violaciones de seguridad de los datos de las que tenga conocimiento, con la información disponible para que el responsable pueda valorar su notificación a la AEPD (72 horas, art. 33 RGPD) y a los interesados (art. 34 RGPD). <em>[PLAZO CONTRACTUAL CONCRETO — PENDIENTE]</em></p>
+  </div>
+
+  <div class="card">
+    <h2>10. Evaluaciones de impacto y auditorías</h2>
+    <p>El encargado facilitará la información necesaria para que el responsable realice, si procede, una evaluación de impacto, y para demostrar el cumplimiento de este acuerdo, permitiendo auditorías razonables. <em>[CONDICIONES DE AUDITORÍA — PENDIENTES]</em></p>
+  </div>
+
+  <div class="card">
+    <h2>11. Fin del encargo: devolución o supresión</h2>
+    <p>Al terminar el servicio, el responsable puede exportar los datos de sus candidatos durante <em>[PLAZO — PENDIENTE]</em>. Después, el encargado suprimirá los datos y los CV de sus sistemas activos; las copias de seguridad del proveedor se eliminan al expirar su ciclo de retención. Solo se conservará lo que exija una obligación legal, bloqueado.</p>
+  </div>
+
+  <div class="actions-row center-row spaced">
+    <a class="btn secondary small" href="/terminos">Términos de uso</a>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

@@ -1,0 +1,65 @@
+<%- include('../partials/head', { title: 'Privacidad' }) %>
+<%- include('../partials/panel_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Privacidad y candidatos</h1>
+    <a class="btn ghost small" href="/panel">← Inicio</a>
+  </div>
+
+  <%- include('../partials/flash') %>
+
+  <% if (welcome) { %>
+    <div class="flash ok">Cuenta creada. Antes de grabar la etiqueta NFC, lee esta página: son 2 minutos.</div>
+  <% } %>
+
+  <% if (!r.legal_name || !r.privacy_email) { %>
+    <div class="card attention">
+      <h2>Falta información obligatoria</h2>
+      <p class="flat">Los candidatos deben saber quién es el responsable de sus datos y cómo contactarlo. Completa la <strong>razón social</strong> y el <strong>email de privacidad</strong> en <a href="/panel/restaurante">Mi negocio</a>.</p>
+    </div>
+  <% } %>
+
+  <div class="card">
+    <h2>Lo esencial, sin jerga</h2>
+    <ol class="plain-list">
+      <li><strong>Tu negocio es el responsable</strong> de los datos de quien se candidata (<%= r.legal_name || r.name %>). Fíchame solo guarda y organiza esos datos por ti, siguiendo tus instrucciones.</li>
+      <li><strong>Úsalos solo para seleccionar personal</strong> para tu negocio. No los uses para publicidad ni los pases a otros negocios, aunque sean amigos o del mismo grupo: para eso haría falta el consentimiento del candidato.</li>
+      <li><strong>Decide con criterios del puesto.</strong> Está prohibido discriminar por sexo, edad, origen, nacionalidad, religión, discapacidad, salud, orientación sexual, ideas políticas, afiliación sindical, estado civil o idioma. No preguntes por ello ni lo anotes.</li>
+      <li><strong>No pidas más datos de los necesarios.</strong> DNI/NIE, número de la Seguridad Social o cuenta bancaria se piden <em>al contratar</em>, en tu proceso de alta, no en la candidatura.</li>
+      <li><strong>No guardes los datos para siempre.</strong> Fíchame borra automáticamente según los plazos de abajo. Si descargas un CV, bórralo también de tu dispositivo cuando ya no lo necesites.</li>
+      <li><strong>Responde a los derechos en un mes.</strong> Las solicitudes llegan a <a href="/panel/derechos">Derechos</a>. Tienes herramientas para exportar y suprimir los datos de un candidato desde su ficha.</li>
+      <li><strong>Protege el acceso.</strong> No compartas tu contraseña. Si sospechas que alguien ha entrado en tu cuenta o ves algo raro, cambia la contraseña y avisa a Fíchame enseguida: puede ser una brecha de datos que tienes que valorar en 72 horas.</li>
+    </ol>
+    <p class="help">Esto es un resumen práctico, no asesoramiento jurídico. El detalle está en los <a href="/terminos" target="_blank" rel="noopener">Términos</a> y en el <a href="/encargo" target="_blank" rel="noopener">Acuerdo de encargo del tratamiento</a><% if (r.terms_accepted_at) { %> (aceptados el <%= fmtDate(r.terms_accepted_at) %>, versión <%= r.dpa_version %>)<% } %>.</p>
+  </div>
+
+  <div class="card">
+    <h2>Plazos de conservación</h2>
+    <p class="help help-lift">
+      Fíchame borra automáticamente las candidaturas (con su CV, notas e historial) cuando vence el plazo. Los valores
+      por defecto son una propuesta técnica: <strong>confírmalos con tu asesor</strong>. Si un caso concreto exige
+      conservar datos (por ejemplo, una reclamación), usa el bloqueo en la ficha del candidato.
+    </p>
+    <form action="/panel/privacidad/conservacion" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <div class="field">
+        <label for="inactivos">Proceso abierto sin ninguna actividad (días, 30–365)</label>
+        <input id="inactivos" type="number" name="inactivos" min="30" max="365" required value="<%= r.retention_inactive_days %>">
+      </div>
+      <div class="field">
+        <label for="cerrados">Proceso terminado: contratado o descartado (días, 1–365)</label>
+        <input id="cerrados" type="number" name="cerrados" min="1" max="365" required value="<%= r.retention_closed_days %>">
+        <div class="help">Si contratas a alguien, lleva sus datos a tu gestión de personal: Fíchame no es un sistema de nóminas ni de expedientes.</div>
+      </div>
+      <div class="field">
+        <label for="reserva">Futuras oportunidades, con consentimiento (días, 30–730)</label>
+        <input id="reserva" type="number" name="reserva" min="30" max="730" required value="<%= r.retention_reserve_days %>">
+        <div class="help">Se informa al candidato de este plazo antes de que dé su consentimiento.</div>
+      </div>
+      <button class="btn" type="submit">Guardar plazos</button>
+    </form>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

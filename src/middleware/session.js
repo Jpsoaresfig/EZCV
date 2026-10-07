@@ -4,15 +4,27 @@ const config = require('../config');
 const { sb, one, rpc } = require('../db');
 const { randomToken, sha256 } = require('../lib/crypto');
 
-const COOKIE_NAME = 'ezcv_sid';
+/* Em produção (HTTPS) o prefixo __Host- obriga o browser a só aceitar o
+ * cookie com Secure, Path=/ e sem Domain: um subdomínio não o pode definir
+ * nem sobrescrever (proteção contra session fixation via subdomínio). */
+const COOKIE_NAME = config.cookieSecure ? '__Host-fichame_sid' : 'ezcv_sid';
 
-function setSessionCookie(res, token) {
+/* Sessão anónima: só existe para dar um token CSRF ao formulário público.
+ * Validade curta e sem IP nem user-agent — o candidato não é utilizador da
+ * plataforma e não há motivo para guardar de onde abriu a página. */
+const ANON_TTL_MS = 2 * 60 * 60 * 1000;
+
+function ttlFor(userId) {
+  return userId ? config.sessionTtlMs : ANON_TTL_MS;
+}
+
+function setSessionCookie(res, token, maxAge) {
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
     sameSite: 'lax',
     secure: config.cookieSecure,
     path: '/',
-    maxAge: config.sessionTtlMs
+    maxAge
   });
 }
 
@@ -20,23 +32,33 @@ async function createSession(req, res, userId = null) {
   const token = randomToken(32);
   const csrf = randomToken(24);
   const now = Date.now();
+  const ttl = ttlFor(userId);
 
   const { error } = await sb().from('sessions').insert({
     token_hash: sha256(token),
     user_id: userId,
     csrf_token: csrf,
-    ip: String(req.ip || '').slice(0, 60),
-    user_agent: String(req.headers['user-agent'] || '').slice(0, 200),
-    expires_at: now + config.sessionTtlMs,
+    ip: userId ? String(req.ip || '').slice(0, 60) : '',
+    user_agent: userId ? String(req.headers['user-agent'] || '').slice(0, 200) : '',
+    expires_at: now + ttl,
     created_at: now
   });
 
   if (error) throw new Error(`Supabase: criar sessão — ${error.message}`);
 
-  setSessionCookie(res, token);
-  req.session = { csrfToken: csrf, userId };
+  setSessionCookie(res, token, ttl);
+  req.session = { csrfToken: csrf, userId, tokenHash: sha256(token) };
   if (res.locals) res.locals.csrfToken = csrf;
   return req.session;
+}
+
+/* Termina todas as sessões de um utilizador, exceto (opcionalmente) a atual.
+ * Usado ao mudar a senha ou o email e na recuperação de senha. */
+async function destroyUserSessions(userId, exceptTokenHash = null) {
+  let q = sb().from('sessions').delete().eq('user_id', userId);
+  if (exceptTokenHash) q = q.neq('token_hash', exceptTokenHash);
+  const { error } = await q;
+  if (error) throw new Error(`Supabase: terminar sessões — ${error.message}`);
 }
 
 async function destroySession(req, res) {
@@ -110,15 +132,16 @@ async function loadSession(req, res, next) {
 
   /* Renova a validade quando passou metade do tempo. Não é esperado com
    * await: é manutenção, não deve atrasar a resposta. */
-  if (Number(row.expires_at) - now < config.sessionTtlMs / 2) {
+  const ttl = ttlFor(row.user_id);
+  if (Number(row.expires_at) - now < ttl / 2) {
     rpc('touch_session', {
       token_hash: hash,
-      expires_at: now + config.sessionTtlMs,
+      expires_at: now + ttl,
       now
     }).catch((err) => console.error('[session] touch falhou:', err.message));
   }
 
-  req.session = { csrfToken: row.csrf_token, userId: row.user_id };
+  req.session = { csrfToken: row.csrf_token, userId: row.user_id, tokenHash: hash };
 
   if (row.user_id) {
     /* role a null significa que o utilizador da sessão já não existe. */
@@ -146,4 +169,6 @@ async function loadSession(req, res, next) {
   next();
 }
 
-module.exports = { COOKIE_NAME, createSession, destroySession, loadSession, ensureSession };
+module.exports = {
+  COOKIE_NAME, ANON_TTL_MS, createSession, destroySession, destroyUserSessions, loadSession, ensureSession
+};

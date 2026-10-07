@@ -76,17 +76,27 @@
         <textarea id="descripcion" name="descripcion" maxlength="1500" rows="3"><%= restaurant.description %></textarea>
       </div>
       <div class="field">
-        <label for="owner_name">Responsable *</label>
+        <label for="legal_name">Razón social o nombre del titular *</label>
+        <input id="legal_name" type="text" name="legal_name" maxlength="150" required value="<%= restaurant.legal_name %>">
+        <div class="help">Se muestra a los candidatos como responsable del tratamiento de sus datos.</div>
+      </div>
+      <div class="field">
+        <label for="privacy_email">Email de contacto para privacidad *</label>
+        <input id="privacy_email" type="email" name="privacy_email" maxlength="120" required value="<%= restaurant.privacy_email || restaurant.email %>">
+        <div class="help">Público: los candidatos lo ven para ejercer sus derechos. Aquí recibirás también los avisos de solicitudes.</div>
+      </div>
+      <div class="field">
+        <label for="owner_name">Persona de contacto *</label>
         <input id="owner_name" type="text" name="owner_name" maxlength="100" required value="<%= restaurant.owner_name %>">
       </div>
       <div class="field">
-        <label for="email">Email de contacto *</label>
+        <label for="email">Email para avisos de candidaturas *</label>
         <input id="email" type="email" name="email" maxlength="120" required value="<%= restaurant.email %>">
-        <div class="help">Aquí se reciben las notificaciones de nuevas candidaturas.</div>
+        <div class="help">Los avisos no incluyen datos del candidato: solo un enlace a tu panel.</div>
       </div>
       <div class="field">
-        <label for="telefono">Teléfono *</label>
-        <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= restaurant.phone %>">
+        <label for="telefono">Teléfono <span class="dim label-hint">(opcional)</span></label>
+        <input id="telefono" type="tel" name="telefono" maxlength="30" value="<%= restaurant.phone %>">
       </div>
       <div class="field">
         <label for="direccion">Dirección</label>

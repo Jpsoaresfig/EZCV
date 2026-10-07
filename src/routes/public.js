@@ -1,59 +1,71 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 
 const config = require('../config');
 const { sb, one, many, rpc, logSecurity } = require('../db');
 const { ensureSession } = require('../middleware/session');
 const { verifyCsrf } = require('../middleware/csrf');
-const { rateLimit } = require('../middleware/rateLimit');
-const { uploadCvFile, isPdf } = require('../middleware/uploads');
-const { notifyNewApplication } = require('../lib/mailer');
-const { CONSENT_VERSION, consentSnapshot, SELECTION_TEXT, FUTURE_TEXT } = require('../lib/consent');
+const { rateLimit, dbRateLimit } = require('../middleware/rateLimit');
+const { uploadCvFile, inspectPdf, safeFilename } = require('../middleware/uploads');
+const { notifyNewApplication, notifyRightsRequest } = require('../lib/mailer');
+const { PRIVACY_NOTICE_VERSION, CONSENT_VERSION, futureText, interestText, days2months } = require('../lib/consent');
+const { operator } = require('../lib/legal');
 const storage = require('../lib/storage');
-const { DOC_TYPES } = require('../lib/statuses');
 
 const router = express.Router();
 
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+const EMAIL_RE = /^[^\s@<>,;]+@[^\s@<>,;]+\.[^\s@<>,;]{2,}$/;
 const PHONE_RE = /^[\d\s()+-]{6,20}$/;
+
+const RIGHTS_KINDS = {
+  acceso: 'Acceso — saber qué datos míos se conservan',
+  rectificacion: 'Rectificación — corregir datos incorrectos',
+  supresion: 'Supresión — que se borren mis datos y mi CV',
+  oposicion: 'Oposición',
+  limitacion: 'Limitación del tratamiento',
+  portabilidad: 'Portabilidad — recibir una copia de mis datos',
+  retirada_consentimiento: 'Retirar el consentimiento de futuras oportunidades',
+  otro: 'Otra consulta sobre mis datos'
+};
 
 function clean(value, max = 200) {
   return String(value == null ? '' : value).trim().slice(0, max);
 }
 
-/* ------------------------------------------------------------------ *
- * Helpers
- * ------------------------------------------------------------------ */
+/* Só as colunas que a página pública usa. A view nunca recebe o email de
+ * login, os prazos internos nem os metadados de conta. */
+const PUBLIC_COLUMNS = [
+  'id', 'slug', 'name', 'commercial_name', 'legal_name', 'privacy_email', 'email',
+  'address', 'postal_code', 'city', 'establishment_type', 'description',
+  'logo_path', 'photo_path', 'hiring_status',
+  'retention_closed_days', 'retention_inactive_days', 'retention_reserve_days'
+].join(', ');
+
+/* Estabelecimento inexistente e estabelecimento desativado dão a MESMA
+ * resposta 404: a página pública não permite descobrir que contas existem
+ * nem quais foram desativadas. */
 async function getPublicRestaurant(slug) {
-  return one(
-    sb().from('restaurants').select('*').eq('slug', String(slug || '')).eq('active', true),
+  const s = String(slug || '');
+  if (!/^[a-z0-9][a-z0-9-]{0,80}$/.test(s)) return null;
+  const r = await one(
+    sb().from('restaurants').select(PUBLIC_COLUMNS).eq('slug', s).eq('active', true),
     'restaurante público'
   );
+  if (r) {
+    r.controller = r.legal_name || r.name;
+    r.contact = r.privacy_email || r.email;
+  }
+  return r;
 }
 
 async function openJobs(restaurantId) {
   return many(
-    sb().from('jobs').select('*').eq('restaurant_id', restaurantId).eq('active', true).order('title'),
+    sb().from('jobs').select('id, title, description, contract_type, work_schedule')
+      .eq('restaurant_id', restaurantId).eq('active', true).order('title'),
     'vagas abertas'
   );
-}
-
-/* Já se candidatou a ESTE restaurante nas últimas 48h? (§26)
- * Verificado aqui para não fazer upload à toa, e outra vez dentro da função
- * submit_application, que é onde a garantia é à prova de corrida. */
-async function recentlyApplied(restaurantId, email) {
-  const since = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
-  const row = await one(
-    sb().from('application_list')
-      .select('id')
-      .eq('restaurant_id', restaurantId)
-      .eq('email', email)
-      .gt('applied_at', since)
-      .limit(1),
-    'candidatura duplicada'
-  );
-  return Boolean(row);
 }
 
 function pageMode(restaurant, jobs) {
@@ -69,8 +81,13 @@ function renderPublic(req, res, { restaurant, jobs, mode, form = {}, errors = nu
     mode,
     form,
     errors,
-    consentSelectionText: SELECTION_TEXT,
-    consentFutureText: FUTURE_TEXT,
+    consentFutureText: futureText(restaurant.commercial_name || restaurant.name, restaurant.retention_reserve_days),
+    consentInterestText: interestText(restaurant.commercial_name || restaurant.name, restaurant.retention_reserve_days),
+    retention: {
+      inactive: days2months(restaurant.retention_inactive_days),
+      closed: days2months(restaurant.retention_closed_days),
+      reserve: days2months(restaurant.retention_reserve_days)
+    },
     query: req.query
   });
 }
@@ -81,6 +98,11 @@ function notFoundRestaurant(res, message) {
     title: 'Establecimiento no encontrado',
     message: message || 'No encontramos este establecimiento. Comprueba el enlace de la etiqueta NFC.'
   });
+}
+
+/* Eventos de candidatos: IP truncado, sem user-agent (db.logSecurity). */
+function logPublic(event, detail, req, restaurantId) {
+  logSecurity(event, detail, req.ip, { restaurantId, anonymous: true });
 }
 
 /* ------------------------------------------------------------------ *
@@ -97,36 +119,42 @@ router.get('/r/:slug', ensureSession, async (req, res) => {
 /* ------------------------------------------------------------------ *
  * POST /r/:slug/apply — candidatura com CV
  * ------------------------------------------------------------------ */
-const applyLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
+const applyLimiters = [
   /* Por IP + negócio. 20 e não 5: numa loja com Wi-Fi vários candidatos
    * saem pelo mesmo IP, e o duplicado (mesmo email em 48 h) já trava spam. */
-  max: 20,
-  name: 'apply',
-  key: (req) => `${req.ip}|${req.params.slug}`,
-  message: 'Has enviado demasiadas candidaturas desde este dispositivo. Inténtalo más tarde.'
-});
+  rateLimit({
+    windowMs: 60 * 60 * 1000, max: 20, name: 'apply',
+    key: (req) => `${req.ip}|${req.params.slug}`,
+    message: 'Has enviado demasiadas candidaturas desde este dispositivo. Inténtalo más tarde.'
+  }),
+  /* Partilhado entre instâncias: por IP em toda a plataforma (CV flood). */
+  dbRateLimit({
+    windowMs: 60 * 60 * 1000, max: 60, name: 'apply-ip',
+    key: (req) => String(req.ip),
+    message: 'Has enviado demasiadas candidaturas desde esta conexión. Inténtalo más tarde.'
+  })
+];
 
-router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
+router.post('/r/:slug/apply', ...applyLimiters, uploadCvFile, async (req, res) => {
   const restaurant = await getPublicRestaurant(req.params.slug);
   if (!restaurant) return notFoundRestaurant(res, 'Enlace no válido.');
 
   const jobs = await openJobs(restaurant.id);
 
+  /* Minimização: NÃO se recolhe documento de identidade, data de
+   * nascimento, nacionalidade, morada, estado civil nem fotografia. Campos
+   * extra enviados pelo cliente são ignorados (lista fechada). */
   const form = {
     nombre: clean(req.body.nombre, 100),
     apellidos: clean(req.body.apellidos, 100),
     email: clean(req.body.email, 120),
     telefono: clean(req.body.telefono, 30),
-    doc_tipo: clean(req.body.doc_tipo, 20),
-    doc_numero: clean(req.body.doc_numero, 30),
     puesto: clean(req.body.puesto, 60),
     otro_puesto: clean(req.body.otro_puesto, 80),
     disponibilidad: clean(req.body.disponibilidad, 30),
-    experiencia: clean(req.body.experiencia, 3000),
-    observaciones: clean(req.body.observaciones, 3000),
-    consent_proceso: Boolean(req.body.consentimiento_proceso),
-    consent_futuro: Boolean(req.body.consentimiento_futuro)
+    experiencia: clean(req.body.experiencia, 2000),
+    observaciones: clean(req.body.observaciones, 1000),
+    consent_futuro: req.body.consentimiento_futuro === '1'
   };
 
   const fail = (errors) => renderPublic(req, res, {
@@ -144,9 +172,7 @@ router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
 
   /* Honeypot: confirma sem gravar nada (§26). */
   if (clean(req.body.sitio_web, 200)) {
-    logSecurity('spam_honeypot', `slug=${restaurant.slug}`, req.ip, {
-      restaurantId: restaurant.id, userAgent: req.headers['user-agent']
-    });
+    logPublic('spam_honeypot', `rid=${restaurant.id}`, req, restaurant.id);
     return res.redirect(`/r/${restaurant.slug}/enviado`);
   }
 
@@ -160,14 +186,9 @@ router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
   if (form.nombre.length < 2) errors.nombre = 'Indica tu nombre.';
   if (!EMAIL_RE.test(form.email)) errors.email = 'Indica un email válido.';
   if (!PHONE_RE.test(form.telefono)) errors.telefono = 'Indica un teléfono válido.';
-
-  /* Documento: opcional por minimização de dados (§5, §29). O número não é
-   * necessário para avaliar um candidato — só para o contratar. Se for
-   * indicado, o tipo tem de ser válido. */
-  if (form.doc_numero && !Object.prototype.hasOwnProperty.call(DOC_TYPES, form.doc_tipo)) {
-    errors.doc_tipo = 'Selecciona el tipo de documento.';
+  if (form.disponibilidad && !Object.prototype.hasOwnProperty.call(res.app.locals.AVAILABILITIES, form.disponibilidad)) {
+    form.disponibilidad = '';
   }
-  if (!form.doc_numero) form.doc_tipo = '';
 
   const jobIds = jobs.map((j) => String(j.id));
   let job = null;
@@ -194,26 +215,41 @@ router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
     } else {
       errors.cv = 'Adjunta tu currículum en PDF.';
     }
-  } else if (!isPdf(req.file.buffer)) {
+  } else {
     /* Extensão e MIME vêm do cliente; isto olha para o conteúdo real. */
-    errors.cv = 'El archivo no es un PDF válido.';
-  }
-
-  if (!req.body.consentimiento_proceso) {
-    errors.consentimiento_proceso = 'Debes aceptar el tratamiento de tus datos para participar en el proceso.';
+    const pdf = inspectPdf(req.file.buffer);
+    if (!pdf.ok) {
+      errors.cv = pdf.reason === 'ACTIVO'
+        ? 'El PDF contiene elementos activos (scripts, adjuntos o formularios) que no se aceptan. Expórtalo de nuevo como PDF simple.'
+        : pdf.reason === 'CORRUPTO'
+          ? 'El PDF parece incompleto o dañado. Vuelve a exportarlo e inténtalo de nuevo.'
+          : 'El archivo no es un PDF válido.';
+      if (pdf.reason === 'ACTIVO') logPublic('cv_rechazado_activo', `rid=${restaurant.id}`, req, restaurant.id);
+    }
   }
 
   if (Object.keys(errors).length > 0) return fail(errors);
 
-  if (await recentlyApplied(restaurant.id, form.email)) {
-    return fail({ email: 'Ya nos enviaste tu candidatura recientemente. Gracias.' });
-  }
+  /* Duplicado (mesmo email, mesmo estabelecimento, < 48 h): a resposta é
+   * IGUAL à de um envio aceite. Dizer «ya te habías candidatado» deixaria
+   * qualquer pessoa descobrir, só com um email, se alguém se candidatou a
+   * este negócio. O segundo envio não é gravado. */
+  const dupResponse = () => {
+    logPublic('candidatura_duplicada', `rid=${restaurant.id}`, req, restaurant.id);
+    return res.redirect(`/r/${restaurant.slug}/enviado`);
+  };
 
-  /* Ordem: primeiro o ficheiro, depois a BD.
-   *
-   * O caminho do objeto é preciso para gravar a linha em `cvs`, por isso o
-   * upload vem antes. Se a função falhar, o objeto é removido — fica tudo
-   * como estava, sem candidatura sem CV nem CV sem candidatura. */
+  const since = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+  const dup = await one(
+    sb().from('application_list').select('id')
+      .eq('restaurant_id', restaurant.id).eq('email', form.email).gt('applied_at', since).limit(1),
+    'candidatura duplicada'
+  );
+  if (dup) return dupResponse();
+
+  /* Ordem: primeiro o ficheiro, depois a BD. Se a função falhar, o objeto é
+   * removido; se essa remoção também falhar, a deteção de órfãos da
+   * retenção apanha-o. */
   let storagePath;
   try {
     storagePath = await storage.uploadCv(req.file.buffer, restaurant.id);
@@ -230,19 +266,19 @@ router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
       last_name: form.apellidos,
       email: form.email,
       phone: form.telefono,
-      doc_type: form.doc_tipo,
-      doc_number: form.doc_numero,
       job_id: job ? String(job.id) : '',
       job_title: jobTitle || '',
       availability: form.disponibilidad,
       experience: form.experiencia,
       observations: form.observaciones,
       future_consent: form.consent_futuro,
+      future_text: form.consent_futuro
+        ? futureText(restaurant.commercial_name || restaurant.name, restaurant.retention_reserve_days)
+        : '',
       consent_version: CONSENT_VERSION,
-      consent_text: consentSnapshot(form.consent_futuro),
+      privacy_notice_version: PRIVACY_NOTICE_VERSION,
       storage_path: storagePath,
-      original_filename: String(req.file.originalname || 'cv.pdf').slice(0, 150),
-      mime_type: 'application/pdf',
+      original_filename: safeFilename(req.file.originalname),
       size_bytes: req.file.size
     }, 'enviar candidatura');
   } catch (err) {
@@ -255,31 +291,18 @@ router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
 
   if (!result || !result.ok) {
     await storage.removeCv(storagePath);
-    if (result && result.reason === 'duplicate') {
-      return fail({ email: 'Ya nos enviaste tu candidatura recientemente. Gracias.' });
-    }
+    if (result && result.reason === 'duplicate') return dupResponse();
     return res.status(500).render('error', {
       status: 500, title: 'Error', message: 'No se pudo enviar la candidatura. Inténtalo de nuevo.'
     });
   }
 
-  /* Email ao restaurante: nunca com o CV em anexo, só um link para o painel
-   * (§21). Não bloqueia a resposta ao candidato. */
-  notifyNewApplication({
-    restaurant,
-    applicationId: result.application_id,
-    candidate: {
-      first_name: form.nombre,
-      last_name: form.apellidos,
-      email: form.email,
-      phone: form.telefono
-    },
-    jobTitle
-  }).catch((err) => console.error('[mailer]', err.message));
+  /* Email ao restaurante: só aviso + link para o painel (sem CV nem dados do
+   * candidato). Não bloqueia a resposta ao candidato. */
+  notifyNewApplication({ restaurant, applicationId: result.application_id, jobTitle })
+    .catch((err) => console.error('[mailer]', err.message));
 
-  logSecurity('candidatura_enviada', `restaurant=${restaurant.slug} app=${result.application_id}`, req.ip, {
-    restaurantId: restaurant.id, userAgent: req.headers['user-agent']
-  });
+  logPublic('candidatura_enviada', `rid=${restaurant.id} app=${result.application_id}`, req, restaurant.id);
 
   /* POST-Redirect-GET: evita reenvio ao recarregar (§7). */
   res.redirect(`/r/${restaurant.slug}/enviado`);
@@ -288,17 +311,20 @@ router.post('/r/:slug/apply', applyLimiter, uploadCvFile, async (req, res) => {
 /* ------------------------------------------------------------------ *
  * POST /r/:slug/interes — deixar dados quando pausado / sem vagas (§20)
  * ------------------------------------------------------------------ */
-const interestLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  /* Por IP + negócio. 20 e não 5: numa loja com Wi-Fi vários candidatos
-   * saem pelo mesmo IP, e o duplicado (mesmo email em 48 h) já trava spam. */
-  max: 20,
-  name: 'interest',
-  key: (req) => `${req.ip}|${req.params.slug}`,
-  message: 'Demasiadas solicitudes. Inténtalo más tarde.'
-});
+const interestLimiters = [
+  rateLimit({
+    windowMs: 60 * 60 * 1000, max: 20, name: 'interest',
+    key: (req) => `${req.ip}|${req.params.slug}`,
+    message: 'Demasiadas solicitudes. Inténtalo más tarde.'
+  }),
+  dbRateLimit({
+    windowMs: 60 * 60 * 1000, max: 60, name: 'interest-ip',
+    key: (req) => String(req.ip),
+    message: 'Demasiadas solicitudes. Inténtalo más tarde.'
+  })
+];
 
-router.post('/r/:slug/interes', interestLimiter, async (req, res) => {
+router.post('/r/:slug/interes', ...interestLimiters, async (req, res) => {
   const restaurant = await getPublicRestaurant(req.params.slug);
   if (!restaurant) return notFoundRestaurant(res, 'Enlace no válido.');
 
@@ -312,16 +338,23 @@ router.post('/r/:slug/interes', interestLimiter, async (req, res) => {
     nombre: clean(req.body.nombre, 100),
     email: clean(req.body.email, 120),
     telefono: clean(req.body.telefono, 30),
-    experiencia: clean(req.body.experiencia, 1000),
-    consent_futuro: Boolean(req.body.consentimiento_futuro)
+    experiencia: clean(req.body.experiencia, 500),
+    consent_futuro: req.body.consentimiento_futuro === '1'
   };
+
+  if (clean(req.body.sitio_web, 200)) {
+    logPublic('spam_honeypot', `rid=${restaurant.id}`, req, restaurant.id);
+    return res.redirect(`/r/${restaurant.slug}/enviado?tipo=futuro`);
+  }
 
   const errors = [];
   if (form.nombre.length < 2) errors.push('Indica tu nombre.');
   if (!EMAIL_RE.test(form.email)) errors.push('Indica un email válido.');
   if (!PHONE_RE.test(form.telefono)) errors.push('Indica un teléfono válido.');
-  if (!req.body.consentimiento_futuro) {
-    errors.push('Debes aceptar que conservemos tus datos para futuras oportunidades.');
+  /* Aqui o consentimento é o próprio pedido: o formulário só serve para a
+   * reserva. Sem ele não há nada para guardar. */
+  if (!form.consent_futuro) {
+    errors.push('Para guardar tus datos necesitamos que marques la casilla de futuras oportunidades.');
   }
 
   if (errors.length > 0) {
@@ -336,13 +369,6 @@ router.post('/r/:slug/interes', interestLimiter, async (req, res) => {
     });
   }
 
-  if (clean(req.body.sitio_web, 200)) {
-    logSecurity('spam_honeypot', `slug=${restaurant.slug}`, req.ip, {
-      restaurantId: restaurant.id, userAgent: req.headers['user-agent']
-    });
-    return res.redirect(`/r/${restaurant.slug}/enviado?tipo=futuro`);
-  }
-
   const result = await rpc('submit_interest', {
     restaurant_id: restaurant.id,
     first_name: form.nombre,
@@ -350,12 +376,13 @@ router.post('/r/:slug/interes', interestLimiter, async (req, res) => {
     phone: form.telefono,
     experience: form.experiencia,
     consent_version: CONSENT_VERSION,
-    consent_text: consentSnapshot(true)
+    privacy_notice_version: PRIVACY_NOTICE_VERSION,
+    future_text: interestText(restaurant.commercial_name || restaurant.name, restaurant.retention_reserve_days)
   }, 'registar interesse');
 
   if (!result || !result.ok) {
     if (result && result.reason === 'duplicate') {
-      /* Já deixou os dados há pouco: para o candidato o resultado é o mesmo. */
+      /* Mesma resposta que um envio aceite (sem enumeração). */
       return res.redirect(`/r/${restaurant.slug}/enviado?tipo=futuro`);
     }
     return res.status(500).render('error', {
@@ -363,29 +390,112 @@ router.post('/r/:slug/interes', interestLimiter, async (req, res) => {
     });
   }
 
-  notifyNewApplication({
-    restaurant,
-    applicationId: result.application_id,
-    candidate: {
-      first_name: form.nombre,
-      last_name: '',
-      email: form.email,
-      phone: form.telefono
-    },
-    jobTitle: 'Oportunidades futuras'
-  }).catch(() => {});
+  notifyNewApplication({ restaurant, applicationId: result.application_id, jobTitle: 'Oportunidades futuras' })
+    .catch(() => {});
+  logPublic('interes_registrado', `rid=${restaurant.id} app=${result.application_id}`, req, restaurant.id);
 
   res.redirect(`/r/${restaurant.slug}/enviado?tipo=futuro`);
 });
 
 /* ------------------------------------------------------------------ *
  * GET /r/:slug/enviado — confirmação (§7)
- * ------------------------------------------------------------------ */
+ * ------------------------------------------------------------------ *
+ * Não mostra nada interno: nem posição, nem estado, nem outros candidatos.
+ */
 router.get('/r/:slug/enviado', ensureSession, async (req, res) => {
   const restaurant = await getPublicRestaurant(req.params.slug);
   if (!restaurant) return notFoundRestaurant(res, 'Enlace no válido.');
   res.render('public/sent', { restaurant, future: req.query.tipo === 'futuro' });
 });
+
+/* ------------------------------------------------------------------ *
+ * Informação completa (2.ª camada) e exercício de direitos
+ * ------------------------------------------------------------------ *
+ * GET  /r/:slug/privacidad  informação do art. 13 RGPD deste estabelecimento
+ * POST /r/:slug/derechos    pedido de acesso, supressão, etc.
+ *
+ * O pedido chega ao painel do estabelecimento (responsável), com o prazo de
+ * 1 mês do art. 12.3 RGPD. O Fíchame, como encarregado, encaminha e não
+ * decide (art. 28.3.e RGPD). A verificação de identidade é proporcional: o
+ * estabelecimento responde ao email que consta na candidatura.
+ */
+router.get('/r/:slug/privacidad', ensureSession, async (req, res) => {
+  const restaurant = await getPublicRestaurant(req.params.slug);
+  if (!restaurant) return notFoundRestaurant(res);
+  res.render('public/restaurant_privacy', {
+    restaurant,
+    operator,
+    kinds: RIGHTS_KINDS,
+    form: {},
+    errors: null,
+    noticeVersion: PRIVACY_NOTICE_VERSION,
+    retention: {
+      inactive: days2months(restaurant.retention_inactive_days),
+      closed: days2months(restaurant.retention_closed_days),
+      reserve: days2months(restaurant.retention_reserve_days)
+    },
+    sentRef: ''
+  });
+});
+
+router.post('/r/:slug/derechos',
+  rateLimit({ windowMs: 60 * 60 * 1000, max: 5, name: 'rights', key: (req) => `${req.ip}|${req.params.slug}` }),
+  dbRateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10, name: 'rights-ip', key: (req) => String(req.ip) }),
+  async (req, res) => {
+    const restaurant = await getPublicRestaurant(req.params.slug);
+    if (!restaurant) return notFoundRestaurant(res);
+    if (!verifyCsrf(req)) {
+      return res.status(403).render('error', { status: 403, title: 'Sesión no válida', message: 'Vuelve a abrir la página.' });
+    }
+
+    const form = {
+      kind: clean(req.body.tipo, 40),
+      name: clean(req.body.nombre, 100),
+      email: clean(req.body.email, 120),
+      message: clean(req.body.mensaje, 1500)
+    };
+
+    const render = (extra) => res.status(extra.status || 200).render('public/restaurant_privacy', {
+      restaurant,
+      operator,
+      kinds: RIGHTS_KINDS,
+      noticeVersion: PRIVACY_NOTICE_VERSION,
+      retention: {
+        inactive: days2months(restaurant.retention_inactive_days),
+        closed: days2months(restaurant.retention_closed_days),
+        reserve: days2months(restaurant.retention_reserve_days)
+      },
+      form,
+      errors: null,
+      sentRef: '',
+      ...extra
+    });
+
+    if (clean(req.body.sitio_web, 200)) return render({ sentRef: 'FCH-' + crypto.randomBytes(4).toString('hex').toUpperCase() });
+
+    const errors = {};
+    if (!Object.prototype.hasOwnProperty.call(RIGHTS_KINDS, form.kind)) errors.tipo = 'Selecciona el tipo de solicitud.';
+    if (form.name.length < 2) errors.nombre = 'Indica tu nombre.';
+    if (!EMAIL_RE.test(form.email)) errors.email = 'Indica el email con el que te candidataste.';
+    if (Object.keys(errors).length > 0) return render({ errors, status: 422 });
+
+    const ref = 'FCH-' + crypto.randomBytes(5).toString('hex').toUpperCase();
+    const result = await rpc('create_rights_request', {
+      restaurant_id: restaurant.id,
+      public_ref: ref,
+      kind: form.kind,
+      requester_name: form.name,
+      requester_email: form.email,
+      message: form.message
+    }, 'pedido de direitos');
+
+    notifyRightsRequest({ restaurant, dueAt: result.due_at }).catch(() => {});
+    logPublic('derechos_solicitud', `rid=${restaurant.id} req=${result.id} tipo=${form.kind}`, req, restaurant.id);
+
+    /* A resposta é a mesma exista ou não uma candidatura com esse email: o
+     * formulário não serve para descobrir se alguém se candidatou. */
+    render({ sentRef: ref, form: {} });
+  });
 
 /* ------------------------------------------------------------------ *
  * GET /r/:slug/imagen/:tipo — logo ou foto do estabelecimento
@@ -397,6 +507,7 @@ router.get('/r/:slug/enviado', ensureSession, async (req, res) => {
  */
 router.get('/r/:slug/imagen/:tipo', async (req, res) => {
   const field = req.params.tipo === 'foto' ? 'photo_path' : 'logo_path';
+  if (!/^[a-z0-9][a-z0-9-]{0,80}$/.test(String(req.params.slug || ''))) return res.status(404).end();
 
   const restaurant = await one(
     sb().from('restaurants').select(`id, ${field}`).eq('slug', String(req.params.slug || '')).eq('active', true),
@@ -415,9 +526,8 @@ router.get('/r/:slug/imagen/:tipo', async (req, res) => {
 
   res.setHeader('Content-Type', mime);
   res.setHeader('Content-Length', buffer.length);
-  /* Com ?v=<ficheiro> o URL muda a cada novo upload, por isso pode ficar em
-   * cache muito tempo (também na CDN da Vercel, via s-maxage) sem nunca
-   * mostrar uma imagem antiga. Sem versão, cache curta. */
+  /* Conteúdo público do negócio (não dados de candidatos): pode ficar em
+   * cache. Com ?v=<ficheiro> o URL muda a cada novo upload. */
   res.setHeader('Cache-Control', req.query.v
     ? 'public, max-age=604800, s-maxage=604800, immutable'
     : 'public, max-age=300');

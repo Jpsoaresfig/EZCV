@@ -1,0 +1,33 @@
+<%- include('../partials/head', { title: 'Recuperar contraseña' }) %>
+
+<div class="auth-wrap">
+  <div class="auth-card">
+    <div class="auth-head">
+      <a class="brand" href="/">
+        <img class="brand-mark" src="/img/logo.svg?v=<%= assetV %>" alt="" width="28" height="28">
+        <span>Fíchame</span>
+      </a>
+    </div>
+
+    <div class="card">
+      <h2>Recuperar contraseña</h2>
+      <% if (sent) { %>
+        <div class="flash ok"><%= message %></div>
+        <p class="small muted">Si no lo recibes en unos minutos, revisa la carpeta de spam.</p>
+      <% } else { %>
+        <p class="muted small">Indica el email de tu cuenta. Si existe, te enviaremos un enlace de un solo uso que caduca en 30 minutos.</p>
+        <form action="/recuperar" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" name="email" required maxlength="120" autocomplete="email">
+          </div>
+          <button class="btn block lg" type="submit">Enviar enlace</button>
+        </form>
+      <% } %>
+      <p class="small muted center auth-alt"><a href="/login">Volver a iniciar sesión</a></p>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

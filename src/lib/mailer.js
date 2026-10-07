@@ -60,6 +60,14 @@ async function expect(socket, codes) {
 
 async function smtpSend({ to, subject, text, html }) {
   const { host, port, secure, user, pass, from } = config.smtp;
+
+  /* Injeção SMTP/cabeçalhos: um endereço com CR/LF ou <> podia acrescentar
+   * comandos (RCPT TO extra) ou cabeçalhos (Bcc). Os emails já são validados
+   * na entrada; isto é a última barreira. */
+  for (const addr of [to, from]) {
+    if (!/^[^\s@<>,;]+@[^\s@<>,;]+$/.test(String(addr))) throw new Error('Endereço de email inválido');
+  }
+
   const socket = secure
     ? tls.connect({ host, port, servername: host })
     : net.connect({ host, port });
@@ -153,12 +161,12 @@ async function smtpSend({ to, subject, text, html }) {
   }
 }
 
-async function recordNotification(restaurantId, applicationId, status, detail) {
+async function recordNotification(restaurantId, applicationId, status, detail, type = 'nueva_candidatura') {
   try {
     const { error } = await sb().from('notifications').insert({
       restaurant_id: restaurantId,
       application_id: applicationId,
-      type: 'nueva_candidatura',
+      type,
       channel: 'email',
       status,
       detail: String(detail || '').slice(0, 300)
@@ -169,46 +177,95 @@ async function recordNotification(restaurantId, applicationId, status, detail) {
   }
 }
 
-/* Notificação de nova candidatura ao restaurante (§21).
- *
- * O email NÃO leva o CV em anexo: leva um link para o painel, onde o acesso
- * é verificado. Um PDF em anexo sairia do controlo da plataforma e ficaria em
- * caixas de correio para sempre. */
-async function notifyNewApplication({ restaurant, applicationId, candidate, jobTitle }) {
-  const subject = 'Nueva candidatura recibida';
-  const position = jobTitle || 'Sin puesto especificado';
-  const fullName = `${candidate.first_name} ${candidate.last_name || ''}`.trim();
-  const link = `${config.appUrl}/panel/candidaturas/${applicationId}`;
-
-  const text = [
-    `${fullName} se ha postulado para:`,
-    '',
-    position,
-    '',
-    `Ver candidatura: ${link}`
-  ].join('\n');
-
-  const html = [
-    '<p><strong>Nueva candidatura recibida</strong></p>',
-    `<p>${escapeHtml(fullName)} se ha postulado para:</p>`,
-    `<p><strong>${escapeHtml(position)}</strong></p>`,
-    `<p><a href="${escapeHtml(link)}">Ver candidatura</a></p>`
-  ].join('\n');
-
+/* Envio genérico. Sem SMTP configurado NADA do conteúdo vai para o log: nem
+ * o destinatário, nem o corpo (que pode ter um link de recuperação de senha).
+ * Devolve 'sent' | 'failed' | 'logged'. */
+async function deliver({ to, subject, text, html, kind }) {
   if (!config.smtp.host) {
-    await recordNotification(restaurant.id, applicationId, 'logged', 'SMTP não configurado');
-    console.log(`[EMAIL → ${restaurant.email}] ${subject}\n${text}`);
-    return;
+    console.log(`[EMAIL] ${kind}: SMTP não configurado, email não enviado.`);
+    return 'logged';
   }
-
   try {
-    await smtpSend({ to: restaurant.email, subject, text, html });
-    await recordNotification(restaurant.id, applicationId, 'sent', '');
-    console.log(`[EMAIL] enviado para ${restaurant.email} (candidatura #${applicationId})`);
+    await smtpSend({ to, subject, text, html });
+    console.log(`[EMAIL] ${kind}: enviado.`);
+    return 'sent';
   } catch (err) {
-    await recordNotification(restaurant.id, applicationId, 'failed', err.message);
-    console.error(`[EMAIL] falha para ${restaurant.email}: ${err.message}`);
+    console.error(`[EMAIL] ${kind}: falha — ${err.message}`);
+    return 'failed';
   }
 }
 
-module.exports = { notifyNewApplication };
+/* Notificação de nova candidatura ao restaurante (§21).
+ *
+ * Minimização: o email NÃO leva o CV, nem o nome, email ou telefone do
+ * candidato, nem as observações — só o aviso, o puesto (dado do próprio
+ * restaurante) e um link para o painel, onde o acesso é autenticado. Um email
+ * sai do controlo da plataforma e fica em caixas de correio indefinidamente. */
+async function notifyNewApplication({ restaurant, applicationId, jobTitle }) {
+  const subject = 'Nueva candidatura recibida en Fíchame';
+  const position = jobTitle || 'Sin puesto especificado';
+  const link = `${config.appUrl}/panel/candidaturas/${applicationId}`;
+
+  const text = [
+    'Has recibido una nueva candidatura en Fíchame.',
+    '',
+    `Puesto: ${position}`,
+    '',
+    `Ver en tu panel (requiere iniciar sesión): ${link}`
+  ].join('\n');
+
+  const html = [
+    '<p><strong>Has recibido una nueva candidatura en Fíchame.</strong></p>',
+    `<p>Puesto: <strong>${escapeHtml(position)}</strong></p>`,
+    `<p><a href="${escapeHtml(link)}">Ver en tu panel</a> (requiere iniciar sesión)</p>`
+  ].join('\n');
+
+  const status = await deliver({ to: restaurant.email, subject, text, html, kind: 'nova candidatura' });
+  await recordNotification(restaurant.id, applicationId, status, status === 'logged' ? 'SMTP não configurado' : '');
+}
+
+/* Pedido de exercício de direitos recebido. Sem o nome nem o email do
+ * titular: o restaurante vê o pedido no painel. */
+async function notifyRightsRequest({ restaurant, dueAt }) {
+  const to = restaurant.privacy_email || restaurant.email;
+  const due = new Date(dueAt).toISOString().slice(0, 10);
+  const link = `${config.appUrl}/panel/derechos`;
+  const subject = 'Solicitud de ejercicio de derechos de protección de datos';
+  const text = [
+    'Has recibido una solicitud de ejercicio de derechos (RGPD) a través de Fíchame.',
+    `Plazo legal de respuesta: hasta el ${due} (1 mes, art. 12.3 RGPD).`,
+    '',
+    `Gestiónala en tu panel: ${link}`
+  ].join('\n');
+  const html = [
+    '<p><strong>Has recibido una solicitud de ejercicio de derechos (RGPD) a través de Fíchame.</strong></p>',
+    `<p>Plazo legal de respuesta: hasta el <strong>${escapeHtml(due)}</strong> (1 mes, art. 12.3 RGPD).</p>`,
+    `<p><a href="${escapeHtml(link)}">Gestionar en tu panel</a></p>`
+  ].join('\n');
+  const status = await deliver({ to, subject, text, html, kind: 'pedido de direitos' });
+  await recordNotification(restaurant.id, null, status, '', 'solicitud_derechos');
+}
+
+/* Recuperação de senha. O link leva o token no FRAGMENTO (#), que o browser
+ * não envia ao servidor: não aparece em logs de acesso, proxies nem Referer. */
+async function sendPasswordReset({ to, token }) {
+  const link = `${config.appUrl}/recuperar/nueva#t=${token}`;
+  const subject = 'Restablecer tu contraseña de Fíchame';
+  const text = [
+    'Hemos recibido una solicitud para restablecer la contraseña de tu cuenta de Fíchame.',
+    'El enlace caduca en 30 minutos y solo se puede usar una vez:',
+    '',
+    link,
+    '',
+    'Si no lo has pedido tú, ignora este mensaje: tu contraseña no cambia.'
+  ].join('\n');
+  const html = [
+    '<p>Hemos recibido una solicitud para restablecer la contraseña de tu cuenta de Fíchame.</p>',
+    '<p>El enlace caduca en 30 minutos y solo se puede usar una vez:</p>',
+    `<p><a href="${escapeHtml(link)}">Restablecer contraseña</a></p>`,
+    '<p>Si no lo has pedido tú, ignora este mensaje: tu contraseña no cambia.</p>'
+  ].join('\n');
+  return deliver({ to, subject, text, html, kind: 'recuperação de senha' });
+}
+
+module.exports = { notifyNewApplication, notifyRightsRequest, sendPasswordReset };

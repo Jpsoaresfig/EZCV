@@ -107,29 +107,6 @@
         <% if (errors && errors.telefono) { %><div class="field-error"><%= errors.telefono %></div><% } %>
       </div>
 
-      <div class="hint-row">
-        <div class="field">
-          <label for="doc_tipo">Tipo de documento</label>
-          <select id="doc_tipo" name="doc_tipo">
-            <option value="">Selecciona…</option>
-            <% Object.keys(DOC_TYPES).forEach(function(key) { %>
-              <option value="<%= key %>" <%= form.doc_tipo === key ? 'selected' : '' %>><%= DOC_TYPES[key] %></option>
-            <% }) %>
-          </select>
-          <% if (errors && errors.doc_tipo) { %><div class="field-error"><%= errors.doc_tipo %></div><% } %>
-        </div>
-        <div class="field">
-          <label for="doc_numero">Nº de documento</label>
-          <input id="doc_numero" type="text" name="doc_numero" maxlength="30" value="<%= form.doc_numero || '' %>" autocomplete="off">
-          <% if (errors && errors.doc_numero) { %><div class="field-error"><%= errors.doc_numero %></div><% } %>
-        </div>
-      </div>
-      <p class="help help-lift">
-        Opcional. NIE, DNI, pasaporte u otro documento. No hace falta para
-        presentar tu candidatura — el establecimiento te lo pedirá solo si
-        avanzas en el proceso.
-      </p>
-
       <div class="section-title">El puesto</div>
 
       <div class="field">
@@ -160,12 +137,17 @@
 
       <div class="field">
         <label for="experiencia">Experiencia</label>
-        <textarea id="experiencia" name="experiencia" maxlength="3000" placeholder="Ej.: 2 años de atención al cliente en…"><%= form.experiencia || '' %></textarea>
+        <textarea id="experiencia" name="experiencia" maxlength="2000" placeholder="Ej.: 2 años de atención al cliente en…"><%= form.experiencia || '' %></textarea>
       </div>
 
       <div class="field">
-        <label for="observaciones">Observaciones</label>
-        <textarea id="observaciones" name="observaciones" maxlength="3000" placeholder="Cualquier dato que quieras contarnos"><%= form.observaciones || '' %></textarea>
+        <label for="observaciones">Observaciones <span class="dim label-hint">(opcional)</span></label>
+        <textarea id="observaciones" name="observaciones" maxlength="1000" placeholder="Ej.: puedo incorporarme en dos semanas."><%= form.observaciones || '' %></textarea>
+      </div>
+
+      <div class="notice-box">
+        <strong>Comparte solo lo necesario para el puesto.</strong>
+        <p>No hace falta —ni en el formulario ni en el CV— tu DNI/NIE, fecha de nacimiento, nacionalidad, estado civil, fotografía, ni datos sobre salud, discapacidad, religión, ideas políticas, afiliación sindical, origen étnico u orientación sexual. Si tu CV los incluye, puedes quitarlos antes de enviarlo.</p>
       </div>
 
       <div class="section-title">Tu currículum</div>
@@ -189,25 +171,11 @@
 
       <div class="section-title">Protección de datos</div>
 
-      <p class="help help-lift">
-        Tus datos serán tratados por <%= restaurant.name %> exclusivamente para
-        gestionar este proceso de selección. No se cederán a terceros ni se usarán
-        para otras finalidades. Puedes ejercer tus derechos de acceso,
-        rectificación y supresión contactando con el establecimiento.
-        <a href="/privacidad" target="_blank" rel="noopener">Más información</a>.
-      </p>
-
-      <label class="check">
-        <input type="checkbox" name="consentimiento_proceso" value="1" <%= form.consent_proceso ? 'checked' : '' %>>
-        <span><%= consentSelectionText %> *</span>
-      </label>
-      <% if (errors && errors.consentimiento_proceso) { %>
-        <div class="field-error consent-error"><%= errors.consentimiento_proceso %></div>
-      <% } %>
+      <%- include('privacy_layer', { purpose: 'gestionar tu candidatura en este proceso de selección', basis: 'La aplicación, a petición tuya, de medidas precontractuales: tú nos envías la candidatura para optar a un empleo (art. 6.1.b RGPD). No necesitas dar ningún consentimiento para candidatarte.', keep: 'Mientras el proceso siga abierto y, como máximo, ' + retention.inactive + ' sin actividad. Cuando el proceso termine, se borran en ' + retention.closed + ', salvo que marques la casilla de abajo.' }) %>
 
       <label class="check">
         <input type="checkbox" name="consentimiento_futuro" value="1" <%= form.consent_futuro ? 'checked' : '' %>>
-        <span><%= consentFutureText %></span>
+        <span><strong>Opcional.</strong> <%= consentFutureText %></span>
       </label>
 
       <button class="btn block lg spaced" type="submit">Enviar candidatura</button>
@@ -252,19 +220,15 @@
       </div>
       <div class="field">
         <label for="experiencia">¿En qué te gustaría trabajar?</label>
-        <textarea id="experiencia" name="experiencia" maxlength="1000" rows="3" placeholder="Ej.: camarero/a o dependiente/a, 2 años de experiencia, disponible por las tardes."><%= form.experiencia || '' %></textarea>
-        <div class="help">Opcional. Una frase basta para que sepan en qué puestos pensar en ti.</div>
+        <textarea id="experiencia" name="experiencia" maxlength="500" rows="3" placeholder="Ej.: camarero/a o dependiente/a, 2 años de experiencia, disponible por las tardes."><%= form.experiencia || '' %></textarea>
+        <div class="help">Opcional. Una frase basta. No incluyas datos personales que no sean necesarios.</div>
       </div>
 
-      <p class="help">
-        Usaremos tus datos solo para contactarte sobre futuras vacantes en
-        <%= restaurant.name %>.
-        <a href="/privacidad" target="_blank" rel="noopener">Más información</a>.
-      </p>
+      <%- include('privacy_layer', { purpose: 'avisarte si surge una vacante en este establecimiento', basis: 'Tu consentimiento (art. 6.1.a RGPD), que das marcando la casilla. Puedes retirarlo cuando quieras.', keep: 'Durante ' + retention.reserve + ' desde hoy, o hasta que retires el consentimiento.' }) %>
 
       <label class="check">
         <input type="checkbox" name="consentimiento_futuro" value="1" <%= form.consent_futuro ? 'checked' : '' %>>
-        <span><%= consentFutureText %> *</span>
+        <span><%= consentInterestText %> *</span>
       </label>
 
       <button class="btn block lg" type="submit">Guardar mi candidatura</button>

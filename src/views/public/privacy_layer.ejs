@@ -1,0 +1,29 @@
+<%
+/* 1.ª camada de informação (art. 13 RGPD; art. 11 LOPDGDD), antes do envio.
+ * A 2.ª camada, completa, está em /r/:slug/privacidad.
+ * Parâmetros: purpose, basis, keep. Usa `restaurant` da página. */
+%>
+<div class="privacy-layer">
+  <dl>
+    <dt>Responsable</dt>
+    <dd><%= restaurant.controller %><% if (restaurant.contact) { %> · <%= restaurant.contact %><% } %></dd>
+
+    <dt>Finalidad</dt>
+    <dd>Solo para <%= purpose %>. No se usan para publicidad ni se envían a otros establecimientos.</dd>
+
+    <dt>Base jurídica</dt>
+    <dd><%= basis %></dd>
+
+    <dt>Destinatarios</dt>
+    <dd>No se ceden a terceros. Fíchame trata los datos solo por cuenta del establecimiento (encargado del tratamiento), con proveedores técnicos de alojamiento y base de datos; puede haber transferencias internacionales con garantías (ver información completa).</dd>
+
+    <dt>Conservación</dt>
+    <dd><%= keep %></dd>
+
+    <dt>Derechos</dt>
+    <dd>Acceso, rectificación, supresión, oposición, limitación y portabilidad, y reclamar ante la AEPD.</dd>
+  </dl>
+  <p class="help flat">
+    <a href="/r/<%= restaurant.slug %>/privacidad" target="_blank" rel="noopener">Información completa y ejercicio de derechos</a>
+  </p>
+</div>
