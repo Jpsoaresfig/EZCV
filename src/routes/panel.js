@@ -15,6 +15,7 @@ const { destroyUserSessions } = require('../middleware/session');
 const { findProtectedTerms } = require('../lib/sensitive');
 const { passwordProblem } = require('./auth');
 const storage = require('../lib/storage');
+const { QR_OPTIONS } = require('../lib/qr');
 const {
   STATUSES, STATUS_KEYS, AVAILABILITIES, ESTABLISHMENT_TYPES,
   CONTRACT_TYPES, WORK_SCHEDULES, statusLabel
@@ -666,7 +667,6 @@ router.get('/panel/restaurante', async (req, res) => {
  * Margem 4 = zona de silêncio mínima do padrão; nível M aguenta
  * pequenos riscos no papel sem tornar o código demasiado denso.
  * ================================================================== */
-const QR_OPTIONS = { errorCorrectionLevel: 'M', margin: 4 };
 
 async function ownRestaurantUrl(req) {
   const restaurant = await one(

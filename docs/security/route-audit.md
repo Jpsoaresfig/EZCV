@@ -39,6 +39,7 @@ Comuns a todas as respostas: CSP estrita, `nosniff`, `X-Frame-Options: DENY`, `R
 | `GET/POST /panel/privacidad…` | O | — | tenant | — | ✓ | `retencion_configurada` | Prazos dentro de limites (CHECK na BD) |
 | `GET/POST /panel/derechos…` | O | Pedidos | tenant | — | ✓ | `derechos_actualizada` | — |
 | `GET /admin`, `/admin/usuarios`, `/admin/logs` | A | Metadados de negócios e utilizadores; logs | papel admin | — | — | `admin_lista_usuarios` | **Sem rotas de candidatos/CV**; admin → `/panel/*` = 403 (testado) |
+| `GET /admin/divulgacion`, `/admin/divulgacion/qr.png`, `/qr.svg` | A | — | papel admin | — | — | — | QR fixo para `APP_URL/conoce`; não aceita URL do pedido (sem gerador aberto). Anónimo/owner → 404 (testado) |
 | `POST /admin/restaurantes/:id/toggle`, `/admin/usuarios/:id/bloquear` | A | — | `id` numérico | — | ✓ | `restaurante_toggle`, `usuario_bloqueo` | Bloquear termina sessões |
 
 ## Notas transversais

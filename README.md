@@ -42,8 +42,15 @@ A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o don
 - Apresenta o produto aos donos de negócios: como funciona, funcionalidades, privacidade e FAQ.
 - As maquetas do formulário e do painel são HTML/CSS (sem imagens), por isso seguem o modo escuro.
 
+**Página de apresentação** — `/conoce`
+- Destino do QR impresso nos cartões entregues aos estabelecimentos: explica do zero o que é o Fíchame, como funciona, que não é preciso RH e que é gratuito durante a prova de mercado.
+- Espanhol por omissão, inglês com `?lang=en` (ou se o browser estiver em inglês). Texto em `src/lib/conoce.js` — só descreve o que o produto faz hoje.
+- **Vídeo:** colocar a gravação da aplicação em `public/video/fichame-demo.mp4` (opcional `fichame-demo-en.mp4`). Sem ficheiro, a página mostra «Vídeo en preparación». Nada é descarregado até carregar no play.
+- `CONTACT_EMAIL` (opcional) mostra um botão «Escríbenos» na secção de opinião.
+
 **Admin da plataforma** — `/admin`
 - Métricas globais, ativação de estabelecimentos, bloqueio de utilizadores e logs de segurança.
+- **Divulgación** (`/admin/divulgacion`): o QR único que leva a `/conoce`, para descarregar (PNG/SVG), imprimir ou copiar o link. Só o admin o vê.
 - **Sem acesso a dados de candidatos**, por desenho (testado: admin → rotas de candidatos = 403).
 
 ---

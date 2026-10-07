@@ -32,6 +32,10 @@ const config = {
   port,
   appUrl: (process.env.APP_URL || `http://localhost:${port}`).replace(/\/+$/, ''),
 
+  /* Email de contacto mostrado na página de apresentação (/conoce), para
+   * receber opiniões durante a prova de mercado. Opcional. */
+  contactEmail: (process.env.CONTACT_EMAIL || '').trim(),
+
   supabase: {
     url: (process.env.SUPABASE_URL || '').replace(/\/+$/, ''),
     anonKey: process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY || '',

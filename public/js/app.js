@@ -78,3 +78,18 @@ document.addEventListener('click', function (e) {
     if (opened && document.visibilityState === 'visible') window.location.reload();
   });
 })();
+
+/* Vídeo da página de apresentação (/conoce): a capa é um botão por cima do
+   <video preload="none">. Nada é descarregado até a pessoa carregar no play
+   — importante para quem abre a página com dados móveis. */
+document.addEventListener('click', function (e) {
+  var cover = e.target.closest('[data-video-play]');
+  if (!cover) return;
+  var box = cover.closest('[data-video]');
+  var video = box && box.querySelector('video');
+  if (!video) return;
+  box.classList.add('is-playing');
+  var p = video.play();
+  if (p && p.catch) p.catch(function () { /* o utilizador usa os controlos */ });
+  video.focus();
+});

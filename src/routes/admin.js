@@ -1,7 +1,10 @@
 'use strict';
 
 const express = require('express');
+const QRCode = require('qrcode');
 
+const config = require('../config');
+const { QR_OPTIONS } = require('../lib/qr');
 const { sb, one, many, rpc, logSecurity } = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const { verifyCsrf } = require('../middleware/csrf');
@@ -151,6 +154,43 @@ router.post('/admin/usuarios/:id/bloquear', async (req, res) => {
 
   res.redirect('/admin/usuarios?ok=' +
     encodeURIComponent(`${result.email}: ${result.blocked ? 'bloqueado' : 'desbloqueado'}`));
+});
+
+/* Divulgação: o QR único dos cartões que o admin entrega aos negócios.
+ *
+ * Aponta para a página pública /conoce, que é estável — o conteúdo pode
+ * mudar sem invalidar os cartões já impressos. O QR em si deixa de ser
+ * secreto quando é impresso; o que fica protegido (requireAdmin, acima, em
+ * todo o /admin) é a ferramenta de ver, descarregar e imprimir. Não há
+ * nenhuma rota pública que gere QR a partir de um URL arbitrário: o
+ * conteúdo é sempre o mesmo, montado aqui a partir de APP_URL. */
+function promoUrl() {
+  return `${config.appUrl}/conoce`;
+}
+
+router.get('/admin/divulgacion', async (req, res) => {
+  const url = promoUrl();
+  const qrSvg = await QRCode.toString(url, { ...QR_OPTIONS, type: 'svg' });
+  /* Em localhost os cartões levariam um URL que não abre no telemóvel de
+   * ninguém: avisar antes de imprimir. */
+  const localUrl = /^https?:\/\/(localhost|127\.|0\.0\.0\.0|\[::1\])/i.test(url) || !url.startsWith('https://');
+  res.render('admin/promo', { url, qrSvg, localUrl });
+});
+
+router.get('/admin/divulgacion/qr.png', async (req, res) => {
+  /* 2048 px: nítido num cartão ou num cartaz A5 a 300 dpi. */
+  const png = await QRCode.toBuffer(promoUrl(), { ...QR_OPTIONS, type: 'png', width: 2048 });
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Content-Disposition', 'attachment; filename="fichame-qr-conoce.png"');
+  res.send(png);
+});
+
+router.get('/admin/divulgacion/qr.svg', async (req, res) => {
+  /* Vetorial, para gráficas: escala sem perder qualidade. */
+  const svg = await QRCode.toString(promoUrl(), { ...QR_OPTIONS, type: 'svg' });
+  res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="fichame-qr-conoce.svg"');
+  res.send(svg);
 });
 
 module.exports = router;

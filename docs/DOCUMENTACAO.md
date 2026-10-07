@@ -63,6 +63,7 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 - Tabela de estabelecimentos com toggle ativar/desativar.
 - Lista de usuários com bloqueio/desbloqueio (bloqueio remove as sessões ativas).
 - **`/admin/logs`**: logs de segurança (`security_logs`) com filtro por evento, IP, data.
+- **`/admin/divulgacion`**: QR único da página de apresentação `/conoce`, para os cartões entregues aos negócios — ver, copiar o link, descarregar (PNG 2048 px ou SVG) e imprimir. Avisa se `APP_URL` não for um endereço público HTTPS.
 - Donos de restaurante recebem **404** em `/admin`.
 
 ---
@@ -77,6 +78,7 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 | POST | `/r/:slug/apply` | Envio de candidatura + CV (multipart, rate limit 5/h por IP+slug) |
 | POST | `/r/:slug/interes` | Guardar dados para futuras oportunidades (rate limit 5/h) |
 | GET | `/r/:slug/enviado` | Página de confirmação (`?tipo=futuro` na variante de interesse) |
+| GET | `/conoce` | Página de apresentação para donos de negócios (destino do QR dos cartões); `?lang=en` em inglês |
 | GET | `/privacidad` | Política de privacidade, finalidades, prazos e direitos do titular |
 
 ### Autenticação
@@ -122,6 +124,7 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 | GET | `/admin` | Métricas + estabelecimentos + emails falhados |
 | GET | `/admin/usuarios` | Lista de usuários |
 | GET | `/admin/logs` | Logs de segurança (`security_logs`) com filtro por evento |
+| GET | `/admin/divulgacion` | QR da página de apresentação (`/conoce`) + `qr.png` / `qr.svg` |
 | POST | `/admin/restaurantes/:id/toggle` | Ativa/desativa restaurante |
 | POST | `/admin/usuarios/:id/bloquear` | Bloqueia/desbloqueia (não a si próprio; não afeta outros admins) |
 

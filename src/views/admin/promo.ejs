@@ -1,0 +1,54 @@
+<%- include('../partials/head', { title: 'Divulgación' }) %>
+<%- include('../partials/admin_nav') %>
+
+<main class="container">
+  <div class="page-title no-print">
+    <h1>Divulgación · Código QR</h1>
+  </div>
+
+  <% if (localUrl) { %>
+    <div class="notice-box no-print">
+      <strong>No imprimas todavía.</strong>
+      El QR apunta a <code><%= url %></code>, que no es una dirección pública con HTTPS:
+      los móviles de los negocios no podrán abrirla. Define <code>APP_URL</code> con el
+      dominio real y vuelve a esta página.
+    </div>
+  <% } %>
+
+  <div class="card no-print">
+    <h2>Página pública de presentación de Fíchame</h2>
+    <p class="help">
+      Un único QR general para los cartones que entregas a los negocios. Lleva a una
+      página que explica Fíchame desde cero (en español, con opción en inglés). La
+      dirección no cambia: si actualizas el contenido de la página, los cartones ya
+      impresos siguen funcionando.
+    </p>
+    <div class="promo-url">
+      <code><%= url %></code>
+      <button class="btn secondary small" type="button" data-copy="<%= url %>">Copiar enlace</button>
+      <a class="btn ghost small" href="/conoce" target="_blank" rel="noopener">Ver la página</a>
+    </div>
+    <div class="actions-row">
+      <a class="btn" href="/admin/divulgacion/qr.png" download>Descargar QR (PNG)</a>
+      <a class="btn secondary" href="/admin/divulgacion/qr.svg" download>Descargar QR (SVG, para imprenta)</a>
+      <button class="btn secondary" type="button" data-print>Imprimir</button>
+    </div>
+    <p class="help">
+      Solo los administradores ven esta herramienta. Los negocios tienen su propio QR
+      (el de su página de candidaturas) en su panel; este es distinto.
+    </p>
+  </div>
+
+  <!-- Só esta folha sai na impressão (ver @media print no CSS). -->
+  <section class="qr-sheet">
+    <img class="qr-brand" src="/img/logo.svg?v=<%= assetV %>" alt="" width="44" height="44">
+    <h2 class="qr-title">¿Necesitas contratar personal?</h2>
+    <p class="qr-lead">Organiza tus contrataciones en un solo lugar</p>
+    <!-- SVG gerado no servidor a partir de APP_URL + /conoce. -->
+    <div class="qr-code"><%- qrSvg %></div>
+    <p class="qr-cta">Escanea el código y descubre Fíchame.<br>Gratis durante la prueba de mercado.</p>
+    <p class="qr-url"><%= url %></p>
+  </section>
+</main>
+
+<%- include('../partials/foot') %>

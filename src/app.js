@@ -131,7 +131,7 @@ function createApp() {
     next();
   });
 
-  /* Indexação: só a landing e as páginas legais e públicas de cada negócio
+  /* Indexação: só a landing, a apresentação (/conoce) e as páginas legais e públicas de cada negócio
    * podem aparecer em buscadores. Painel, admin, autenticação, confirmações e
    * formulários de direitos ficam fora (X-Robots-Tag + robots.txt). Nenhuma
    * página contém dados de candidatos sem sessão. */
@@ -168,7 +168,7 @@ function createApp() {
    * público (imagens do negócio) substituem este cabeçalho. */
   app.use((req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
-    const indexable = req.path === '/' || /^\/(privacidad|cookies|terminos|aviso-legal|encargo)$/.test(req.path) ||
+    const indexable = req.path === '/' || req.path === '/conoce' || /^\/(privacidad|cookies|terminos|aviso-legal|encargo)$/.test(req.path) ||
       /^\/r\/[a-z0-9-]+\/?$/.test(req.path);
     if (!indexable) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
     next();
@@ -215,6 +215,7 @@ function createApp() {
   app.locals.assetV = assetVersion();
 
   app.use('/', require('./routes/legal'));
+  app.use('/', require('./routes/presentation'));
   app.use('/', require('./routes/public'));
   app.use('/', require('./routes/auth'));
   app.use('/', require('./routes/panel'));

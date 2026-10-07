@@ -1,0 +1,305 @@
+<%- include('../partials/head', { title: t.title, description: t.description, lang: t.htmlLang }) %>
+
+<!-- Página de apresentação (/conoce) — destino do QR dos cartões entregues aos
+     estabelecimentos. Mobile-first: quem chega aqui acabou de escanear o
+     cartão com o telemóvel e não conhece o produto. O texto vem de
+     src/lib/conoce.js (es/en); esta vista só monta as secções. -->
+
+<header class="lp-top">
+  <div class="lp-wrap lp-top-row cn-top-row">
+    <a class="brand" href="/conoce<%= lang === 'en' ? '?lang=en' : '' %>">
+      <img class="brand-mark" src="/img/logo.svg?v=<%= assetV %>" alt="" width="28" height="28">
+      <span>Fíchame</span>
+    </a>
+    <div class="lp-top-actions">
+      <nav class="cn-lang" aria-label="<%= t.nav.langLabel %>">
+        <a href="/conoce?lang=es" hreflang="es" lang="es" <%- lang === 'es' ? 'aria-current="true"' : '' %>>ES</a>
+        <a href="/conoce?lang=en" hreflang="en" lang="en" <%- lang === 'en' ? 'aria-current="true"' : '' %>>EN</a>
+      </nav>
+      <a class="btn ghost small cn-hide-xs" href="/login"><%= t.nav.login %></a>
+      <a class="btn small" href="/registro"><%= t.nav.start %></a>
+    </div>
+  </div>
+</header>
+
+<main class="cn">
+
+  <!-- 1. O que é isto? -->
+  <section class="lp-hero cn-hero">
+    <div class="lp-wrap cn-hero-inner">
+      <span class="cn-badge"><span class="cn-badge-dot"></span><%= t.hero.badge %></span>
+      <h1><%= t.hero.title %> <span class="lp-hl"><%= t.hero.titleHl %></span></h1>
+      <p class="lp-lead"><%= t.hero.lead %></p>
+      <div class="lp-cta-row">
+        <a class="btn lg" href="#que-es"><%= t.hero.cta %></a>
+        <a class="btn lg secondary" href="#como-funciona"><%= t.hero.cta2 %></a>
+      </div>
+      <% if (t.hero.note) { %><p class="cn-note"><%= t.hero.note %></p><% } %>
+    </div>
+  </section>
+
+  <!-- Respostas rápidas: quem só lê isto já fica com o essencial. -->
+  <section class="cn-quick" aria-label="<%= t.quick.title %>">
+    <div class="lp-wrap">
+      <ul class="cn-quick-list">
+        <% t.quick.items.forEach(function (item) { %>
+          <li>
+            <strong><%= item.q %></strong>
+            <span><%= item.a %></span>
+          </li>
+        <% }) %>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 2. Porque é que me deve importar? -->
+  <section class="lp-section">
+    <div class="lp-wrap lp-wrap-narrow">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.problem.kicker %></span>
+        <h2><%= t.problem.title %></h2>
+      </div>
+      <ul class="cn-chores">
+        <% t.problem.items.forEach(function (item) { %>
+          <li><span class="cn-emoji" aria-hidden="true"><%= item.emoji %></span><%= item.text %></li>
+        <% }) %>
+      </ul>
+      <p class="cn-scatter"><%= t.problem.scatter %></p>
+      <div class="cn-turn">
+        <p class="cn-pain"><%= t.problem.pain %></p>
+        <p class="cn-answer"><img src="/img/logo.svg?v=<%= assetV %>" alt="" width="32" height="32"><span><%= t.problem.answer %></span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. O que é o Fíchame? -->
+  <section class="lp-section lp-section-alt" id="que-es">
+    <div class="lp-wrap lp-wrap-narrow">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.what.kicker %></span>
+        <h2><%= t.what.title %></h2>
+      </div>
+      <div class="cn-prose">
+        <p><%= t.what.p1 %></p>
+        <p><%= t.what.p2 %></p>
+      </div>
+      <p class="cn-highlight"><%- icon('check') %><span><%= t.what.highlight %></span></p>
+      <p class="cn-for"><%= t.what.for %></p>
+      <ul class="lp-biz-list">
+        <% t.what.biz.forEach(function (b) { %><li><%= b %></li><% }) %>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 4. O que consigo fazer lá dentro? -->
+  <section class="lp-section">
+    <div class="lp-wrap">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.can.kicker %></span>
+        <h2><%= t.can.title %></h2>
+      </div>
+      <div class="cn-can">
+        <% t.can.items.forEach(function (item) { %>
+          <article class="lp-feature cn-can-item">
+            <span class="lp-f-icon"><%- icon(item.icon) %></span>
+            <h3><%= item.title %></h3>
+            <p><%= item.text %></p>
+            <% if (item.chips) { %>
+              <ul class="cn-chips" aria-label="<%= item.title %>">
+                <% item.chips.forEach(function (c) { %><li><%= c %></li><% }) %>
+              </ul>
+            <% } %>
+            <% if (item.pipeline) { %>
+              <ol class="cn-pipe">
+                <% item.pipeline.forEach(function (stage, i) { %>
+                  <li class="<%= i === 0 ? 'is-first' : (i === item.pipeline.length - 1 ? 'is-last' : '') %>"><%= stage %></li>
+                <% }) %>
+              </ol>
+            <% } %>
+          </article>
+        <% }) %>
+      </div>
+
+      <div class="cn-share">
+        <span class="cn-share-icon"><%- icon('nfc') %></span>
+        <div>
+          <h3><%= t.can.share.title %></h3>
+          <p><%= t.can.share.text %></p>
+          <p class="cn-share-note"><%= t.can.share.note %></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Posso usar sem RH? -->
+  <section class="lp-section lp-section-alt">
+    <div class="lp-wrap lp-wrap-narrow">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.nohr.kicker %></span>
+        <h2><%= t.nohr.title %></h2>
+        <p><%= t.nohr.lead %></p>
+      </div>
+      <ol class="cn-flow">
+        <li class="cn-flow-start"><%= t.nohr.start %></li>
+        <% t.nohr.steps.forEach(function (s) { %><li><%= s %></li><% }) %>
+        <li class="cn-flow-end"><%- icon('check') %> <%= t.nohr.end %></li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 6. Como funciona? -->
+  <section class="lp-section" id="como-funciona">
+    <div class="lp-wrap">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.how.kicker %></span>
+        <h2><%= t.how.title %></h2>
+        <p><%= t.how.lead %></p>
+      </div>
+      <ol class="cn-steps">
+        <% t.how.steps.forEach(function (s, i) { %>
+          <li>
+            <span class="cn-step-num"><%= String(i + 1).padStart(2, '0') %></span>
+            <div>
+              <h3><%= s.title %></h3>
+              <p><%= s.text %></p>
+            </div>
+          </li>
+        <% }) %>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 7. A interface real: gravação da aplicação (public/video/). -->
+  <section class="lp-section lp-section-alt" id="video">
+    <div class="lp-wrap">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.video.kicker %></span>
+        <h2><%= t.video.title %></h2>
+        <p><%= t.video.lead %></p>
+      </div>
+
+      <div class="cn-video<%= video ? '' : ' is-soon' %>" data-video>
+        <% if (video) { %>
+          <video class="cn-video-el" src="<%= video.src %>" preload="none" playsinline controls><%= t.video.unsupported %></video>
+        <% } %>
+        <%
+          /* Miniatura em HTML (segue o modo escuro e não pesa nada). Com vídeo é
+           * um botão que o arranca; sem vídeo é o espaço reservado, claramente
+           * identificado como «em preparação». */
+          var coverTag = video ? 'button' : 'div';
+        %>
+        <<%= coverTag %> class="cn-video-cover" <%- video ? 'type="button" data-video-play aria-label="' + t.video.play + '"' : '' %>>
+          <span class="cn-thumb" aria-hidden="true">
+            <span class="cn-thumb-bar"><span></span><span></span><span></span></span>
+            <span class="cn-thumb-row"><span class="cn-thumb-av"></span><span class="cn-thumb-line"></span><span class="cn-thumb-chip"></span></span>
+            <span class="cn-thumb-row"><span class="cn-thumb-av"></span><span class="cn-thumb-line"></span><span class="cn-thumb-chip is-b"></span></span>
+            <span class="cn-thumb-row"><span class="cn-thumb-av"></span><span class="cn-thumb-line"></span><span class="cn-thumb-chip is-c"></span></span>
+          </span>
+          <span class="cn-play" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z"/></svg></span>
+          <span class="cn-video-label">
+            <% if (video) { %>
+              <strong><%= t.video.play %></strong>
+            <% } else { %>
+              <strong><%= t.video.soon %></strong>
+              <span><%= t.video.soonText %></span>
+            <% } %>
+          </span>
+        </<%= coverTag %>>
+      </div>
+
+      <ol class="cn-chapters">
+        <% t.video.chapters.forEach(function (c) { %><li><%= c %></li><% }) %>
+      </ol>
+    </div>
+  </section>
+
+  <!-- 8. Vantagens -->
+  <section class="lp-section">
+    <div class="lp-wrap">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.benefits.kicker %></span>
+        <h2><%= t.benefits.title %></h2>
+      </div>
+      <div class="lp-features cn-benefits">
+        <% t.benefits.items.forEach(function (b) { %>
+          <article class="lp-feature">
+            <span class="lp-f-icon"><%- icon(b.icon) %></span>
+            <h3><%= b.title %></h3>
+            <p><%= b.text %></p>
+          </article>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. Quanto custa? Porque é grátis? -->
+  <section class="lp-section lp-section-alt" id="precio">
+    <div class="lp-wrap cn-free">
+      <div class="cn-free-copy">
+        <span class="lp-kicker"><%= t.free.kicker %></span>
+        <h2><%= t.free.title %></h2>
+        <p><%= t.free.p1 %></p>
+        <p><strong><%= t.free.p2 %></strong></p>
+      </div>
+      <div class="cn-price">
+        <span class="cn-price-num"><%= t.free.price %></span>
+        <span class="cn-price-label"><%= t.free.priceLabel %></span>
+        <ul>
+          <% t.free.items.forEach(function (i) { %><li><%- icon('check') %> <%= i %></li><% }) %>
+        </ul>
+        <p class="cn-price-fine"><%= t.free.fine %></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10. Feedback -->
+  <section class="lp-section">
+    <div class="lp-wrap lp-wrap-narrow cn-feedback">
+      <span class="lp-final-icon cn-feedback-icon"><%- icon('chat') %></span>
+      <span class="lp-kicker"><%= t.feedback.kicker %></span>
+      <h2><%= t.feedback.title %></h2>
+      <p><%= t.feedback.text %></p>
+      <div class="lp-cta-row lp-cta-center">
+        <a class="btn lg" href="/registro"><%= t.feedback.cta %></a>
+        <% if (contactEmail) { %>
+          <a class="btn lg secondary" href="mailto:<%= contactEmail %>"><%- icon('mail') %> <%= t.feedback.mail %></a>
+        <% } %>
+      </div>
+    </div>
+  </section>
+
+  <!-- 11. Dúvidas («é difícil de usar?») -->
+  <section class="lp-section lp-section-alt">
+    <div class="lp-wrap lp-wrap-narrow">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.faq.kicker %></span>
+        <h2><%= t.faq.title %></h2>
+      </div>
+      <div class="lp-faq">
+        <% t.faq.items.forEach(function (f) { %>
+          <details>
+            <summary><%= f.q %></summary>
+            <p><%= f.a %></p>
+          </details>
+        <% }) %>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. Como experimento? -->
+  <section class="lp-final">
+    <div class="lp-wrap lp-final-inner">
+      <span class="lp-final-icon"><img src="/img/logo.svg?v=<%= assetV %>" alt="" width="36" height="36"></span>
+      <h2><%= t.final.title %></h2>
+      <p><%= t.final.lead %></p>
+      <div class="lp-cta-row lp-cta-center">
+        <a class="btn lg lp-btn-light" href="/registro"><%= t.final.cta %></a>
+        <a class="btn lg lp-btn-outline" href="/login"><%= t.final.login %></a>
+      </div>
+      <p class="cn-final-note"><%= t.final.note %></p>
+    </div>
+  </section>
+
+</main>
+
+<%- include('../partials/foot') %>

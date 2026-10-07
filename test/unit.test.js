@@ -25,6 +25,7 @@ const { passwordProblem } = require('../src/routes/auth');
 const { futureText, interestText, CONSENT_VERSION, PRIVACY_NOTICE_VERSION } = require('../src/lib/consent');
 const { hashPassword, verifyPassword, safeEqual } = require('../src/lib/crypto');
 const google = require('../src/lib/google');
+const { COPY, pickLang } = require('../src/lib/conoce');
 
 const pdf = (body) => Buffer.from(`%PDF-1.4\n${body}\n%%EOF\n`, 'latin1');
 
@@ -192,4 +193,33 @@ test('google: URL de autorização com PKCE S256, state e nonce', () => {
   assert.equal(url.searchParams.get('code_challenge_method'), 'S256');
   assert.notEqual(url.searchParams.get('code_challenge'), flow.verifier);
   assert.equal(url.searchParams.get('scope'), 'openid email profile');
+});
+
+test('/conoce: língua por ?lang=, depois pelo browser, por omissão espanhol', () => {
+  const req = (lang, al) => ({ query: lang ? { lang } : {}, headers: al ? { 'accept-language': al } : {} });
+  assert.equal(pickLang(req()), 'es');
+  assert.equal(pickLang(req('en')), 'en');
+  assert.equal(pickLang(req('EN')), 'en');
+  assert.equal(pickLang(req('fr')), 'es');
+  assert.equal(pickLang(req('', 'en-GB,en;q=0.9')), 'en');
+  assert.equal(pickLang(req('', 'pt-PT,en;q=0.5')), 'es');
+  assert.equal(pickLang(req('es', 'en-US')), 'es');
+});
+
+test('/conoce: espanhol e inglês têm exatamente a mesma estrutura', () => {
+  const shape = (v) => Array.isArray(v) ? v.map(shape)
+    : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, shape(v[k])]))
+    : typeof v;
+  assert.deepEqual(shape(COPY.en), shape(COPY.es));
+});
+
+test('/conoce: o texto não promete funcionalidades que o produto não tem', () => {
+  /* As únicas menções a automatismos são negações honestas. */
+  const all = JSON.stringify(COPY).toLowerCase()
+    .replace(/sin filtros automáticos|no automatic filters/g, '')
+    .replace(/cobrar automáticamente|charged automatically/g, '');
+  for (const word of ['inteligencia artificial', 'artificial intelligence', ' ia ', ' ai ', 'matching',
+    'automátic', 'automatic', 'videollamada', 'video call', 'agenda', 'calendar']) {
+    assert.ok(!all.includes(word), `texto menciona «${word.trim()}»`);
+  }
 });

@@ -399,6 +399,28 @@ async function main() {
       res.status === 200 && html.includes('lp-hero') && html.includes('href="/registro"'));
     check('páginas ligam o logo e os favicons',
       html.includes('/img/logo.svg') && html.includes('rel="icon"') && html.includes('apple-touch-icon'));
+    console.log('\n— Página de apresentação (/conoce) —');
+    res = await call('GET', '/conoce');
+    html = await text(res);
+    check('/conoce é pública e explica o produto',
+      res.status === 200 && html.includes('lang="es"') && html.includes('href="/registro"') && html.includes('Prueba de mercado'));
+    check('/conoce diz que é gratuito na prova de mercado', html.includes('0 €') && html.includes('Sin tarjeta de crédito'));
+    check('/conoce não renderiza nenhum QR', !html.includes('crispEdges') && !html.includes('/admin/divulgacion'));
+    check('/conoce tem espaço para o vídeo', html.includes('data-video'));
+    res = await call('GET', '/conoce', { jar: ownerJar });
+    check('/conoce com sessão de dono não redireciona', res.status === 200);
+    res = await call('GET', '/conoce?lang=en');
+    html = await text(res);
+    check('/conoce?lang=en em inglês', res.status === 200 && html.includes('lang="en"') && html.includes('No HR team? No problem.'));
+    res = await call('GET', '/conoce', { headers: { 'Accept-Language': 'en-GB,en;q=0.9' } });
+    check('/conoce segue a língua do browser', (await text(res)).includes('lang="en"'));
+    for (const u of ['/admin/divulgacion', '/admin/divulgacion/qr.png', '/admin/divulgacion/qr.svg']) {
+      res = await call('GET', u);
+      check(`anónimo → ${u} → 404`, res.status === 404, `status=${res.status}`);
+      res = await call('GET', u, { jar: ownerJar });
+      check(`dono → ${u} → 404`, res.status === 404, `status=${res.status}`);
+    }
+
     for (const asset of ['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/img/logo.svg']) {
       res = await call('GET', asset);
       check(`${asset} é servido`, res.status === 200);
@@ -1148,6 +1170,17 @@ async function main() {
     check('acesso admin a dados pessoais fica registado', html.includes('admin_lista_usuarios'));
     res = await call('GET', '/admin', { jar: ownerJar });
     check('owner sem acesso a /admin → 404', res.status === 404);
+    res = await call('GET', '/admin/divulgacion', { jar: adminJar });
+    html = await text(res);
+    check('admin vê o QR de divulgação para /conoce',
+      res.status === 200 && html.includes('<svg') && html.includes('/conoce') && html.includes('Copiar enlace'));
+    res = await call('GET', '/admin/divulgacion/qr.png', { jar: adminJar });
+    check('admin descarrega o QR em PNG',
+      res.status === 200 && res.headers.get('content-type') === 'image/png' &&
+      (res.headers.get('content-disposition') || '').startsWith('attachment'));
+    res = await call('GET', '/admin/divulgacion/qr.svg', { jar: adminJar });
+    check('admin descarrega o QR em SVG',
+      res.status === 200 && (res.headers.get('content-type') || '').startsWith('image/svg+xml') && (await text(res)).includes('<svg'));
 
     console.log('\n— Admin sem acesso a dados de candidatos —');
     for (const u of [`/panel/candidaturas/${appId}`, `/panel/cv/${cvId}`, '/panel/candidaturas', `/panel/candidaturas/${appId}/exportar`, '/panel/derechos']) {
