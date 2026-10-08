@@ -1738,6 +1738,12 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
   box-shadow: var(--sh-2);
 }
 .qr-title { margin: 0 0 4px; font-size: 1.6rem; color: #1c1917; }
+/* Selo «100 % GRATIS»: cores fixas, como o resto do cartão, para sair igual impresso. */
+.qr-free {
+  display: inline-block; margin: 6px 0 10px; padding: 4px 14px; border-radius: 999px;
+  background: #c9402a; color: #fff; font-weight: 800; letter-spacing: .04em; font-size: 1.05rem;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
 .qr-lead { margin: 0 0 8px; color: #c9402a; font-weight: 700; }
 .qr-desc { margin: 0 auto 18px; max-width: 36ch; color: #44403c; line-height: 1.45; }
 .qr-code { width: min(300px, 100%); margin: 0 auto; }
@@ -1766,6 +1772,7 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
   }
   .qr-title { font-size: 26pt; }
   .qr-lead { font-size: 15pt; }
+  .qr-free { font-size: 16pt; }
   .qr-desc { font-size: 11.5pt; max-width: 120mm; }
   .qr-code { width: 95mm; }
   .qr-cta { font-size: 13pt; }

@@ -25,18 +25,18 @@ function pickLang(req) {
 
 const es = {
   htmlLang: 'es',
-  title: 'Contratar personal puede ser más sencillo',
-  description: 'Fíchame te ayuda a organizar tus contrataciones y seguir a tus candidatos en un solo lugar, aunque no tengas departamento de RR. HH. Gratis durante la prueba de mercado.',
-  nav: { login: 'Entrar', start: 'Probar gratis', langLabel: 'Idioma' },
+  title: 'Contrata a la persona adecuada sin perder candidatos — gratis',
+  description: 'Gratis durante la prueba de mercado: recibe a tus candidatos, ve su CV y organiza tus contrataciones en un solo lugar, sin departamento de RR. HH.',
+  nav: { login: 'Entrar', start: 'Empezar gratis', langLabel: 'Idioma' },
 
   hero: {
-    badge: 'Prueba de mercado · Gratis',
-    title: 'Contratar personal puede ser',
-    titleHl: 'más sencillo.',
-    lead: 'Fíchame es una web para organizar tus contrataciones: recibes a los candidatos, ves sus datos y su CV, y sigues a cada uno hasta elegir a la persona adecuada. Sin necesidad de un departamento de Recursos Humanos.',
-    cta: 'Conocer Fíchame',
+    badge: 'Prueba de mercado · 100 % gratis',
+    title: 'Encuentra a tu próximo empleado',
+    titleHl: 'sin perder tiempo ni candidatos.',
+    lead: 'Cuando te falta alguien en el negocio, cada día cuenta. Fíchame reúne en un solo lugar a todos los que quieren trabajar contigo: ves sus datos y su CV, los organizas y eliges a la persona adecuada. Sin departamento de Recursos Humanos y sin pagar nada.',
+    cta: 'Empezar gratis',
     cta2: 'Ver cómo funciona',
-    note: ''
+    note: 'Gratis durante la prueba de mercado · Sin tarjeta · Sin permanencia'
   },
 
   quick: {
@@ -45,13 +45,13 @@ const es = {
       { q: '¿Qué es?', a: 'Una web para organizar a tus candidatos y tus contrataciones.' },
       { q: '¿Necesito RR. HH.?', a: 'No. Lo puedes llevar tú mismo, desde el móvil.' },
       { q: '¿Hay que instalar algo?', a: 'No. Funciona en el navegador.' },
-      { q: '¿Cuánto cuesta?', a: '0 €. Es gratis durante la prueba de mercado.' }
+      { q: '¿Cuánto cuesta?', a: 'Nada: 0 € durante la prueba de mercado, sin tarjeta y sin permanencia.' }
     ]
   },
 
   problem: {
     kicker: 'El problema',
-    title: '¿De verdad tienes que hacerlo todo tú solo?',
+    title: '¿Cuántos buenos candidatos se te han escapado ya?',
     items: [
       { emoji: '📄', text: 'Recibir currículums' },
       { emoji: '📱', text: 'Contestar mensajes' },
@@ -61,8 +61,8 @@ const es = {
       { emoji: '⏳', text: 'Recordar en qué punto está cada uno' }
     ],
     scatter: 'Y todo repartido entre papeles, WhatsApp, emails, hojas de cálculo… y tu memoria.',
-    pain: 'Cuando no tienes un equipo de Recursos Humanos, la contratación acaba en tus manos.',
-    answer: 'Fíchame organiza ese proceso por ti, en un solo lugar.'
+    pain: 'Mientras buscas aquel CV entre mensajes, el buen candidato acepta otro trabajo. Y el turno que falta lo cubres tú.',
+    answer: 'Fíchame pone orden en todo eso, en un solo lugar. Y es gratis.'
   },
 
   what: {
@@ -162,22 +162,22 @@ const es = {
 
   benefits: {
     kicker: 'Ventajas',
-    title: '¿Por qué usar Fíchame?',
+    title: '¿Por qué lo necesita tu negocio?',
     items: [
-      { icon: 'home', title: 'Todo en un solo lugar', text: 'La información de tus candidatos, ordenada en una única plataforma.' },
+      { icon: 'home', title: 'Ningún candidato se pierde', text: 'Todos los que se apuntan llegan a tu panel con sus datos y su CV. Nada se queda olvidado en un chat.' },
       { icon: 'file', title: 'Menos papel', text: 'Menos currículums impresos y documentos que se pierden.' },
-      { icon: 'chart', title: 'Más orden', text: 'Sabes quién es cada candidato y en qué etapa está.' },
-      { icon: 'phone', title: 'Más práctico', text: 'Sin saltar entre varias herramientas para seguir una contratación.' },
+      { icon: 'chart', title: 'Decides antes', text: 'Ves de un vistazo quién es cada candidato y en qué etapa está, para llamar a tiempo a los mejores.' },
+      { icon: 'phone', title: 'Desde el móvil', text: 'Lo llevas entre cliente y cliente, sin saltar entre papeles, WhatsApp y hojas de cálculo.' },
       { icon: 'star', title: 'Tú tienes el control', text: 'El dueño o el encargado sigue el proceso directamente.' },
-      { icon: 'store', title: 'Sin equipo de RR. HH.', text: 'Una forma sencilla de organizar la contratación sin crear un departamento.' }
+      { icon: 'store', title: 'Sin equipo de RR. HH.', text: 'Un proceso de selección ordenado sin contratar a nadie para gestionarlo.' }
     ]
   },
 
   free: {
     kicker: 'Precio',
-    title: 'Fíchame está en fase de prueba de mercado.',
-    p1: 'Ahora mismo estamos probando Fíchame con negocios reales para entender cómo puede ayudar en el día a día.',
-    p2: 'Por eso, durante esta fase, puedes usar la plataforma gratis.',
+    title: 'Gratis. Sin letra pequeña.',
+    p1: 'Fíchame está en fase de prueba de mercado: lo estamos probando con negocios reales para que sea de verdad útil en el día a día.',
+    p2: 'Por eso, durante esta fase, lo usas gratis. Tu negocio gana orden y no arriesgas nada.',
     price: '0 €',
     priceLabel: 'Gratis durante la prueba de mercado',
     items: ['Sin cuota mensual', 'Sin tarjeta de crédito', 'Sin compromiso de permanencia'],
@@ -205,28 +205,28 @@ const es = {
   },
 
   final: {
-    title: '¿Quieres probarlo?',
-    lead: 'Conoce Fíchame y comprueba lo sencillo que puede ser organizar tus contrataciones.',
-    cta: 'Probar gratis',
+    title: 'Tu próxima contratación puede empezar hoy.',
+    lead: 'Crea tu cuenta gratis, prepara tu primera vacante en pocos minutos y comparte tu enlace para empezar a recibir candidatos.',
+    cta: 'Empezar gratis',
     login: 'Ya tengo cuenta',
-    note: 'Gratis durante la fase de prueba de mercado.'
+    note: 'Gratis durante la prueba de mercado. Sin tarjeta de crédito.'
   }
 };
 
 const en = {
   htmlLang: 'en',
-  title: 'Hiring staff can be simpler',
-  description: 'Fíchame helps you organise your hiring and keep track of candidates in one place, even without an HR department. Free during the market test.',
-  nav: { login: 'Log in', start: 'Try it free', langLabel: 'Language' },
+  title: 'Hire the right person without losing candidates — free',
+  description: 'Free during the market test: receive your candidates, see their CV and organise your hiring in one place, without an HR department.',
+  nav: { login: 'Log in', start: 'Start free', langLabel: 'Language' },
 
   hero: {
-    badge: 'Market test · Free',
-    title: 'Hiring staff can be',
-    titleHl: 'simpler.',
-    lead: 'Fíchame is a web app to organise your hiring: you receive candidates, see their details and CV, and follow each one until you find the right person. No HR department needed.',
-    cta: 'Discover Fíchame',
+    badge: 'Market test · 100% free',
+    title: 'Find your next employee',
+    titleHl: 'without losing time or candidates.',
+    lead: 'When you’re short-staffed, every day counts. Fíchame gathers everyone who wants to work with you in one place: you see their details and CV, organise them and pick the right person. No HR department, and nothing to pay.',
+    cta: 'Start free',
     cta2: 'See how it works',
-    note: 'The app is currently in Spanish.'
+    note: 'Free during the market test · No card · No commitment · The app is currently in Spanish.'
   },
 
   quick: {
@@ -235,13 +235,13 @@ const en = {
       { q: 'What is it?', a: 'A web app to organise your candidates and your hiring.' },
       { q: 'Do I need HR?', a: 'No. You can run it yourself, from your phone.' },
       { q: 'Do I need to install anything?', a: 'No. It works in the browser.' },
-      { q: 'How much does it cost?', a: '€0. It is free during the market test.' }
+      { q: 'How much does it cost?', a: 'Nothing: €0 during the market test, no card and no commitment.' }
     ]
   },
 
   problem: {
     kicker: 'The problem',
-    title: 'Do you really have to do all of this on your own?',
+    title: 'How many good candidates have you already lost?',
     items: [
       { emoji: '📄', text: 'Collecting CVs' },
       { emoji: '📱', text: 'Answering messages' },
@@ -251,8 +251,8 @@ const en = {
       { emoji: '⏳', text: 'Remembering where everyone is' }
     ],
     scatter: 'And all of it spread across paper, WhatsApp, emails, spreadsheets… and your memory.',
-    pain: 'When you don’t have an HR team, hiring ends up on your plate.',
-    answer: 'Fíchame organises that process for you, in one place.'
+    pain: 'While you dig for that CV in your messages, the good candidate takes another job. And you end up covering the missing shift yourself.',
+    answer: 'Fíchame puts all of that in order, in one place. And it’s free.'
   },
 
   what: {
@@ -352,22 +352,22 @@ const en = {
 
   benefits: {
     kicker: 'Benefits',
-    title: 'Why use Fíchame?',
+    title: 'Why your business needs it',
     items: [
-      { icon: 'home', title: 'All in one place', text: 'Your candidates’ information, organised in a single platform.' },
+      { icon: 'home', title: 'No candidate gets lost', text: 'Everyone who applies lands in your dashboard with their details and CV. Nothing gets forgotten in a chat.' },
       { icon: 'file', title: 'Less paper', text: 'Fewer printed CVs and documents that get lost.' },
-      { icon: 'chart', title: 'More organised', text: 'You know who each candidate is and which stage they’re at.' },
-      { icon: 'phone', title: 'More practical', text: 'No jumping between different tools to follow a hire.' },
+      { icon: 'chart', title: 'Decide sooner', text: 'See at a glance who each candidate is and which stage they’re at, so you call the best ones in time.' },
+      { icon: 'phone', title: 'From your phone', text: 'Run it between customers, without juggling paper, WhatsApp and spreadsheets.' },
       { icon: 'star', title: 'You’re in control', text: 'The owner or manager follows the process directly.' },
-      { icon: 'store', title: 'No HR team needed', text: 'A simple way to organise hiring without building a department.' }
+      { icon: 'store', title: 'No HR team needed', text: 'An organised hiring process without hiring anyone to run it.' }
     ]
   },
 
   free: {
     kicker: 'Price',
-    title: 'Fíchame is in its market test phase.',
-    p1: 'Right now we are testing Fíchame with real businesses to understand how it can help day to day.',
-    p2: 'That’s why, during this phase, you can use the platform for free.',
+    title: 'Free. No small print.',
+    p1: 'Fíchame is in its market test phase: we’re testing it with real businesses so it’s genuinely useful day to day.',
+    p2: 'That’s why, during this phase, you use it for free. Your business gets organised and you risk nothing.',
     price: '€0',
     priceLabel: 'Free during the market test',
     items: ['No monthly fee', 'No credit card', 'No commitment'],
@@ -395,11 +395,11 @@ const en = {
   },
 
   final: {
-    title: 'Want to try it?',
-    lead: 'Discover Fíchame and see how simple organising your hiring can be.',
-    cta: 'Try it free',
+    title: 'Your next hire can start today.',
+    lead: 'Create your free account, set up your first opening in a few minutes and share your link to start receiving candidates.',
+    cta: 'Start free',
     login: 'I already have an account',
-    note: 'Free during the market test phase. The app is currently in Spanish.'
+    note: 'Free during the market test. No credit card. The app is currently in Spanish.'
   }
 };
 
