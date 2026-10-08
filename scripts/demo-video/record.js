@@ -1,26 +1,35 @@
 'use strict';
 
-/* Grava o vídeo de demonstração do Fíchame a partir da aplicação real.
+/* Gera o vídeo de demonstração do Fíchame (página /conoce).
+ *
+ * Duas fases:
+ *  1. Captura — sobe a aplicação real, cria dados fictícios e grava três
+ *     clips com o screencast do Chrome (criar vaga no painel, candidatura no
+ *     telemóvel, painel do dono). Cada clip guarda marcadores (instante +
+ *     retângulo do elemento) que dizem à câmara do palco onde fazer zoom.
+ *  2. Render — stage.html monta os clips dentro de um portátil e de um
+ *     telemóvel, com abertura, cartão QR/NFC, transições e fecho; é
+ *     capturado frame a frame (30 fps) e juntado à música de music.js.
  *
  * As ferramentas não são dependências do projeto. Instalar numa pasta à
  * parte e correr a partir dela (requer Google Chrome instalado):
  *
- *   mkdir %TEMP%ichame-video && cd %TEMP%ichame-video
+ *   mkdir %TEMP%\fichame-video && cd %TEMP%\fichame-video
  *   npm i puppeteer-core@24 ffmpeg-static@5
  *   node <projeto>/scripts/demo-video/record.js <projeto> es <projeto>/public/video/fichame-demo.mp4
  *   node <projeto>/scripts/demo-video/record.js <projeto> en <projeto>/public/video/fichame-demo-en.mp4
  *
- * Cada execução leva ~2 minutos e cria dados fictícios no Supabase do .env,
- * marcados com test_prefix e apagados no fim (mesmo se a gravação falhar).
- *
- * Sobe o servidor com EZCV_TEST_PREFIX (como o teste E2E), cria uma conta e
- * candidatos fictícios, grava o fluxo com o screencast do Chrome e apaga
- * todos os dados criados no fim (purge_test_data + Storage). */
+ * A captura cria dados fictícios no Supabase do .env, marcados com
+ * test_prefix e apagados no fim (mesmo se a gravação falhar). Com --reuse
+ * salta a captura e volta a renderizar a partir da pasta work-<lang> (para
+ * afinar a animação sem tocar na base de dados). PREVIEW=12.5,30 grava só
+ * essas imagens em work-<lang>/preview, sem vídeo.
+ * DEMO_SITE muda o endereço mostrado no fecho e no QR. */
 
 const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
-const { spawn, execFileSync } = require('child_process');
+const { spawn } = require('child_process');
 /* Resolvidos a partir da pasta onde o comando corre (ver acima). */
 const fromCwd = (m) => require(require.resolve(m, { paths: [process.cwd()] }));
 const puppeteer = fromCwd('puppeteer-core');
@@ -34,45 +43,21 @@ const PORT = 3460 + (LANG === 'en' ? 1 : 0);
 const BASE = `http://localhost:${PORT}`;
 const P = 'v' + crypto.randomBytes(4).toString('hex');
 const WORK = path.join(process.cwd(), 'work-' + LANG);
-const W = 1920, H = 1080;
+const REUSE = process.argv.includes('--reuse');
+const PREVIEW = (process.env.PREVIEW || '').split(',').filter(Boolean).map(Number);
+const SITE = process.env.DEMO_SITE || 'ezcv-flax.vercel.app';
+const FPS = 30;
+const { pathToFileURL } = require('url');
+const { buildAudio, writeWav } = require('./music');
 
 require(path.join(ROOT, 'src', 'config')); // carrega o .env
 const { createClient } = require(path.join(ROOT, 'node_modules', '@supabase', 'supabase-js'));
+const QRCode = require(path.join(ROOT, 'node_modules', 'qrcode'));
 
-const T = {
-  es: {
-    c3c: '✓ Candidatura enviada',
-    introTitle: 'Así funciona Fíchame',
-    introSub: 'Organiza tus contrataciones en un solo lugar',
-    c1: '1 · Entra en tu panel',
-    c2: '2 · Crea una vacante',
-    c3: '3 · El candidato abre tu enlace en el móvil',
-    c3b: 'Rellena sus datos y adjunta su CV',
-    c4: '4 · La candidatura llega a tu panel',
-    c5: '5 · Ves su ficha, su CV y tomas notas',
-    c6: '6 · Organiza el proceso por etapas',
-    c7: 'Todos tus candidatos, ordenados',
-    outroTitle: 'Pruébalo gratis',
-    outroSub: 'Gratis durante la prueba de mercado · Sin tarjeta · Sin compromiso',
-    note: 'Buena actitud. Llamar el jueves para la entrevista.'
-  },
-  en: {
-    c3c: '✓ Application sent',
-    introTitle: 'How Fíchame works',
-    introSub: 'Organise your hiring in one place',
-    c1: '1 · Log in to your dashboard',
-    c2: '2 · Create a job opening',
-    c3: '3 · The candidate opens your link on their phone',
-    c3b: 'They fill in their details and attach their CV',
-    c4: '4 · The application lands in your dashboard',
-    c5: '5 · See their profile, CV and add notes',
-    c6: '6 · Organise the process by stages',
-    c7: 'All your candidates, organised',
-    outroTitle: 'Try it for free',
-    outroSub: 'Free during the market test · No card · No commitment',
-    note: 'Buena actitud. Llamar el jueves para la entrevista.'
-  }
-}[LANG];
+/* Os dados de demonstração ficam em espanhol nas duas versões: a aplicação
+ * só existe em espanhol (a /conoce inglesa avisa disso). */
+const NOTE = 'Buena actitud. Llamar el jueves para la entrevista.';
+
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -201,312 +186,367 @@ async function cleanup() {
   console.log(`  limpeza: ${(data && data.restaurants) || 0} estabelecimento(s), ${paths.length} CV(s)`);
 }
 
-/* ------------------------------------------------------------------ *
- * Legendas e cursor (injetados em cada página)
- * ------------------------------------------------------------------ */
-function overlayScript() {
-  const ensure = () => {
-    if (!document.body) return;
-    let cap = document.getElementById('__cap');
-    if (!cap) {
-      cap = document.createElement('div');
-      cap.id = '__cap';
-      Object.assign(cap.style, {
-        position: 'fixed', left: '50%', bottom: '28px', transform: 'translateX(-50%)', zIndex: 2147483646,
-        background: 'rgba(28,25,23,.92)', color: '#fff', padding: '14px 26px', borderRadius: '999px',
-        font: '700 22px/1.25 system-ui,-apple-system,"Segoe UI",sans-serif', boxShadow: '0 10px 30px rgba(0,0,0,.35)',
-        maxWidth: '90vw', textAlign: 'center', transition: 'opacity .3s', pointerEvents: 'none',
-        border: '2px solid #c9402a'
-      });
-      if (innerWidth < 600) Object.assign(cap.style, { fontSize: '15px', padding: '10px 16px', bottom: '18px', borderRadius: '16px', width: '86vw' });
-      document.body.appendChild(cap);
-    }
-    const t = sessionStorage.getItem('__cap') || '';
-    cap.textContent = t;
-    cap.style.opacity = t ? '1' : '0';
 
-    let cur = document.getElementById('__cur');
-    if (!cur) {
-      cur = document.createElement('div');
-      cur.id = '__cur';
-      Object.assign(cur.style, {
-        position: 'fixed', width: '26px', height: '26px', marginLeft: '-13px', marginTop: '-13px', borderRadius: '50%',
-        background: 'rgba(201,64,42,.35)', border: '3px solid #c9402a', zIndex: 2147483647, pointerEvents: 'none',
-        transition: 'left .6s cubic-bezier(.4,0,.2,1), top .6s cubic-bezier(.4,0,.2,1), transform .15s'
-      });
-      const pos = JSON.parse(sessionStorage.getItem('__cur') || 'null') || [innerWidth * 0.6, innerHeight * 0.5];
-      cur.style.left = pos[0] + 'px';
-      cur.style.top = pos[1] + 'px';
-      document.body.appendChild(cur);
-    }
+/* ------------------------------------------------------------------ *
+ * Captura: cursor injetado, marcadores e screencast
+ * ------------------------------------------------------------------ */
+function cursorScript() {
+  const ensure = () => {
+    if (!document.body || document.getElementById('__cur')) return;
+    const cur = document.createElement('div');
+    cur.id = '__cur';
+    cur.innerHTML = '<svg viewBox="0 0 24 24" width="30" height="30"><path d="M4 2l15 11-6.5 1.2L16 21l-3 1.4-3.6-6.8L4 19.5z" fill="#1c1917" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/></svg>';
+    Object.assign(cur.style, {
+      position: 'fixed', width: '30px', height: '30px', marginLeft: '-5px', marginTop: '-3px', zIndex: 2147483647, pointerEvents: 'none',
+      transition: 'left .45s cubic-bezier(.4,0,.2,1), top .45s cubic-bezier(.4,0,.2,1), transform .12s',
+      filter: 'drop-shadow(0 2px 3px rgba(0,0,0,.3))'
+    });
+    const pos = JSON.parse(sessionStorage.getItem('__cur') || 'null') || [innerWidth * 0.62, innerHeight * 0.55];
+    cur.style.left = pos[0] + 'px';
+    cur.style.top = pos[1] + 'px';
+    document.body.appendChild(cur);
   };
-  window.__ensureOverlay = ensure;
+  window.__ensureCursor = ensure;
   document.addEventListener('DOMContentLoaded', ensure);
 }
 
-async function caption(page, text) {
-  await page.evaluate((t) => { sessionStorage.setItem('__cap', t); window.__ensureOverlay && window.__ensureOverlay(); }, text);
+/* Um clip em gravação: frames em disco + marcadores no mesmo relógio. */
+class Rec {
+  constructor(page, name) { this.page = page; this.name = name; this.markers = {}; this.clicks = []; this.frames = []; }
+  now() { return Date.now() / 1000; }
+  async start() {
+    this.dir = path.join(WORK, this.name);
+    fs.mkdirSync(this.dir, { recursive: true });
+    this.cdp = await this.page.target().createCDPSession();
+    this.cdp.on('Page.screencastFrame', (f) => {
+      const file = path.join(this.dir, `f${String(this.frames.length).padStart(5, '0')}.jpg`);
+      fs.writeFileSync(file, Buffer.from(f.data, 'base64'));
+      this.frames.push([file, f.metadata.timestamp]);
+      this.cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {});
+    });
+    const vp = this.page.viewport();
+    await this.cdp.send('Page.startScreencast', { format: 'jpeg', quality: 88,
+      maxWidth: vp.width * vp.deviceScaleFactor, maxHeight: vp.height * vp.deviceScaleFactor, everyNthFrame: 1 });
+    await sleep(250);
+  }
+  /* Retângulo (px CSS do viewport) do elemento: seletor, ou {text, sel} = o
+   * menor elemento `sel` que contém o texto. */
+  async mark(name, target) {
+    let rect = null;
+    if (target) {
+      rect = await this.page.evaluate((tg) => {
+        let el;
+        if (typeof tg === 'string') el = document.querySelector(tg);
+        else {
+          const all = [...document.querySelectorAll(tg.sel)].filter((e) => e.textContent.includes(tg.text));
+          all.sort((a, b) => a.offsetWidth * a.offsetHeight - b.offsetWidth * b.offsetHeight);
+          el = all[0];
+        }
+        if (!el) return null;
+        const r = el.getBoundingClientRect();
+        return [r.x, r.y, r.width, r.height];
+      }, target);
+      if (!rect) console.log(`  ! marcador ${this.name}/${name}: elemento não encontrado`);
+    }
+    this.markers[name] = { t: this.now(), rect };
+  }
+  async stop() {
+    await sleep(300);
+    await this.cdp.send('Page.stopScreencast');
+    await this.cdp.detach();
+    if (!this.frames.length) throw new Error(`clip ${this.name} sem frames`);
+    const t0 = this.frames[0][1];
+    const span = this.frames[this.frames.length - 1][1] - t0;
+    console.log(`  clip ${this.name}: ${this.frames.length} frames, ${span.toFixed(1)} s (${(this.frames.length / span).toFixed(1)} fps)`);
+    const markers = {};
+    for (const [k, v] of Object.entries(this.markers)) markers[k] = { t: v.t - t0, rect: v.rect };
+    return {
+      frames: this.frames.map(([f, ts]) => [pathToFileURL(f).href, ts - t0]),
+      markers,
+      clicks: this.clicks.map((c) => c - t0)
+    };
+  }
 }
 
 async function moveTo(page, selector) {
   const el = await page.waitForSelector(selector, { visible: true, timeout: 15000 });
   await el.evaluate((e) => e.scrollIntoView({ block: 'center', behavior: 'smooth' }));
-  await sleep(700);
+  await sleep(550);
   const box = await el.boundingBox();
-  const x = box.x + Math.min(box.width / 2, 120), y = box.y + box.height / 2;
+  const x = box.x + Math.min(box.width / 2, 110), y = box.y + box.height / 2;
   await page.evaluate((x, y) => {
-    window.__ensureOverlay && window.__ensureOverlay();
+    window.__ensureCursor && window.__ensureCursor();
     const c = document.getElementById('__cur');
     c.style.left = x + 'px'; c.style.top = y + 'px';
     sessionStorage.setItem('__cur', JSON.stringify([x, y]));
   }, x, y);
-  await sleep(700);
-  return { el, x, y };
+  await sleep(480);
+  return { x, y };
 }
 
-async function pulse(page) {
+async function press(page, rec) {
+  if (rec) rec.clicks.push(rec.now());
   await page.evaluate(() => {
     const c = document.getElementById('__cur');
     if (!c) return;
-    c.style.transform = 'scale(.7)';
-    setTimeout(() => { c.style.transform = 'scale(1)'; }, 160);
+    c.style.transform = 'scale(.8)';
+    setTimeout(() => { c.style.transform = 'scale(1)'; }, 130);
   });
-  await sleep(200);
+  await sleep(140);
 }
 
-async function click(page, selector, { nav = false } = {}) {
+async function click(page, rec, selector, { nav = false } = {}) {
   const { x, y } = await moveTo(page, selector);
-  await pulse(page);
+  await press(page, rec);
   if (nav) {
     await Promise.all([page.waitForNavigation({ waitUntil: 'load', timeout: 20000 }), page.mouse.click(x, y)]);
-    await page.evaluate(() => window.__ensureOverlay && window.__ensureOverlay());
+    await page.evaluate(() => window.__ensureCursor && window.__ensureCursor());
   } else {
     await page.mouse.click(x, y);
   }
 }
 
-async function type(page, selector, text) {
-  await click(page, selector);
-  await page.keyboard.type(text, { delay: 38 });
-  await sleep(250);
+async function type(page, rec, selector, text, delay = 32) {
+  await moveTo(page, selector);
+  if (rec) await rec.mark('field:' + selector, selector);
+  await press(page, rec);
+  await page.click(selector);
+  await page.keyboard.type(text, { delay });
+  await sleep(180);
 }
 
-async function selectText(page, selector, label) {
+async function selectText(page, rec, selector, label) {
   await moveTo(page, selector);
-  await pulse(page);
+  if (rec) await rec.mark('field:' + selector, selector);
+  await press(page, rec);
   const value = await page.$eval(selector, (s, label) => {
     const o = [...s.options].find((o) => o.textContent.trim().includes(label));
     return o ? o.value : null;
   }, label);
   if (value !== null) await page.select(selector, value);
-  await sleep(500);
+  await sleep(420);
 }
 
-async function scrollBy(page, dy, ms = 900) {
-  await page.evaluate((dy) => window.scrollBy({ top: dy, behavior: 'smooth' }), dy);
-  await sleep(ms);
+async function capture(demo) {
+  const cvFile = path.join(WORK, 'CV_Lucia_Fernandez.pdf');
+  fs.writeFileSync(cvFile, cvPdf('Lucia Fernandez'));
+  const browser = await puppeteer.launch({
+    executablePath: CHROME, headless: true,
+    args: ['--hide-scrollbars', '--force-color-profile=srgb', '--lang=es-ES']
+  });
+  try {
+    const desk = await browser.newPage();
+    await desk.setBypassCSP(true);
+    await desk.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
+    await desk.setViewport({ width: 1280, height: 800, deviceScaleFactor: 2 });
+    await desk.evaluateOnNewDocument(cursorScript);
+
+    /* Sessão iniciada fora da gravação */
+    await desk.goto(BASE + '/login', { waitUntil: 'networkidle0' });
+    await desk.type('#email', demo.email);
+    await desk.type('#password', demo.password);
+    await Promise.all([desk.waitForNavigation({ waitUntil: 'load' }), desk.click('form[action="/login"] button[type=submit]')]);
+
+    /* 1. Criar a vaga */
+    await desk.goto(BASE + '/panel/vagas', { waitUntil: 'networkidle0' });
+    let rec = new Rec(desk, 'vac');
+    await rec.start();
+    await rec.mark('start');
+    await sleep(500);
+    await click(desk, rec, '.create-job-summary');
+    await sleep(450);
+    await rec.mark('form', 'form[action="/panel/vagas/crear"]');
+    await type(desk, rec, '#titulo', 'Camarero/a', 55);
+    await type(desk, rec, '#descripcion', 'Sala y terraza, fines de semana.', 22);
+    await selectText(desk, rec, '#contrato', 'Eventual');
+    await selectText(desk, rec, '#jornada', 'parcial');
+    await rec.mark('submit');
+    await click(desk, rec, 'form[action="/panel/vagas/crear"] button[type=submit]', { nav: true });
+    await sleep(250);
+    await desk.evaluate(() => {
+      const el = [...document.querySelectorAll('.card')].find((c) => c.textContent.includes('Camarero/a') && !c.matches('.create-job'));
+      if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+    await sleep(700);
+    await rec.mark('created', { text: 'Camarero/a', sel: '.card:not(.create-job)' });
+    await sleep(1500);
+    await rec.mark('end');
+    const vac = await rec.stop();
+
+    /* 2. O candidato, no telemóvel */
+    const mob = await browser.newPage();
+    await mob.setBypassCSP(true);
+    await mob.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
+    await mob.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: false });
+    await mob.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
+    await mob.evaluateOnNewDocument(cursorScript);
+    await mob.goto(BASE + `/r/${demo.slug}`, { waitUntil: 'networkidle0' });
+    rec = new Rec(mob, 'mob');
+    await rec.start();
+    await rec.mark('start');
+    await sleep(1500);
+    await selectText(mob, rec, '#puesto', 'Camarero');
+    await type(mob, rec, '#nombre', 'Lucía', 45);
+    await type(mob, rec, '#apellidos', 'Fernández', 40);
+    await type(mob, rec, '#email', 'lucia.fernandez@example.com', 18);
+    await type(mob, rec, '#telefono', '612345678', 30);
+    await selectText(mob, rec, '#disponibilidad', 'Fines');
+    await type(mob, rec, '#experiencia', '3 años de camarera en terraza.', 18);
+    await moveTo(mob, '.file-pick');
+    await press(mob, rec);
+    const input = await mob.$('#cv');
+    await input.uploadFile(cvFile);
+    await input.evaluate((e) => e.dispatchEvent(new Event('change', { bubbles: true })));
+    await rec.mark('cv');
+    await sleep(900);
+    await click(mob, rec, 'form[action$="/apply"] button[type=submit]', { nav: true });
+    await sleep(200);
+    await rec.mark('sent');
+    await sleep(1600);
+    await rec.mark('end');
+    const mobClip = await rec.stop();
+    await mob.close();
+
+    /* 3. De volta ao painel */
+    await desk.goto(BASE + '/panel', { waitUntil: 'networkidle0' });
+    rec = new Rec(desk, 'panel');
+    await rec.start();
+    await rec.mark('start');
+    await rec.mark('attention', '.card.attention');
+    await sleep(1300);
+    await rec.mark('stats', '.stats');
+    await sleep(900);
+    await click(desk, rec, 'a[href="/panel/candidaturas"]', { nav: true });
+    await sleep(150);
+    await rec.mark('list', { text: 'Lucía', sel: '.app-row' });
+    await sleep(1000);
+    const href = await desk.evaluate(() => {
+      const a = [...document.querySelectorAll('a.app-row')].find((x) => x.textContent.includes('Lucía'));
+      return a && a.getAttribute('href');
+    });
+    await click(desk, rec, `a[href="${href}"]`, { nav: true });
+    await sleep(150);
+    await rec.mark('ficha', '.card.o-cv');
+    await sleep(1300);
+    await rec.mark('datos', '.card.o-datos');
+    await sleep(1100);
+    await type(desk, rec, '#nota', NOTE, 24);
+    await click(desk, rec, 'form[action$="/notas"] button[type=submit]', { nav: true });
+    await desk.evaluate(() => {
+      const c = document.querySelector('.card.o-notas');
+      if (c) c.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+    await sleep(700);
+    await rec.mark('noteSaved', '.card.o-notas');
+    await sleep(1200);
+    await desk.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
+    await sleep(700);
+    await selectText(desk, rec, 'select[name="status"]', 'Entrevista');
+    await click(desk, rec, 'form[action$="/estado"] button[type=submit]', { nav: true });
+    await sleep(150);
+    await rec.mark('estadoOk', '.flash.ok');
+    await sleep(1500);
+    await click(desk, rec, 'a[href="/panel/candidaturas"]', { nav: true });
+    await sleep(150);
+    await rec.mark('pipeline', '.pipeline');
+    await sleep(1400);
+    await rec.mark('list2', { text: 'Lucía', sel: '.app-row' });
+    await sleep(1600);
+    await rec.mark('end');
+    const panel = await rec.stop();
+
+    return { vac, mob: mobClip, panel };
+  } finally {
+    await browser.close().catch(() => {});
+  }
 }
 
 /* ------------------------------------------------------------------ *
- * Gravação: screencast do Chrome → JPEGs com tempo → MP4
+ * Render: palco frame a frame + música
  * ------------------------------------------------------------------ */
-async function record(page, name, fn) {
-  const dir = path.join(WORK, name);
-  fs.mkdirSync(dir, { recursive: true });
-  const cdp = await page.target().createCDPSession();
-  const frames = [];
-  cdp.on('Page.screencastFrame', async (f) => {
-    frames.push({ ts: f.metadata.timestamp, data: f.data });
-    cdp.send('Page.screencastFrameAck', { sessionId: f.sessionId }).catch(() => {});
+async function render(clips) {
+  const logoSvg = fs.readFileSync(path.join(ROOT, 'public', 'img', 'logo.svg'), 'utf8')
+    .replace('<svg', '<svg width="100%" height="100%"');
+  const qrSvg = await QRCode.toString(`https://${SITE}/conoce`, { errorCorrectionLevel: 'M', margin: 1, type: 'svg', color: { dark: '#1c1917', light: '#ffffff' } });
+
+  const browser = await puppeteer.launch({
+    executablePath: CHROME, headless: true,
+    args: ['--hide-scrollbars', '--force-color-profile=srgb', '--allow-file-access-from-files', '--font-render-hinting=none']
   });
-  await cdp.send('Page.startScreencast', { format: 'jpeg', quality: 92, maxWidth: W, maxHeight: H, everyNthFrame: 1 });
-  await sleep(300);
-  try { await fn(); } catch (e) { await page.screenshot({ path: path.join(WORK, 'error-' + name + '.png') }).catch(() => {}); throw e; }
-  await sleep(400);
-  await cdp.send('Page.stopScreencast');
-  await cdp.detach();
+  try {
+    const stage = await browser.newPage();
+    await stage.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 1 });
+    stage.on('pageerror', (e) => console.log('  ! palco:', e.message));
+    await stage.goto(pathToFileURL(path.join(__dirname, 'stage.html')).href, { waitUntil: 'load' });
+    const tl = await stage.evaluate((d) => window.setup(d), { lang: LANG, site: SITE, logoSvg, qrSvg, clips });
 
-  const list = [];
-  frames.forEach((f, i) => {
-    const file = path.join(dir, `f${String(i).padStart(5, '0')}.jpg`);
-    fs.writeFileSync(file, Buffer.from(f.data, 'base64'));
-    const next = frames[i + 1] ? frames[i + 1].ts : f.ts + 0.5;
-    list.push(`file '${file.replace(/\\/g, '/')}'`, `duration ${Math.max(0.001, next - f.ts).toFixed(4)}`);
-  });
-  list.push(list[list.length - 2]); // o último ficheiro repete-se (regra do concat)
-  fs.writeFileSync(path.join(dir, 'list.txt'), list.join('\n'));
+    if (PREVIEW.length) {
+      const dir = path.join(WORK, 'preview');
+      fs.mkdirSync(dir, { recursive: true });
+      for (const t of PREVIEW) {
+        await stage.evaluate((t) => window.renderAt(t), t);
+        await stage.screenshot({ path: path.join(dir, `t${t.toFixed(2)}.png`) });
+      }
+      console.log('  pré-visualização em', dir);
+      return;
+    }
 
-  const mp4 = path.join(WORK, `${name}.mp4`);
-  execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', path.join(dir, 'list.txt'),
-    '-vf', `scale=${W}:${H}:force_original_aspect_ratio=decrease,pad=${W}:${H}:(ow-iw)/2:(oh-ih)/2:color=0x2b2420,fps=30,format=yuv420p`,
-    '-c:v', 'libx264', '-preset', 'slow', '-crf', '24', '-r', '30', mp4]);
-  console.log(`  cena ${name}: ${frames.length} frames`);
-  return mp4;
-}
+    const wav = path.join(WORK, 'music.wav');
+    writeWav(wav, buildAudio({ duration: tl.dur, dropAt: tl.drop, outroAt: tl.outro, cues: tl.cues }));
 
-function card(title, sub, logoSvg, cta) {
-  return `<!doctype html><html><head><meta charset="utf-8"></head>
-  <body style="margin:0;height:100vh;display:grid;place-items:center;background:linear-gradient(140deg,#c9402a,#8e2b1c);font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#fff;text-align:center">
-  <div>
-    <div style="width:110px;height:110px;margin:0 auto 26px;background:rgba(255,255,255,.14);border-radius:30px;display:grid;place-items:center">
-      <div style="width:76px;height:76px">${logoSvg}</div>
-    </div>
-    <div style="font-size:30px;font-weight:800;letter-spacing:-.02em;opacity:.9">Fíchame</div>
-    <h1 style="font-size:64px;margin:10px 0 14px;letter-spacing:-.035em">${title}</h1>
-    <p style="font-size:26px;margin:0;opacity:.9">${sub}</p>
-    ${cta ? `<div style="display:inline-block;margin-top:34px;background:#fff;color:#8e2b1c;font-weight:800;font-size:24px;padding:16px 34px;border-radius:14px">${cta}</div>` : ''}
-  </div></body></html>`;
+    const ff = spawn(ffmpeg, ['-y', '-loglevel', 'error',
+      '-f', 'image2pipe', '-framerate', String(FPS), '-c:v', 'mjpeg', '-i', '-',
+      '-i', wav,
+      '-c:v', 'libx264', '-preset', 'slow', '-crf', '23', '-pix_fmt', 'yuv420p', '-r', String(FPS),
+      '-c:a', 'aac', '-b:a', '160k', '-shortest', '-movflags', '+faststart', OUT], { stdio: ['pipe', 'inherit', 'inherit'] });
+    const done = new Promise((res, rej) => ff.on('close', (c) => (c === 0 ? res() : rej(new Error('ffmpeg saiu com ' + c)))));
+
+    const total = Math.round(tl.dur * FPS);
+    const t0 = Date.now();
+    for (let i = 0; i < total; i++) {
+      await stage.evaluate((t) => window.renderAt(t), i / FPS);
+      const jpg = await stage.screenshot({ type: 'jpeg', quality: 94, optimizeForSpeed: true });
+      if (!ff.stdin.write(jpg)) await new Promise((r) => ff.stdin.once('drain', r));
+      if (i % (FPS * 5) === 0) console.log(`  render ${(i / FPS).toFixed(0)}/${tl.dur} s (${((Date.now() - t0) / 1000).toFixed(0)} s)`);
+    }
+    ff.stdin.end();
+    await done;
+    console.log('  vídeo:', OUT, (fs.statSync(OUT).size / 1048576).toFixed(1) + ' MB');
+  } finally {
+    await browser.close().catch(() => {});
+  }
 }
 
 /* ------------------------------------------------------------------ */
 async function main() {
-  fs.rmSync(WORK, { recursive: true, force: true });
-  fs.mkdirSync(WORK, { recursive: true });
-
-  const server = spawn(process.execPath, ['src/server.js'], {
-    cwd: ROOT,
-    env: { ...process.env, EZCV_TEST_PREFIX: P, PORT: String(PORT), APP_URL: BASE },
-    stdio: ['ignore', 'pipe', 'pipe']
-  });
-  server.stderr.on('data', (d) => process.stderr.write(d));
-
-  let browser;
-  try {
-    for (let i = 0; i < 60; i++) {
-      try { if ((await fetch(BASE + '/login')).ok) break; } catch { /* a arrancar */ }
-      await sleep(500);
-    }
-    console.log(`  prefixo ${P} — a criar dados de demonstração`);
-    const demo = await seed();
-
-    const logoSvg = fs.readFileSync(path.join(ROOT, 'public', 'img', 'logo.svg'), 'utf8')
-      .replace('<svg', '<svg width="100%" height="100%"');
-    const cvFile = path.join(WORK, 'CV_Lucia_Fernandez.pdf');
-    fs.writeFileSync(cvFile, cvPdf('Lucia Fernandez'));
-
-    browser = await puppeteer.launch({
-      executablePath: CHROME, headless: true,
-      args: ['--hide-scrollbars', '--force-color-profile=srgb', '--lang=es-ES']
+  const clipsFile = path.join(WORK, 'clips.json');
+  let clips;
+  if (REUSE) {
+    clips = JSON.parse(fs.readFileSync(clipsFile, 'utf8'));
+  } else {
+    fs.rmSync(WORK, { recursive: true, force: true });
+    fs.mkdirSync(WORK, { recursive: true });
+    const server = spawn(process.execPath, ['src/server.js'], {
+      cwd: ROOT,
+      env: { ...process.env, EZCV_TEST_PREFIX: P, PORT: String(PORT), APP_URL: BASE },
+      stdio: ['ignore', 'pipe', 'pipe']
     });
-
-    const desk = await browser.newPage();
-    await desk.setBypassCSP(true);
-    await desk.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
-    await desk.setViewport({ width: 1280, height: 720, deviceScaleFactor: 1.5 });
-    await desk.evaluateOnNewDocument(overlayScript);
-
-    const scenes = [];
-
-    /* Abertura + login + vaga */
-    scenes.push(await record(desk, 'a-desk', async () => {
-      await desk.setContent(card(T.introTitle, T.introSub, logoSvg));
-      await sleep(3200);
-
-      await desk.goto(BASE + '/login', { waitUntil: 'networkidle0' });
-      await caption(desk, T.c1);
-      await sleep(900);
-      await type(desk, '#email', demo.email);
-      await type(desk, '#password', demo.password);
-      await click(desk, 'form[action="/login"] button[type=submit]', { nav: true });
-      await sleep(2600);
-
-      await caption(desk, T.c2);
-      await click(desk, 'a[href="/panel/vagas"]', { nav: true });
-      await sleep(900);
-      await click(desk, '.create-job-summary');
-      await sleep(600);
-      await type(desk, '#titulo', 'Camarero/a');
-      await type(desk, '#descripcion', 'Buscamos camarero/a para sala, fines de semana.');
-      await type(desk, '#requisitos', 'Experiencia en sala (valorada).');
-      await selectText(desk, '#contrato', 'Eventual');
-      await selectText(desk, '#jornada', 'parcial');
-      await click(desk, 'form[action="/panel/vagas/crear"] button[type=submit]', { nav: true });
-      await sleep(2400);
-    }));
-
-    /* O candidato, no telemóvel */
-    const mob = await browser.newPage();
-    await mob.setBypassCSP(true);
-    await mob.emulateMediaFeatures([{ name: 'prefers-color-scheme', value: 'light' }]);
-    await mob.setViewport({ width: 390, height: 720, deviceScaleFactor: 1.5, isMobile: true, hasTouch: false });
-    await mob.setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1');
-    await mob.evaluateOnNewDocument(overlayScript);
-    await mob.goto(BASE + `/r/${demo.slug}`, { waitUntil: 'networkidle0' });
-
-    scenes.push(await record(mob, 'b-mobile', async () => {
-      await caption(mob, T.c3);
-      await sleep(2600);
-      await caption(mob, T.c3b);
-      await selectText(mob, '#puesto', 'Camarero');
-      await type(mob, '#nombre', 'Lucía');
-      await type(mob, '#apellidos', 'Fernández');
-      await type(mob, '#email', 'lucia.fernandez@example.com');
-      await type(mob, '#telefono', '612345678');
-      await selectText(mob, '#disponibilidad', 'Fines');
-      await type(mob, '#experiencia', '3 años de camarera en terraza.');
-      await moveTo(mob, '.file-pick');
-      await pulse(mob);
-      const input = await mob.$('#cv');
-      await input.uploadFile(cvFile);
-      await input.evaluate((e) => e.dispatchEvent(new Event('change', { bubbles: true })));
-      await sleep(1200);
-      await click(mob, 'form[action$="/apply"] button[type=submit]', { nav: true });
-      await caption(mob, T.c3c);
-      await sleep(2800);
-    }));
-    await mob.close();
-
-    /* De volta ao painel */
-    scenes.push(await record(desk, 'c-desk', async () => {
-      await desk.goto(BASE + '/panel', { waitUntil: 'networkidle0' });
-      await caption(desk, T.c4);
-      await sleep(2400);
-      await click(desk, 'a[href="/panel/candidaturas"]', { nav: true });
-      await sleep(2200);
-
-      await caption(desk, T.c5);
-      const link = await desk.evaluateHandle(() => [...document.querySelectorAll('a[href^="/panel/candidaturas/"]')]
-        .find((a) => a.textContent.includes('Lucía')));
-      const href = await link.evaluate((a) => a.getAttribute('href'));
-      await click(desk, `a[href="${href}"]`, { nav: true });
-      await sleep(1800);
-      await scrollBy(desk, 260, 1500);
-      await type(desk, '#nota', T.note);
-      await click(desk, 'form[action$="/notas"] button[type=submit]', { nav: true });
-      await sleep(600);
-      await desk.evaluate(() => {
-        const f = document.querySelector('form[action$="/notas"]');
-        const card = f && (f.closest('.card') || f);
-        card.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      });
-      await sleep(2600);
-      await desk.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }));
-      await sleep(900);
-
-      await caption(desk, T.c6);
-      await selectText(desk, 'select[name="status"]', 'Entrevista');
-      await click(desk, 'form[action$="/estado"] button[type=submit]', { nav: true });
-      await sleep(2000);
-
-      await caption(desk, T.c7);
-      await click(desk, 'a[href="/panel/candidaturas"]', { nav: true });
-      await sleep(3200);
-
-      await desk.setContent(card(T.outroTitle, T.outroSub, logoSvg, LANG === 'en' ? 'Try it free' : 'Probar gratis'));
-      await sleep(3600);
-    }));
-
-    /* Junta as cenas */
-    const concat = path.join(WORK, 'scenes.txt');
-    fs.writeFileSync(concat, scenes.map((s) => `file '${s.replace(/\\/g, '/')}'`).join('\n'));
-    execFileSync(ffmpeg, ['-y', '-loglevel', 'error', '-f', 'concat', '-safe', '0', '-i', concat,
-      '-c', 'copy', '-movflags', '+faststart', OUT]);
-    console.log('  vídeo:', OUT, (fs.statSync(OUT).size / 1048576).toFixed(1) + ' MB');
-  } finally {
-    if (browser) await browser.close().catch(() => {});
-    await cleanup().catch((e) => console.log('  ! limpeza:', e.message));
-    server.kill();
+    server.stderr.on('data', (d) => process.stderr.write(d));
+    try {
+      for (let i = 0; i < 60; i++) {
+        try { if ((await fetch(BASE + '/login')).ok) break; } catch { /* a arrancar */ }
+        await sleep(500);
+      }
+      console.log(`  prefixo ${P} — a criar dados de demonstração`);
+      const demo = await seed();
+      clips = await capture(demo);
+      fs.writeFileSync(clipsFile, JSON.stringify(clips));
+    } finally {
+      await cleanup().catch((e) => console.log('  ! limpeza:', e.message));
+      server.kill();
+    }
   }
+  await render(clips);
 }
 
 main().catch((e) => { console.error(e); process.exit(1); });

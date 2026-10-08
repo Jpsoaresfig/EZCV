@@ -146,13 +146,13 @@ const es = {
   video: {
     kicker: 'Fíchame en la práctica',
     title: 'Mira Fíchame funcionando.',
-    lead: 'En pocos minutos verás cómo organizar tu proceso de contratación, con la aplicación real.',
+    lead: 'En un minuto verás cómo funciona, de principio a fin, con la aplicación real.',
     play: 'Ver el vídeo',
     soon: 'Vídeo en preparación',
     soonText: 'Muy pronto podrás ver aquí una grabación de la aplicación paso a paso.',
     chapters: [
-      'Entrar en la plataforma',
       'Crear una vacante',
+      'Poner tu QR o etiqueta NFC',
       'Recibir candidaturas',
       'Ver a los candidatos',
       'Organizar el proceso'
@@ -336,13 +336,13 @@ const en = {
   video: {
     kicker: 'Fíchame in practice',
     title: 'See Fíchame in action.',
-    lead: 'In a few minutes you’ll see how to organise your hiring process, using the real app.',
+    lead: 'In one minute you’ll see how it works from start to finish, using the real app.',
     play: 'Play the video',
     soon: 'Video coming soon',
     soonText: 'You’ll soon be able to watch a step-by-step recording of the app here.',
     chapters: [
-      'Logging in',
       'Creating an opening',
+      'Putting up your QR or NFC tag',
       'Receiving applications',
       'Viewing candidates',
       'Organising the process'
