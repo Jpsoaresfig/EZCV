@@ -41,7 +41,7 @@ Ver la matriz final en el [informe de auditoría](../security/production-complia
 
 ## D. Supuestos asumidos en esta auditoría
 
-1. El operador de Fíchame es una persona o sociedad establecida en España (no confirmado).
+1. El operador de Fíchame es una persona o sociedad establecida en España — **confirmado** por el titular el 2026-10-08: Granada. Fuero de los términos: Granada (B2B); no hace falta representante en la UE (art. 27 RGPD).
 2. Los negocios clientes son empleadores que seleccionan personal **para sí mismos**.
 3. Fíchame no cobra a candidatos ni les ofrece servicios (verificado en el código: no hay cuentas de candidato).
 4. No hay otros entornos (producción en Vercel) con datos distintos de los observados; la base Supabase conectada contiene datos de prueba y al menos un negocio real.
