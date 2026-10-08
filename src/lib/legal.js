@@ -12,7 +12,7 @@
  * dpa_version, terms_accepted_at).
  */
 
-const TERMS_VERSION = '2026-10-borrador';
+const TERMS_VERSION = '2026-10-08-borrador';
 const DPA_VERSION = '2026-10-borrador';
 const COOKIES_VERSION = '2026-10';
 

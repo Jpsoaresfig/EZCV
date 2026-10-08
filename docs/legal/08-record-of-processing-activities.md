@@ -12,6 +12,8 @@
 | Gestión de clientes (cuentas de negocio) | Prestar el servicio | 6.1.b | Personas de contacto/usuarios de negocios | Identificativos, contacto, credenciales (hash) | Supabase, Vercel, SMTP (encargados) | Ver [07](07-data-processing-vendors.md) | Contrato + `TODO` | Hash scrypt, sesiones opacas, rate limit, CSRF |
 | Seguridad y auditoría | Proteger la plataforma, investigar incidentes | 6.1.f (ponderación `TODO`) + art. 32 | Usuarios de negocios; candidatos (eventos) | Ids, acción, fecha, IP (truncada para candidatos), UA (solo usuarios) | Supabase | Ver 07 | 365 días | Sin contenido personal en `detail`, purga automática |
 | Prevención de abuso | Limitar spam/fuerza bruta | 6.1.f | Cualquier visitante | Hash de IP+ruta | Supabase | Ver 07 | 1 día | Sin IP en claro |
+| Registro de errores del servidor (`error_events`) | Detectar y corregir fallos | 6.1.f (ponderación `TODO`) + art. 32 | Usuarios de negocios; visitantes | Código, ruta, mensaje técnico redactado (sin emails ni números largos), ids de usuario/negocio, UA | Supabase | Ver 07 | 90 días | Redacción antes de grabar, RLS deny-all, solo admin |
+| Reportes de problemas (`problem_reports`) | Atender errores, sugerencias y dudas | 6.1.b + 6.1.f | Usuarios de negocios | Tipo, texto, página, código de error, UA, ids | Supabase; aviso por SMTP sin el texto | Ver 07 | Hasta resolver + 365 días | Aviso de no incluir datos de candidatos, rate limit, RLS deny-all |
 | Atención de derechos propios | Cumplir arts. 12-22 | 6.1.c | Usuarios | Solicitud | — | — | 3 años `TODO` | — |
 
 ## Parte II — Fíchame como ENCARGADO (art. 30.2)
