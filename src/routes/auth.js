@@ -12,7 +12,7 @@ const google = require('../lib/google');
 const { slugify } = require('../lib/slug');
 const { emailTag } = require('../lib/privacy');
 const { sendPasswordReset } = require('../lib/mailer');
-const { TERMS_VERSION, DPA_VERSION } = require('../lib/legal');
+const { TERMS_VERSION, DPA_VERSION, recordAcceptance } = require('../lib/legal');
 const { ESTABLISHMENT_TYPES } = require('../lib/statuses');
 
 const router = express.Router();
@@ -162,11 +162,16 @@ async function handleRegister(req, res, googleAccount = null) {
 
   await run(sb().from('restaurants').update({
     legal_name: form.legal_name,
-    privacy_email: form.email,
-    terms_version: TERMS_VERSION,
-    dpa_version: DPA_VERSION,
-    terms_accepted_at: new Date().toISOString()
-  }).eq('id', result.restaurant_id), 'aceitação dos termos');
+    privacy_email: form.email
+  }).eq('id', result.restaurant_id), 'dados legais do registo');
+
+  await recordAcceptance({
+    restaurantId: result.restaurant_id,
+    userId: result.user_id,
+    legalName: form.legal_name,
+    via: 'registro',
+    ip: req.ip
+  });
 
   logSecurity('registro_restaurante', `rid=${result.restaurant_id} terms=${TERMS_VERSION} dpa=${DPA_VERSION}${googleAccount ? ' via=google' : ''}`, req.ip, {
     userId: result.user_id,

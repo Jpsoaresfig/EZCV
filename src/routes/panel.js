@@ -16,6 +16,7 @@ const { findProtectedTerms } = require('../lib/sensitive');
 const { passwordProblem } = require('./auth');
 const storage = require('../lib/storage');
 const { QR_OPTIONS } = require('../lib/qr');
+const { TERMS_VERSION, TERMS_CHANGES, operator, termsPending, recordAcceptance } = require('../lib/legal');
 const {
   STATUSES, STATUS_KEYS, AVAILABILITIES, ESTABLISHMENT_TYPES,
   CONTRACT_TYPES, WORK_SCHEDULES, statusLabel
@@ -25,21 +26,27 @@ const router = express.Router();
 
 router.use('/panel', requireOwner);
 
-/* Nome do estabelecimento e contador de notificações para o menu. */
+/* Nome do estabelecimento, contador de notificações para o menu e aviso de
+ * termos novos por aceitar. As duas queries vão em paralelo para não somar
+ * latência a cada página. */
 router.use('/panel', async (req, res, next) => {
   res.locals.restaurantName = req.user.restaurant_name || '';
-  try {
-    res.locals.unreadCount = await count(
+  const [unread, legal] = await Promise.allSettled([
+    count(
       sb().from('notifications')
         .select('id', { count: 'exact', head: true })
         .eq('restaurant_id', req.user.restaurant_id)
         .eq('channel', 'panel')
         .eq('status', 'unread'),
       'notificações não lidas'
-    );
-  } catch {
-    res.locals.unreadCount = 0;
-  }
+    ),
+    one(
+      sb().from('restaurants').select('terms_version, dpa_version').eq('id', req.user.restaurant_id),
+      'versão dos termos aceite'
+    )
+  ]);
+  res.locals.unreadCount = unread.status === 'fulfilled' ? unread.value : 0;
+  res.locals.termsPending = legal.status === 'fulfilled' && termsPending(legal.value);
   next();
 });
 
@@ -1003,6 +1010,53 @@ router.post('/panel/privacidad/conservacion', async (req, res) => {
     req.ip, { userId: req.user.id, restaurantId: restaurantId(req) });
 
   res.redirect('/panel/privacidad?ok=' + encodeURIComponent('Plazos guardados y aplicados a las candidaturas existentes.'));
+});
+
+/* ================================================================== *
+ * Termos novos: o negócio aceita a versão atual (art. 11 dos termos).
+ * Não bloqueia o painel — os termos dão 30 dias para aceitar ou sair,
+ * e o negócio tem de continuar a atender os candidatos entretanto.
+ * ================================================================== */
+router.get('/panel/terminos', async (req, res) => {
+  const r = await one(
+    sb().from('restaurants')
+      .select('legal_name, terms_version, dpa_version, terms_accepted_at')
+      .eq('id', restaurantId(req)),
+    'termos do restaurante'
+  );
+  if (!r) return notFound(res);
+  res.render('panel/terms', {
+    r, pending: termsPending(r), version: TERMS_VERSION, changes: TERMS_CHANGES, operator, query: req.query
+  });
+});
+
+router.post('/panel/terminos', rateLimit({
+  windowMs: 60 * 60 * 1000, max: 20, name: 'aceitar-termos', key: (req) => String(req.user && req.user.id)
+}), async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+  if (req.body.acepto !== '1') {
+    return res.redirect('/panel/terminos?err=' + encodeURIComponent('Marca la casilla para aceptar los nuevos términos.'));
+  }
+
+  const r = await one(
+    sb().from('restaurants').select('legal_name, terms_version, dpa_version').eq('id', restaurantId(req)),
+    'termos do restaurante'
+  );
+  if (!r) return notFound(res);
+  if (!termsPending(r)) return res.redirect('/panel/terminos');
+
+  await recordAcceptance({
+    restaurantId: restaurantId(req),
+    userId: req.user.id,
+    legalName: r.legal_name,
+    via: 'panel',
+    ip: req.ip
+  });
+  logSecurity('terminos_aceptados', `rid=${restaurantId(req)} terms=${TERMS_VERSION}`, req.ip, {
+    userId: req.user.id, restaurantId: restaurantId(req), userAgent: req.headers['user-agent']
+  });
+
+  res.redirect('/panel/terminos?ok=' + encodeURIComponent('Gracias. Has aceptado la nueva versión de los términos.'));
 });
 
 /* ================================================================== *

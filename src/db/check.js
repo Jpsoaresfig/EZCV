@@ -12,7 +12,7 @@ const storage = require('../lib/storage');
 
 const REQUIRED_MIGRATIONS = [
   '0001_init', '0002_views_rpc', '0003_storage', '0004_notifications_cascade', '0005_privacy_hardening',
-  '0006_tenant_fk_cleanup', '0009_problem_reports'
+  '0006_tenant_fk_cleanup', '0009_problem_reports', '0010_terms_acceptances'
 ];
 
 /* As views e funções de que o código depende. Sem isto, uma migration

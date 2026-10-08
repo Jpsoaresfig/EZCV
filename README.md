@@ -113,6 +113,7 @@ npm run migrate
 7. `migrations/0007_google_login.sql`
 8. `migrations/0008_onboarding_steps.sql`
 9. `migrations/0009_problem_reports.sql`
+10. `migrations/0010_terms_acceptances.sql`
 
 As migrations são idempotentes. `0000_reset.sql` é **destrutivo** (apaga o schema) e só corre com `npm run migrate -- --reset`.
 

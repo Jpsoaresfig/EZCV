@@ -1,3 +1,8 @@
+<% if (typeof termsPending !== 'undefined' && termsPending && path !== '/panel/terminos') { %>
+  <div class="flash err">
+    <span>Hemos actualizado los términos de uso. <a href="/panel/terminos">Revisa los cambios y acéptalos</a>.</span>
+  </div>
+<% } %>
 <% if (typeof query !== 'undefined' && query) { %>
   <% if (query.ok) { %><div class="flash ok"><%= query.ok %></div><% } %>
   <% if (query.err) { %><div class="flash err"><%= query.err %></div><% } %>

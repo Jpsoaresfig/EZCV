@@ -262,6 +262,51 @@ async function main() {
       check('aceitação de Termos/Encargo registada com versão e data',
         Boolean(legalRow && legalRow.terms_version && legalRow.dpa_version && legalRow.terms_accepted_at && legalRow.legal_name));
     }
+
+    // Termos novos (art. 11): histórico, aviso no painel e aceitação.
+    {
+      const { data: rest } = await sb.from('restaurants').select('id, terms_version').eq('test_prefix', P).limit(1).maybeSingle();
+      const acceptances = async () => (await sb.from('terms_acceptances')
+        .select('via, terms_version, user_id, ip').eq('restaurant_id', rest.id).order('id')).data || [];
+
+      let rows = await acceptances();
+      check('registo grava a aceitação no histórico',
+        rows.length === 1 && rows[0].via === 'registro' && rows[0].terms_version === rest.terms_version && rows[0].user_id && rows[0].ip);
+
+      res = await call('GET', '/panel', { jar: ownerJar });
+      check('sem termos novos, o painel não mostra o aviso', !(await text(res)).includes('Hemos actualizado los términos'));
+
+      await sb.from('restaurants').update({ terms_version: '2000-01-antiga' }).eq('id', rest.id);
+      res = await call('GET', '/panel', { jar: ownerJar });
+      check('com versão antiga, o painel avisa e continua a funcionar',
+        res.status === 200 && (await text(res)).includes('/panel/terminos'));
+
+      res = await call('GET', '/panel/terminos', { jar: ownerJar });
+      html = await text(res);
+      check('GET /panel/terminos mostra o que mudou', res.status === 200 && html.includes('30 días de antelación'));
+      const cT = csrfOf(html);
+
+      res = await call('POST', '/panel/terminos', { jar: ownerJar, body: form({ _csrf: cT }) });
+      check('aceitar sem marcar a caixa é recusado', res.status === 302 && res.headers.get('location').includes('err='));
+      rows = await acceptances();
+      check('… e não grava nada', rows.length === 1);
+
+      res = await call('POST', '/panel/terminos', { jar: ownerJar, body: form({ acepto: '1' }) });
+      check('aceitar sem CSRF é recusado', res.status === 403);
+
+      res = await call('POST', '/panel/terminos', { jar: ownerJar, body: form({ _csrf: cT, acepto: '1' }) });
+      check('aceitar os termos novos', res.status === 302 && res.headers.get('location').includes('ok='));
+      rows = await acceptances();
+      const { data: after } = await sb.from('restaurants').select('terms_version').eq('id', rest.id).maybeSingle();
+      check('aceitação no histórico (via painel) e versão atualizada',
+        rows.length === 2 && rows[1].via === 'panel' && after.terms_version === rest.terms_version);
+
+      res = await call('POST', '/panel/terminos', { jar: ownerJar, body: form({ _csrf: cT, acepto: '1' }) });
+      check('aceitar de novo não duplica o histórico', (await acceptances()).length === 2);
+
+      res = await call('GET', '/panel', { jar: ownerJar });
+      check('depois de aceitar, o aviso desaparece', !(await text(res)).includes('Hemos actualizado los términos'));
+    }
     res = await call('GET', '/panel/privacidad?bienvenida=1', { jar: ownerJar });
     check('onboarding de privacidade para o negócio',
       res.status === 200 && (await text(res)).includes('Tu negocio es el responsable'));

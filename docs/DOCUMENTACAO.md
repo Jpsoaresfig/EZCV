@@ -98,6 +98,7 @@ Sistema web completo de recrutamento para bares/restaurantes da Espanha, com alt
 | Método | Rota | Descrição |
 |---|---|---|
 | GET | `/panel` | Dashboard + métricas + atenção + botão pausar/ativar |
+| GET/POST | `/panel/terminos` | Aceitar uma versão nova dos termos/encargo; o painel mostra um aviso (sem bloquear) enquanto houver versão por aceitar. Histórico em `terms_acceptances` (migration 0010) |
 | GET/POST | `/panel/reportar` | Reportar um problema (`?ref=` código do erro, `?desde=` página); lista os reportes do próprio negócio |
 | GET | `/panel/candidaturas` | Lista com filtros (`q`, `estado`, `puesto`, `disp`, `desde`, `hasta`, `orden`, `favs`), máx. 200 |
 | GET | `/panel/candidaturas/:id` | Perfil do candidato |
