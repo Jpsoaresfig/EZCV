@@ -12,7 +12,8 @@ const storage = require('../lib/storage');
 
 const REQUIRED_MIGRATIONS = [
   '0001_init', '0002_views_rpc', '0003_storage', '0004_notifications_cascade', '0005_privacy_hardening',
-  '0006_tenant_fk_cleanup', '0009_problem_reports', '0010_terms_acceptances'
+  '0006_tenant_fk_cleanup', '0009_problem_reports', '0010_terms_acceptances',
+  '0011_password_help_requests'
 ];
 
 /* As views e funções de que o código depende. Sem isto, uma migration
@@ -137,7 +138,7 @@ async function main() {
   console.log('  ✓ segurança  RLS em todas as tabelas, nada concedido a anon, sem SECURITY DEFINER');
 
   if (!config.cookieSecure) console.log('  ! COOKIE_SECURE=0 — tem de ser 1 em produção (HTTPS, HSTS, cookie __Host-)');
-  if (!config.smtp.host) console.log('  ! SMTP não configurado — sem avisos por email nem recuperação de senha');
+  if (!config.smtp.host) console.log('  ! SMTP não configurado — sem avisos por email; recuperação de senha manual em /admin/usuarios');
 
   console.log('');
   console.log('  Tudo pronto.');

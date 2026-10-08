@@ -5,9 +5,10 @@ const QRCode = require('qrcode');
 
 const config = require('../config');
 const { QR_OPTIONS } = require('../lib/qr');
-const { sb, one, many, count, rpc, logSecurity } = require('../db');
+const { sb, one, many, run, count, rpc, logSecurity } = require('../db');
 const { requireAdmin } = require('../middleware/auth');
 const { verifyCsrf } = require('../middleware/csrf');
+const { randomToken, sha256 } = require('../lib/crypto');
 
 const router = express.Router();
 router.use('/admin', requireAdmin);
@@ -78,10 +79,25 @@ router.get('/admin', async (req, res) => {
 });
 
 router.get('/admin/usuarios', async (req, res) => {
-  const users = await many(
-    sb().from('admin_user_list').select('*').order('created_at', { ascending: false }),
-    'utilizadores'
-  );
+  const [users, helpRequests, activeResets] = await Promise.all([
+    many(sb().from('admin_user_list').select('*').order('created_at', { ascending: false }), 'utilizadores'),
+    /* Pedidos de «¿Has olvidado tu contraseña?» sem SMTP (0011). O admin
+     * envia o link para o email da conta; o telefone serve para confirmar
+     * quem pediu, se houver dúvida. */
+    many(
+      sb().from('password_help_requests')
+        .select('id, user_id, created_at, users(email, full_name, phone, restaurants(name))')
+        .order('created_at', { ascending: true }),
+      'pedidos de senha'
+    ),
+    /* Links de recuperação por usar: só user_id e validade, nunca o hash. */
+    many(
+      sb().from('password_resets').select('user_id, expires_at')
+        .is('used_at', null).gt('expires_at', new Date().toISOString()),
+      'links de senha ativos'
+    )
+  ]);
+  const activeLinks = new Map(activeResets.map((r) => [r.user_id, r.expires_at]));
 
   /* Esta lista contém emails e nomes de pessoas: o acesso é auditoria, não
    * telemetria — por isso é esperado com await antes de a página ser
@@ -90,7 +106,9 @@ router.get('/admin/usuarios', async (req, res) => {
     userId: req.user.id, userAgent: req.headers['user-agent']
   });
 
-  res.render('admin/users', { users, query: req.query });
+  res.render('admin/users', {
+    users, helpRequests, activeLinks, pendingIds: new Set(helpRequests.map((r) => r.user_id)), query: req.query
+  });
 });
 
 router.get('/admin/logs', async (req, res) => {
@@ -154,6 +172,65 @@ router.post('/admin/usuarios/:id/bloquear', async (req, res) => {
 
   res.redirect('/admin/usuarios?ok=' +
     encodeURIComponent(`${result.email}: ${result.blocked ? 'bloqueado' : 'desbloqueado'}`));
+});
+
+/* O admin gera um link de recuperação e envia-o ele próprio do seu email
+ * (sem SMTP na plataforma). É o mesmo token do fluxo por email — aleatório,
+ * guardado só como sha256, de uso único — mas dura 24 h, porque o envio é
+ * manual. O dono abre o link e escolhe a senha em /recuperar/nueva; o
+ * admin nunca a conhece. Não se aplica a administradores. */
+const ADMIN_RESET_TTL_MS = 24 * 60 * 60 * 1000;
+
+router.post('/admin/usuarios/:id/enlace', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+
+  const id = Number(req.params.id);
+  const back = (msg) => res.redirect('/admin/usuarios?err=' + encodeURIComponent(msg) + '#u-' + id);
+
+  const user = await one(sb().from('users').select('id, email, full_name, role, blocked').eq('id', id), 'utilizador');
+  if (!user) return back('Usuario no encontrado.');
+  if (user.role === 'admin') return back('No se puede generar un enlace para un administrador.');
+  if (user.blocked) return back(`${user.email}: la cuenta está bloqueada; desbloquéala antes.`);
+
+  /* Um link de cada vez: gerar outro invalida o anterior. */
+  await run(sb().from('password_resets').delete().eq('user_id', id), 'anular tokens anteriores');
+  const token = randomToken(32);
+  const expiresAt = new Date(Date.now() + ADMIN_RESET_TTL_MS);
+  await run(sb().from('password_resets').insert({
+    token_hash: sha256(token), user_id: id, expires_at: expiresAt.toISOString()
+  }), 'criar token de senha (admin)');
+
+  logSecurity('admin_enlace_contrasena', `user=${id}`, req.ip, {
+    userId: req.user.id, userAgent: req.headers['user-agent']
+  });
+
+  const link = `${config.appUrl}/recuperar/nueva#t=${token}`;
+  const subject = 'Restablecer tu contraseña de Fíchame';
+  const body = [
+    `Hola${user.full_name ? ' ' + user.full_name : ''}:`,
+    '',
+    'Para elegir una contraseña nueva para tu cuenta de Fíchame, abre este enlace:',
+    '',
+    link,
+    '',
+    'Caduca en 24 horas y solo se puede usar una vez.',
+    'Si no lo has pedido tú, ignora este mensaje: tu contraseña no cambia.'
+  ].join('\n');
+
+  /* O link só existe nesta resposta: não vai para o URL, para logs nem para
+   * a cache do browser. */
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.render('admin/reset_link', {
+    target: user, link, subject, body, expiresAt,
+    mailto: `mailto:${encodeURIComponent(user.email)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
+  });
+});
+
+router.post('/admin/usuarios/:id/contrasena/descartar', async (req, res) => {
+  if (!verifyCsrf(req)) return invalidSession(res);
+  await run(sb().from('password_help_requests').delete().eq('user_id', Number(req.params.id)), 'descartar pedido de senha');
+  res.redirect('/admin/usuarios?ok=' + encodeURIComponent('Solicitud descartada.'));
 });
 
 /* Reportes dos negócios e erros do servidor (0009).

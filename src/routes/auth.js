@@ -427,12 +427,15 @@ router.post('/logout', async (req, res) => {
  *  - token aleatório de 256 bits, guardado só como sha256, 30 min, uso único;
  *  - o link leva o token no fragmento (#t=…), que não chega ao servidor nem
  *    aos logs de acesso; o JS da página copia-o para o formulário;
- *  - ao repor: todos os tokens e TODAS as sessões do utilizador são anulados.
+ *  - ao repor: todos os tokens e TODAS as sessões do utilizador são anulados;
+ *  - sem SMTP o link não sai daqui: fica um pedido em password_help_requests
+ *    e o admin gera o link em /admin/usuarios e envia-o do seu email.
  */
 const GENERIC_RESET_MSG = 'Si existe una cuenta con ese email, te hemos enviado un enlace para restablecer la contraseña. Caduca en 30 minutos.';
+const GENERIC_HELP_MSG = 'Si existe una cuenta con ese email, hemos avisado al equipo de Fíchame. Te enviaremos a ese email un enlace para elegir una contraseña nueva.';
 
 router.get('/recuperar', ensureSession, (req, res) => {
-  res.render('auth/forgot', { sent: false });
+  res.render('auth/forgot', { sent: false, manual: !config.smtp.host });
 });
 
 router.post('/recuperar',
@@ -445,7 +448,13 @@ router.post('/recuperar',
 
     if (EMAIL_RE.test(email)) {
       const user = await one(sb().from('users').select('id, email, blocked, role').eq('email', email), 'recuperar');
-      if (user && !user.blocked) {
+      if (user && !user.blocked && !config.smtp.host) {
+        /* Sem SMTP o link nunca chegaria: fica um pedido para o admin, que
+         * define uma senha nova em /admin/usuarios (0011). Um por conta. */
+        await run(sb().from('password_help_requests')
+          .upsert({ user_id: user.id }, { onConflict: 'user_id', ignoreDuplicates: true }), 'pedido de ajuda com senha');
+        logSecurity('password_ajuda_pedido', `user=${user.id}`, req.ip, { userId: user.id, userAgent: req.headers['user-agent'] });
+      } else if (user && !user.blocked) {
         const token = randomToken(32);
         await run(sb().from('password_resets').insert({
           token_hash: sha256(token),
@@ -458,7 +467,8 @@ router.post('/recuperar',
         logSecurity('password_reset_pedido', emailTag(email), req.ip, { userAgent: req.headers['user-agent'] });
       }
     }
-    res.render('auth/forgot', { sent: true, message: GENERIC_RESET_MSG });
+    const manual = !config.smtp.host;
+    res.render('auth/forgot', { sent: true, manual, message: manual ? GENERIC_HELP_MSG : GENERIC_RESET_MSG });
   });
 
 router.get('/recuperar/nueva', ensureSession, (req, res) => {
@@ -508,6 +518,7 @@ router.post('/recuperar/nueva',
 
     await run(sb().from('users').update({ password_hash: hashPassword(pw) }).eq('id', user.id), 'repor senha');
     await run(sb().from('password_resets').delete().eq('user_id', user.id), 'anular tokens');
+    await run(sb().from('password_help_requests').delete().eq('user_id', user.id), 'fechar pedido de senha');
     await destroyUserSessions(user.id);
 
     logSecurity('password_reset_completado', `user=${user.id}`, req.ip, { userId: user.id, userAgent: req.headers['user-agent'] });

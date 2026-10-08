@@ -1,0 +1,40 @@
+<%- include('../partials/head', { title: 'Enlace de contraseña' }) %>
+<%- include('../partials/admin_nav') %>
+
+<main class="container">
+  <div class="page-title">
+    <h1>Enlace de contraseña</h1>
+  </div>
+
+  <div class="card">
+    <h2><%= target.full_name || target.email %></h2>
+    <p class="help">
+      Envía este enlace <strong>solo a <%= target.email %></strong>, el email de la cuenta.
+      Con él la persona elige su contraseña nueva; tú no llegas a conocerla.
+      Caduca en 24 horas, solo se puede usar una vez y generar otro anula este.
+    </p>
+
+    <div class="field">
+      <label for="reset-link">Enlace</label>
+      <input id="reset-link" class="reset-link" type="text" readonly value="<%= link %>" spellcheck="false">
+    </div>
+
+    <div class="actions-row">
+      <a class="btn" href="<%= mailto %>">Abrir en mi email</a>
+      <button class="btn secondary" type="button" data-copy="<%= link %>">Copiar enlace</button>
+      <button class="btn secondary" type="button" data-copy="<%= body %>">Copiar mensaje completo</button>
+    </div>
+
+    <p class="small muted">Mensaje sugerido · Asunto: <strong><%= subject %></strong></p>
+    <pre class="reset-mail"><%= body %></pre>
+
+    <p class="small muted spaced">
+      Este enlace no se vuelve a mostrar: si cierras la página sin enviarlo, genera otro.
+    </p>
+    <div class="actions-row">
+      <a class="btn secondary" href="/admin/usuarios#u-<%= target.id %>">Volver a usuarios</a>
+    </div>
+  </div>
+</main>
+
+<%- include('../partials/foot') %>

@@ -1151,11 +1151,17 @@ async function main() {
       const rb = await text(await call('POST', '/recuperar', { jar: fj, body: form({ email: `ninguem-${P}@x.es`, _csrf: c }) }));
       check('recuperação: resposta idêntica exista ou não a conta', ra === rb && ra.includes('Si existe una cuenta'));
       const { data: uB } = await sb.from('users').select('id').eq('email', `berto-${P}@barsol.es`).maybeSingle();
+      check('sem SMTP: a resposta fala do equipo, não de um enlace', ra.includes('equipo de Fíchame'));
       const { data: tok } = await sb.from('password_resets').select('token_hash').eq('user_id', uB.id);
-      check('token guardado só como hash (64 hex), nunca em claro', (tok || []).length === 1 && /^[a-f0-9]{64}$/.test(tok[0].token_hash));
+      check('sem SMTP: nenhum token criado (o link nunca chegaria)', (tok || []).length === 0);
+      const { data: help } = await sb.from('password_help_requests').select('id').eq('user_id', uB.id);
+      check('sem SMTP: fica um pedido para o admin', (help || []).length === 1);
+      await call('POST', '/recuperar', { jar: fj, body: form({ email: `berto-${P}@barsol.es`, _csrf: c }) });
+      const { data: help2 } = await sb.from('password_help_requests').select('id').eq('user_id', uB.id);
+      check('pedido repetido não duplica', (help2 || []).length === 1);
 
-      /* O token real foi para o email (não há SMTP no teste): cria-se um
-       * conhecido diretamente na BD para testar o fluxo de reposição. */
+      /* Com SMTP o token iria por email: cria-se um conhecido diretamente na
+       * BD para testar o fluxo de reposição por link. */
       const known = crypto.randomBytes(32).toString('hex');
       await sb.from('password_resets').insert({ token_hash: crypto.createHash('sha256').update(known).digest('hex'), user_id: uB.id, expires_at: new Date(Date.now() + 600000).toISOString() });
       const expired = crypto.randomBytes(32).toString('hex');
@@ -1206,8 +1212,55 @@ async function main() {
     html = await text(res);
     check('admin vê métricas',
       res.status === 200 && html.includes('Establecimiento') && html.includes(`Restaurante Granada ${P}`));
+    /* O pedido de B fechou-se quando B repôs a senha pelo link (acima):
+     * abre-se outro, como se B voltasse a pedir. */
+    {
+      const { data: uB } = await sb.from('users').select('id').eq('email', `berto-${P}@barsol.es`).maybeSingle();
+      await sb.from('password_help_requests').insert({ user_id: uB.id });
+    }
     res = await call('GET', '/admin/usuarios', { jar: adminJar });
-    check('admin vê usuários', res.status === 200 && (await text(res)).includes(`ana-${P}@granada.es`));
+    html = await text(res);
+    check('admin vê usuários', res.status === 200 && html.includes(`ana-${P}@granada.es`));
+    check('admin vê o pedido de contraseña de B', html.includes('Solicitudes de contraseña') && html.includes('Pide contraseña'));
+
+    console.log('\n— Admin gera link de recuperação —');
+    {
+      const { data: uB } = await sb.from('users').select('id').eq('email', `berto-${P}@barsol.es`).maybeSingle();
+      const { data: uAdmin } = await sb.from('users').select('id').eq('email', adminEmail).maybeSingle();
+      const ac = csrfOf(html);
+      const LINK_RE = /\/recuperar\/nueva#t=([a-f0-9]{64})/;
+      res = await call('POST', `/admin/usuarios/${uAdmin.id}/enlace`, { jar: adminJar, body: form({ _csrf: ac }) });
+      check('não gera link para um administrador', res.status === 302 && (res.headers.get('location') || '').includes('err='));
+      res = await call('POST', `/admin/usuarios/${uB.id}/enlace`, { jar: adminJar, body: form({ _csrf: 'x' }) });
+      check('gerar link sem CSRF recusado', res.status === 403);
+      res = await call('POST', `/admin/usuarios/${uB.id}/enlace`, { jar: adminJar, body: form({ _csrf: ac }) });
+      const first = (await text(res)).match(LINK_RE);
+      res = await call('POST', `/admin/usuarios/${uB.id}/enlace`, { jar: adminJar, body: form({ _csrf: ac }) });
+      const page = await text(res);
+      const m = page.match(LINK_RE);
+      check('admin vê o link e o botão de email', res.status === 200 && Boolean(m) && page.includes('mailto:'));
+      check('página do link sem cache nem Referer',
+        (res.headers.get('cache-control') || '').includes('no-store') && res.headers.get('referrer-policy') === 'no-referrer');
+      res = await call('GET', '/admin/usuarios', { jar: adminJar });
+      check('pedido mostra «Enlace generado»', (await text(res)).includes('Enlace generado'));
+
+      const rj = new Jar();
+      res = await call('GET', '/recuperar/nueva', { jar: rj });
+      const rc = csrfOf(await text(res));
+      res = await call('POST', '/recuperar/nueva', { jar: rj, body: form({ token: first && first[1], password: 'AdminNova7890', password2: 'AdminNova7890', _csrf: rc }) });
+      check('gerar outro link anula o anterior', res.status === 400);
+      res = await call('POST', '/recuperar/nueva', { jar: rj, body: form({ token: m && m[1], password: 'AdminNova7890', password2: 'AdminNova7890', _csrf: rc }) });
+      check('dono escolhe a senha com o link do admin', res.status === 302 && (res.headers.get('location') || '').includes('/login'));
+      const { data: helpLeft } = await sb.from('password_help_requests').select('id').eq('user_id', uB.id);
+      check('pedido fechado quando o dono muda a senha', (helpLeft || []).length === 0);
+      const lj = new Jar();
+      res = await call('GET', '/login', { jar: lj });
+      const lc = csrfOf(await text(res));
+      res = await call('POST', '/login', { jar: lj, body: form({ email: `berto-${P}@barsol.es`, password: 'NovaSenha789', _csrf: lc }) });
+      check('senha antiga deixa de funcionar', res.status === 401);
+      res = await call('POST', '/login', { jar: lj, body: form({ email: `berto-${P}@barsol.es`, password: 'AdminNova7890', _csrf: lc }) });
+      check('login com a senha nova', res.status === 302);
+    }
     res = await call('GET', '/admin/logs', { jar: adminJar });
     html = await text(res);
     check('admin vê logs de segurança',
@@ -1316,7 +1369,7 @@ async function main() {
       const wrong = await text(res);
       check('conta bloqueada + senha errada: resposta genérica (não revela o bloqueio)',
         res.status === 401 && !wrong.includes('bloqueada'));
-      res = await call('POST', '/login', { jar: lj, body: form({ email: `berto-${P}@barsol.es`, password: 'NovaSenha789', _csrf: c }) });
+      res = await call('POST', '/login', { jar: lj, body: form({ email: `berto-${P}@barsol.es`, password: 'AdminNova7890', _csrf: c }) });
       check('conta bloqueada + senha certa: informa o bloqueio', res.status === 403 && (await text(res)).includes('bloqueada'));
 
       const { data: rowB } = await sb.from('restaurants').select('id').eq('slug', slugB).maybeSingle();
