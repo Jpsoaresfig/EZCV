@@ -1,18 +1,17 @@
-<%- include('../partials/head', { title: 'Reportar un problema' }) %>
+<%- include('../partials/head', { title: tr('Reportar un problema') }) %>
 <%- include('../partials/panel_nav') %>
 
 <main class="container">
   <div class="page-title">
-    <h1>Reportar un problema</h1>
-    <a class="btn ghost small" href="/panel">← Inicio</a>
+    <h1><%= tr('Reportar un problema') %></h1>
+    <a class="btn ghost small" href="/panel">← <%= tr('Inicio') %></a>
   </div>
 
   <%- include('../partials/flash') %>
 
   <div class="card narrow-card">
     <p class="muted">
-      Fíchame está en fase de prueba. Si algo no funciona, no se entiende o echas
-      algo en falta, cuéntanoslo: lo leemos todo.
+      <%= tr('Fíchame está en fase de prueba. Si algo no funciona, no se entiende o echas algo en falta, cuéntanoslo: lo leemos todo.') %>
     </p>
 
     <form action="/panel/reportar" method="post">
@@ -21,45 +20,45 @@
       <input type="hidden" name="pagina" value="<%= page %>">
 
       <div class="field">
-        <label for="tipo">¿Qué quieres contarnos?</label>
+        <label for="tipo"><%= tr('¿Qué quieres contarnos?') %></label>
         <select id="tipo" name="tipo">
           <% Object.keys(kinds).forEach(function (k) { %>
-            <option value="<%= k %>" <%= (ref && k === 'error') ? 'selected' : '' %>><%= kinds[k] %></option>
+            <option value="<%= k %>" <%= (ref && k === 'error') ? 'selected' : '' %>><%= tr(kinds[k]) %></option>
           <% }) %>
         </select>
       </div>
 
       <div class="field">
-        <label for="mensaje">¿Qué ha pasado?</label>
+        <label for="mensaje"><%= tr('¿Qué ha pasado?') %></label>
         <textarea id="mensaje" name="mensaje" maxlength="2000" rows="6" required
-          placeholder="Ej.: al guardar una vacante me sale un error. Estaba usando el móvil."></textarea>
+          placeholder="<%= tr('Ej.: al guardar una vacante me sale un error. Estaba usando el móvil.') %>"></textarea>
       </div>
 
       <div class="notice-box">
-        <strong>No incluyas datos de candidatos</strong>
-        <p>Ni nombres, ni teléfonos, ni emails, ni contenido de los CV. Para ayudarte basta con describir lo que hacías.</p>
+        <strong><%= tr('No incluyas datos de candidatos') %></strong>
+        <p><%= tr('Ni nombres, ni teléfonos, ni emails, ni contenido de los CV. Para ayudarte basta con describir lo que hacías.') %></p>
       </div>
 
       <% if (ref || page) { %>
         <p class="help">
-          Se adjunta automáticamente:
-          <% if (page) { %>la página <code><%= page %></code><% } %><% if (ref && page) { %> y <% } %><% if (ref) { %>el código de error <strong><%= ref %></strong><% } %>.
+          <%= tr('Se adjunta automáticamente:') %>
+          <% if (page) { %><%= tr('la página') %> <code><%= page %></code><% } %><% if (ref && page) { %> <%= tr('y') %> <% } %><% if (ref) { %><%= tr('el código de error') %> <strong><%= ref %></strong><% } %>.
         </p>
       <% } %>
 
-      <button class="btn" type="submit">Enviar reporte</button>
+      <button class="btn" type="submit"><%= tr('Enviar reporte') %></button>
     </form>
   </div>
 
   <% if (mine.length) { %>
     <div class="card narrow-card">
-      <h2>Tus reportes</h2>
+      <h2><%= tr('Tus reportes') %></h2>
       <ul class="report-list">
         <% mine.forEach(function (r) { %>
           <li>
             <div class="report-head">
-              <strong><%= kinds[r.kind] || r.kind %></strong>
-              <span class="badge report-<%= r.status %>"><%= statuses[r.status] || r.status %></span>
+              <strong><%= kinds[r.kind] ? tr(kinds[r.kind]) : r.kind %></strong>
+              <span class="badge report-<%= r.status %>"><%= statuses[r.status] ? tr(statuses[r.status]) : r.status %></span>
             </div>
             <p class="report-msg"><%= r.message %></p>
             <span class="muted small"><%= fmtRelative(r.created_at) %></span>

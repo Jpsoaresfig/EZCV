@@ -1,4 +1,4 @@
-<%- include('../partials/head', { title: 'Recuperar contraseña' }) %>
+<%- include('../partials/head', { title: tr('Recuperar contraseña') }) %>
 
 <div class="auth-wrap">
   <div class="auth-card">
@@ -10,26 +10,26 @@
     </div>
 
     <div class="card">
-      <h2>Recuperar contraseña</h2>
+      <h2><%= tr('Recuperar contraseña') %></h2>
       <% if (sent) { %>
-        <div class="flash ok"><%= message %></div>
-        <% if (!manual) { %><p class="small muted">Si no lo recibes en unos minutos, revisa la carpeta de spam.</p><% } %>
+        <div class="flash ok"><%= tr(message) %></div>
+        <% if (!manual) { %><p class="small muted"><%= tr('Si no lo recibes en unos minutos, revisa la carpeta de spam.') %></p><% } %>
       <% } else { %>
         <% if (manual) { %>
-          <p class="muted small">Indica el email de tu cuenta. Avisaremos al equipo de Fíchame, que te enviará un enlace para elegir una contraseña nueva.</p>
+          <p class="muted small"><%= tr('Indica el email de tu cuenta. Avisaremos al equipo de Fíchame, que te enviará un enlace para elegir una contraseña nueva.') %></p>
         <% } else { %>
-          <p class="muted small">Indica el email de tu cuenta. Si existe, te enviaremos un enlace de un solo uso que caduca en 30 minutos.</p>
+          <p class="muted small"><%= tr('Indica el email de tu cuenta. Si existe, te enviaremos un enlace de un solo uso que caduca en 30 minutos.') %></p>
         <% } %>
         <form action="/recuperar" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="field">
-            <label for="email">Email</label>
+            <label for="email"><%= tr('Email') %></label>
             <input id="email" type="email" name="email" required maxlength="120" autocomplete="email">
           </div>
-          <button class="btn block lg" type="submit"><%= manual ? 'Enviar solicitud' : 'Enviar enlace' %></button>
+          <button class="btn block lg" type="submit"><%= manual ? tr('Enviar solicitud') : tr('Enviar enlace') %></button>
         </form>
       <% } %>
-      <p class="small muted center auth-alt"><a href="/login">Volver a iniciar sesión</a></p>
+      <p class="small muted center auth-alt"><a href="/login"><%= tr('Volver a iniciar sesión') %></a></p>
     </div>
   </div>
 </div>

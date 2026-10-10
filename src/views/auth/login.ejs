@@ -1,4 +1,4 @@
-<%- include('../partials/head', { title: 'Iniciar sesión' }) %>
+<%- include('../partials/head', { title: tr('Iniciar sesión') }) %>
 
 <div class="auth-wrap">
   <div class="auth-card">
@@ -7,36 +7,36 @@
         <img class="brand-mark" src="/img/logo.svg?v=<%= assetV %>" alt="" width="28" height="28">
         <span>Fíchame</span>
       </a>
-      <p>Candidaturas por NFC para cualquier negocio</p>
+      <p><%= tr('Candidaturas por NFC para cualquier negocio') %></p>
     </div>
 
     <div class="card">
-      <h2>Iniciar sesión</h2>
-      <% if (error) { %><div class="flash err"><%= error %></div><% } %>
-      <% if (info === 'restablecida') { %><div class="flash ok">Contraseña restablecida. Por seguridad, se han cerrado todas tus sesiones: inicia sesión de nuevo.</div><% } %>
+      <h2><%= tr('Iniciar sesión') %></h2>
+      <% if (error) { %><div class="flash err"><%= tr(error) %></div><% } %>
+      <% if (info === 'restablecida') { %><div class="flash ok"><%= tr('Contraseña restablecida. Por seguridad, se han cerrado todas tus sesiones: inicia sesión de nuevo.') %></div><% } %>
 
       <% if (locals.googleEnabled) { %>
-        <a class="btn secondary block lg btn-google" href="/login/google"><%- include('../partials/google_icon') %> Continuar con Google</a>
-        <div class="auth-sep"><span>o con tu email</span></div>
+        <a class="btn secondary block lg btn-google" href="/login/google"><%- include('../partials/google_icon') %> <%= tr('Continuar con Google') %></a>
+        <div class="auth-sep"><span><%= tr('o con tu email') %></span></div>
       <% } %>
 
       <form action="/login" method="post">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="field">
-          <label for="email">Email</label>
+          <label for="email"><%= tr('Email') %></label>
           <input id="email" type="email" name="email" required value="<%= email %>" autocomplete="email">
         </div>
         <div class="field">
-          <label for="password">Contraseña</label>
+          <label for="password"><%= tr('Contraseña') %></label>
           <input id="password" type="password" name="password" required autocomplete="current-password">
         </div>
-        <button class="btn block lg" type="submit">Entrar</button>
+        <button class="btn block lg" type="submit"><%= tr('Entrar') %></button>
       </form>
 
-      <p class="small muted center auth-alt"><a href="/recuperar">¿Has olvidado tu contraseña?</a></p>
+      <p class="small muted center auth-alt"><a href="/recuperar"><%= tr('¿Has olvidado tu contraseña?') %></a></p>
 
       <p class="small muted center auth-alt">
-        ¿Todavía no tienes cuenta? <a href="/registro">Registra tu establecimiento</a>
+        <%= tr('¿Todavía no tienes cuenta?') %> <a href="/registro"><%= tr('Registra tu establecimiento') %></a>
       </p>
     </div>
   </div>

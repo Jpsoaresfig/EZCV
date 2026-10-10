@@ -1,29 +1,28 @@
-<%- include('../partials/head', { title: 'Código QR' }) %>
+<%- include('../partials/head', { title: tr('Código QR') }) %>
 <%- include('../partials/panel_nav') %>
 
 <main class="container">
   <div class="page-title no-print">
-    <h1>Código QR</h1>
-    <a class="btn ghost small" href="/panel/restaurante">← Mi negocio</a>
+    <h1><%= tr('Código QR') %></h1>
+    <a class="btn ghost small" href="/panel/restaurante">← <%= tr('Mi negocio') %></a>
   </div>
 
   <div class="actions-row no-print">
-    <button class="btn" type="button" data-print>Imprimir</button>
-    <a class="btn secondary" href="/panel/qr.png" download>Descargar PNG</a>
+    <button class="btn" type="button" data-print><%= tr('Imprimir') %></button>
+    <a class="btn secondary" href="/panel/qr.png" download><%= tr('Descargar PNG') %></a>
   </div>
   <p class="help no-print">
-    Lleva a la misma página que la etiqueta NFC. Imprímelo y colócalo junto a
-    la etiqueta para quien no tenga NFC en el móvil.
+    <%= tr('Lleva a la misma página que la etiqueta NFC. Imprímelo y colócalo junto a la etiqueta para quien no tenga NFC en el móvil.') %>
   </p>
 
   <!-- Só esta folha sai na impressão (ver @media print no CSS). -->
   <section class="qr-sheet">
     <h2 class="qr-title"><%= restaurant.commercial_name || restaurant.name %></h2>
-    <p class="qr-lead">¿Quieres trabajar con nosotros?</p>
+    <p class="qr-lead"><%= tr('¿Quieres trabajar con nosotros?') %></p>
     <!-- SVG gerado no servidor pela lib qrcode a partir da URL do próprio
          estabelecimento; não contém dados do utilizador além do slug. -->
     <div class="qr-code"><%- qrSvg %></div>
-    <p class="qr-cta">Escanea el código o acerca tu móvil a la etiqueta NFC para enviar tu candidatura</p>
+    <p class="qr-cta"><%= tr('Escanea el código o acerca tu móvil a la etiqueta NFC para enviar tu candidatura') %></p>
     <p class="qr-url"><%= nfcUrl %></p>
   </section>
 </main>

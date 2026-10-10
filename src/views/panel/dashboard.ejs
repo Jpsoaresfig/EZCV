@@ -1,17 +1,17 @@
-<%- include('../partials/head', { title: 'Inicio' }) %>
+<%- include('../partials/head', { title: tr('Inicio') }) %>
 <%- include('../partials/panel_nav') %>
 
 <main class="container">
   <div class="page-title">
-    <h1><%= firstName ? 'Hola, ' + firstName : 'Hola de nuevo' %></h1>
+    <h1><%= firstName ? tr('Hola, {name}', { name: firstName }) : tr('Hola de nuevo') %></h1>
     <form action="/panel/contratacion" method="post">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <% if (restaurant.hiring === 'open') { %>
         <input type="hidden" name="accion" value="pausar">
-        <button class="btn secondary small" type="submit"><%- icon('pause') %> Pausar candidaturas</button>
+        <button class="btn secondary small" type="submit"><%- icon('pause') %> <%= tr('Pausar candidaturas') %></button>
       <% } else { %>
         <input type="hidden" name="accion" value="activar">
-        <button class="btn small" type="submit">Activar candidaturas</button>
+        <button class="btn small" type="submit"><%= tr('Activar candidaturas') %></button>
       <% } %>
     </form>
   </div>
@@ -24,10 +24,10 @@
        * É o primeiro ecrã de quem acabou de se registar — deve dizer o que
        * fazer a seguir em vez de mostrar uma grelha de zeros. */
       var steps = [
-        { done: openJobs > 0, title: 'Publica tu primera vacante', text: 'Camarero, dependiente, cocina… Los candidatos eligen a cuál se apuntan.', href: '/panel/vagas', cta: 'Crear vacante' },
-        { done: hasLogo, title: 'Añade tu logo', text: 'Tu página se ve más profesional y los candidatos reconocen tu negocio.', href: '/panel/restaurante', cta: 'Subir logo' },
-        { done: pageViewed, title: 'Mira tu página como un candidato', text: 'Es lo que se abre al acercar el móvil a la etiqueta.', href: '/panel/ver-pagina', cta: 'Abrir página', external: true },
-        { done: qrViewed, title: 'Coloca la etiqueta o imprime el QR', text: 'Graba tu enlace en la etiqueta NFC y ponla a la vista, en la puerta o el mostrador.', href: '/panel/qr', cta: 'Código QR' }
+        { done: openJobs > 0, title: tr('Publica tu primera vacante'), text: tr('Camarero, dependiente, cocina… Los candidatos eligen a cuál se apuntan.'), href: '/panel/vagas', cta: tr('Crear vacante') },
+        { done: hasLogo, title: tr('Añade tu logo'), text: tr('Tu página se ve más profesional y los candidatos reconocen tu negocio.'), href: '/panel/restaurante', cta: tr('Subir logo') },
+        { done: pageViewed, title: tr('Mira tu página como un candidato'), text: tr('Es lo que se abre al acercar el móvil a la etiqueta.'), href: '/panel/ver-pagina', cta: tr('Abrir página'), external: true },
+        { done: qrViewed, title: tr('Coloca la etiqueta o imprime el QR'), text: tr('Graba tu enlace en la etiqueta NFC y ponla a la vista, en la puerta o el mostrador.'), href: '/panel/qr', cta: tr('Código QR') }
       ];
       var doneCount = steps.filter(function (s) { return s.done; }).length;
     %>
@@ -35,8 +35,8 @@
     <section class="card onboarding">
       <div class="onboarding-head">
         <div>
-          <h2>Primeros pasos</h2>
-          <p class="muted small flat">En unos minutos tu negocio estará listo para recibir candidaturas.</p>
+          <h2><%= tr('Primeros pasos') %></h2>
+          <p class="muted small flat"><%= tr('En unos minutos tu negocio estará listo para recibir candidaturas.') %></p>
         </div>
         <span class="onboarding-count"><%= doneCount %>/<%= steps.length %></span>
       </div>
@@ -61,25 +61,25 @@
       /* Guia concluído, mas ainda sem candidaturas: em vez de um ecrã vazio,
        * o que ajuda a chegar à primeira — divulgar o link, ver as vagas
        * publicadas e saber onde vão aparecer as candidaturas. */
-      var shareText = 'Estamos contratando en ' + restaurant.name + '. Envía tu candidatura aquí: ' + nfcUrl;
+      var shareText = tr('Estamos contratando en {name}. Envía tu candidatura aquí: {url}', { name: restaurant.name, url: nfcUrl });
     %>
     <div class="nfc-box">
-      <div class="label"><%- icon('check') %> Primeros pasos completados</div>
-      <p class="ready-title"><%= restaurant.hiring === 'open' ? 'Tu página ya puede recibir candidaturas' : 'Tu página está lista, pero las candidaturas están en pausa' %></p>
+      <div class="label"><%- icon('check') %> <%= tr('Primeros pasos completados') %></div>
+      <p class="ready-title"><%= restaurant.hiring === 'open' ? tr('Tu página ya puede recibir candidaturas') : tr('Tu página está lista, pero las candidaturas están en pausa') %></p>
       <div class="url"><%= nfcUrl %></div>
       <div class="actions-row flat">
-        <button class="btn small" type="button" data-copy="<%= nfcUrl %>">Copiar enlace</button>
-        <a class="btn secondary small" href="https://wa.me/?text=<%= encodeURIComponent(shareText) %>" target="_blank" rel="noopener">Compartir por WhatsApp</a>
-        <a class="btn secondary small" href="<%= nfcUrl %>" target="_blank" rel="noopener">Ver página</a>
-        <a class="btn secondary small" href="/panel/qr">Código QR</a>
+        <button class="btn small" type="button" data-copy="<%= nfcUrl %>"><%= tr('Copiar enlace') %></button>
+        <a class="btn secondary small" href="https://wa.me/?text=<%= encodeURIComponent(shareText) %>" target="_blank" rel="noopener"><%= tr('Compartir por WhatsApp') %></a>
+        <a class="btn secondary small" href="<%= nfcUrl %>" target="_blank" rel="noopener"><%= tr('Ver página') %></a>
+        <a class="btn secondary small" href="/panel/qr"><%= tr('Código QR') %></a>
       </div>
-      <p class="small nfc-note">Aún no ha llegado ninguna candidatura. Cuanta más gente vea tu enlace, antes llegará la primera.</p>
+      <p class="small nfc-note"><%= tr('Aún no ha llegado ninguna candidatura. Cuanta más gente vea tu enlace, antes llegará la primera.') %></p>
     </div>
 
     <div class="card">
       <div class="onboarding-head">
-        <h2>Vacantes abiertas</h2>
-        <a class="btn ghost small" href="/panel/vagas">Gestionar →</a>
+        <h2><%= tr('Vacantes abiertas') %></h2>
+        <a class="btn ghost small" href="/panel/vagas"><%= tr('Gestionar') %> →</a>
       </div>
       <div class="app-list">
         <% openJobList.forEach(function (j) { %>
@@ -87,38 +87,38 @@
             <span class="avatar"><%- icon('jobs') %></span>
             <div class="grow">
               <div class="who"><%= j.title %></div>
-              <div class="meta"><%= j.applicants > 0 ? plural(j.applicants, 'candidatura', 'candidaturas') : 'Sin candidaturas todavía' %></div>
+              <div class="meta"><%= j.applicants > 0 ? plural(j.applicants, 'candidatura', 'candidaturas') : tr('Sin candidaturas todavía') %></div>
             </div>
           </a>
         <% }) %>
       </div>
       <% if (openJobs > openJobList.length) { %>
-        <p class="small muted">Y <%= openJobs - openJobList.length %> más.</p>
+        <p class="small muted"><%= tr('Y {n} más.', { n: openJobs - openJobList.length }) %></p>
       <% } %>
     </div>
 
     <section class="card">
-      <h2>Cómo conseguir las primeras candidaturas</h2>
+      <h2><%= tr('Cómo conseguir las primeras candidaturas') %></h2>
       <ol class="steps-list">
         <li class="step-item">
           <span class="step-mark">1</span>
           <div class="grow">
-            <strong>Comparte el enlace</strong>
-            <span>En el Instagram del negocio, en tu estado de WhatsApp y en tu ficha de Google. Funciona igual que la etiqueta.</span>
+            <strong><%= tr('Comparte el enlace') %></strong>
+            <span><%= tr('En el Instagram del negocio, en tu estado de WhatsApp y en tu ficha de Google. Funciona igual que la etiqueta.') %></span>
           </div>
         </li>
         <li class="step-item">
           <span class="step-mark">2</span>
           <div class="grow">
-            <strong>Pon la etiqueta y el QR a la vista</strong>
-            <span>En la puerta, el escaparate o la caja, con un cartel de «Estamos contratando».</span>
+            <strong><%= tr('Pon la etiqueta y el QR a la vista') %></strong>
+            <span><%= tr('En la puerta, el escaparate o la caja, con un cartel de «Estamos contratando».') %></span>
           </div>
         </li>
         <li class="step-item">
           <span class="step-mark">3</span>
           <div class="grow">
-            <strong>Responde rápido</strong>
-            <span>Cada candidatura nueva aparece aquí y en <a href="/panel/notificaciones">Avisos</a>. Quien recibe respuesta en uno o dos días suele seguir disponible.</span>
+            <strong><%= tr('Responde rápido') %></strong>
+            <span><%= tr('Cada candidatura nueva aparece aquí y en') %> <a href="/panel/notificaciones"><%= tr('Avisos') %></a>. <%= tr('Quien recibe respuesta en uno o dos días suele seguir disponible.') %></span>
           </div>
         </li>
       </ol>
@@ -130,11 +130,11 @@
     <span class="dot dot-lg <%= restaurant.hiring === 'open' ? 'green' : 'red' %>"></span>
     <div class="grow">
       <% if (restaurant.hiring === 'open') { %>
-        <strong>Aceptando candidaturas</strong>
-        <div class="muted small">Tu página está abierta a nuevos candidatos.</div>
+        <strong><%= tr('Aceptando candidaturas') %></strong>
+        <div class="muted small"><%= tr('Tu página está abierta a nuevos candidatos.') %></div>
       <% } else { %>
-        <strong>Candidaturas en pausa</strong>
-        <div class="muted small">Tu página muestra «No estamos contratando» y solo recoge datos para futuras oportunidades.</div>
+        <strong><%= tr('Candidaturas en pausa') %></strong>
+        <div class="muted small"><%= tr('Tu página muestra «No estamos contratando» y solo recoge datos para futuras oportunidades.') %></div>
       <% } %>
     </div>
   </div>
@@ -143,26 +143,26 @@
   <% if (counts.nuevo > 0 || counts.contactar > 0 || counts.entrevista > 0 || unread > 0) { %>
     <div class="card attention">
       <div class="attention-head">
-        <h2>Necesita atención</h2>
+        <h2><%= tr('Necesita atención') %></h2>
         <% if (unread > 0) { %>
           <form action="/panel/notificaciones/marcar-leidas" method="post">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <button class="btn ghost small" type="submit">Marcar avisos como leídos</button>
+            <button class="btn ghost small" type="submit"><%= tr('Marcar avisos como leídos') %></button>
           </form>
         <% } %>
       </div>
       <div class="attention-list">
         <% if (unread > 0 && counts.nuevo === 0) { %>
-          <a href="/panel/notificaciones"><strong><%= plural(unread, 'aviso', 'avisos') %></strong> sin leer</a>
+          <a href="/panel/notificaciones"><strong><%= plural(unread, 'aviso', 'avisos') %></strong> <%= tr('sin leer') %></a>
         <% } %>
         <% if (counts.nuevo > 0) { %>
-          <a href="/panel/candidaturas?estado=nuevo"><strong><%= plural(counts.nuevo, 'candidatura nueva', 'candidaturas nuevas') %></strong> por revisar</a>
+          <a href="/panel/candidaturas?estado=nuevo"><strong><%= plural(counts.nuevo, 'candidatura nueva', 'candidaturas nuevas') %></strong> <%= tr('por revisar') %></a>
         <% } %>
         <% if (counts.contactar > 0) { %>
-          <a href="/panel/candidaturas?estado=contactar"><strong><%= plural(counts.contactar, 'candidato', 'candidatos') %></strong> para contactar</a>
+          <a href="/panel/candidaturas?estado=contactar"><strong><%= plural(counts.contactar, 'candidato', 'candidatos') %></strong> <%= tr('para contactar') %></a>
         <% } %>
         <% if (counts.entrevista > 0) { %>
-          <a href="/panel/candidaturas?estado=entrevista"><strong><%= plural(counts.entrevista, 'candidato', 'candidatos') %></strong> en entrevista</a>
+          <a href="/panel/candidaturas?estado=entrevista"><strong><%= plural(counts.entrevista, 'candidato', 'candidatos') %></strong> <%= tr('en entrevista') %></a>
         <% } %>
       </div>
     </div>
@@ -172,31 +172,31 @@
     <div class="stats stats-4">
       <a class="stat accent" href="/panel/candidaturas">
         <div class="num"><%= total %></div>
-        <div class="label">Candidaturas</div>
+        <div class="label"><%= tr('Candidaturas') %></div>
       </a>
       <a class="stat" href="/panel/candidaturas?estado=nuevo">
         <div class="num"><%= counts.nuevo %></div>
-        <div class="label">Nuevas</div>
+        <div class="label"><%= tr('Nuevas') %></div>
       </a>
       <a class="stat" href="/panel/candidaturas?estado=entrevista">
         <div class="num"><%= counts.entrevista %></div>
-        <div class="label">Entrevistas</div>
+        <div class="label"><%= tr('Entrevistas') %></div>
       </a>
       <a class="stat" href="/panel/candidaturas?estado=contratado">
         <div class="num"><%= counts.contratado %></div>
-        <div class="label">Contratados</div>
+        <div class="label"><%= tr('Contratados') %></div>
       </a>
     </div>
     <div class="mini-stats">
-      <a href="/panel/candidaturas"><strong><%= weekCount %></strong> esta semana</a>
-      <a href="/panel/candidaturas"><strong><%= monthCount %></strong> este mes</a>
-      <a href="/panel/vagas"><strong><%= openJobs %></strong> <%= openJobs === 1 ? 'vacante abierta' : 'vacantes abiertas' %></a>
-      <a href="/panel/candidaturas?estado=reserva"><strong><%= counts.reserva %></strong> en reserva</a>
+      <a href="/panel/candidaturas"><strong><%= weekCount %></strong> <%= tr('esta semana') %></a>
+      <a href="/panel/candidaturas"><strong><%= monthCount %></strong> <%= tr('este mes') %></a>
+      <a href="/panel/vagas"><strong><%= openJobs %></strong> <%= openJobs === 1 ? tr('vacante abierta') : tr('vacantes abiertas') %></a>
+      <a href="/panel/candidaturas?estado=reserva"><strong><%= counts.reserva %></strong> <%= tr('en reserva') %></a>
     </div>
 
     <div class="page-title">
-      <h2>Candidaturas recientes</h2>
-      <a class="btn ghost small" href="/panel/candidaturas">Ver todas →</a>
+      <h2><%= tr('Candidaturas recientes') %></h2>
+      <a class="btn ghost small" href="/panel/candidaturas"><%= tr('Ver todas') %> →</a>
     </div>
 
     <div class="app-list">
@@ -205,7 +205,7 @@
           <span class="avatar"><%= initials(r.first_name, r.last_name) %></span>
           <div class="grow">
             <div class="who"><%= r.first_name %> <%= r.last_name %></div>
-            <div class="meta"><%= r.job_title || 'Sin puesto especificado' %></div>
+            <div class="meta"><%= r.job_title || tr('Sin puesto especificado') %></div>
           </div>
           <div class="right">
             <span class="badge <%= (STATUSES[r.status] || {}).color || 'slate' %>"><%= statusLabel(r.status) %></span>

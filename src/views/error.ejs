@@ -1,25 +1,27 @@
-<%- include('partials/head', { title: typeof title !== 'undefined' ? title : 'Error' }) %>
+<%# title e message vêm das rotas em espanhol; os dicionários traduzem-nos. -%>
+<% var pageTitle = tr(typeof title !== 'undefined' && title ? title : 'Error'); -%>
+<%- include('partials/head', { title: pageTitle }) %>
 
 <main class="container-narrow error-main">
   <div class="card center pad-lg">
     <div class="error-code"><%= status %></div>
-    <h2><%= title %></h2>
-    <p class="muted"><%= message %></p>
+    <h2><%= pageTitle %></h2>
+    <p class="muted"><%= tr(typeof message !== 'undefined' ? message : '') %></p>
     <% if (typeof errorRef !== 'undefined' && errorRef) { %>
       <%# Código do registo em error_events (src/lib/errors.js). %>
-      <p class="error-ref">Código de referencia: <strong><%= errorRef %></strong></p>
+      <p class="error-ref"><%= tr('Código de referencia:') %> <strong><%= errorRef %></strong></p>
       <% if (typeof canReport !== 'undefined' && canReport) { %>
-        <p class="help">Si el problema se repite, cuéntanos qué estabas haciendo. El código se adjunta solo.</p>
+        <p class="help"><%= tr('Si el problema se repite, cuéntanos qué estabas haciendo. El código se adjunta solo.') %></p>
       <% } else { %>
-        <p class="help">Si el problema se repite, indica este código al contactar con el soporte.</p>
+        <p class="help"><%= tr('Si el problema se repite, indica este código al contactar con el soporte.') %></p>
       <% } %>
     <% } %>
     <div class="actions-row center-row spaced">
       <% if (typeof canReport !== 'undefined' && canReport && errorRef) { %>
-        <a class="btn" href="/panel/reportar?ref=<%= errorRef %>&amp;desde=<%= encodeURIComponent(fromPath) %>">Reportar este problema</a>
-        <a class="btn secondary" href="/panel">Volver al panel</a>
+        <a class="btn" href="/panel/reportar?ref=<%= errorRef %>&amp;desde=<%= encodeURIComponent(fromPath) %>"><%= tr('Reportar este problema') %></a>
+        <a class="btn secondary" href="/panel"><%= tr('Volver al panel') %></a>
       <% } else { %>
-        <a class="btn secondary" href="/">Volver al inicio</a>
+        <a class="btn secondary" href="/"><%= tr('Volver al inicio') %></a>
       <% } %>
     </div>
   </div>

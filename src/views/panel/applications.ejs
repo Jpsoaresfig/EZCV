@@ -1,10 +1,10 @@
-<%- include('../partials/head', { title: 'Candidaturas' }) %>
+<%- include('../partials/head', { title: tr('Candidaturas') }) %>
 <%- include('../partials/panel_nav') %>
 
 <main class="container">
   <div class="page-title">
-    <h1>Candidaturas <span class="count">(<%= totalFiltered %>)</span></h1>
-    <a class="btn ghost small" href="/panel">← Inicio</a>
+    <h1><%= tr('Candidaturas') %> <span class="count">(<%= totalFiltered %>)</span></h1>
+    <a class="btn ghost small" href="/panel">← <%= tr('Inicio') %></a>
   </div>
 
   <%- include('../partials/flash') %>
@@ -14,16 +14,16 @@
     <% mainKeys.forEach(function(key, i) { %>
       <a class="pipe <%= filters.estado === key ? 'active' : '' %>" href="/panel/candidaturas?estado=<%= key %>">
         <span class="num"><%= pipeline[key] %></span>
-        <span class="label"><%= STATUSES[key].label %></span>
+        <span class="label"><%= statusLabel(key) %></span>
       </a>
       <% if (i < mainKeys.length - 1) { %><span class="pipe-arrow">→</span><% } %>
     <% }) %>
     <span class="pipe-sep"></span>
     <a class="pipe slim <%= filters.estado === 'rechazado' ? 'active' : '' %>" href="/panel/candidaturas?estado=rechazado">
-      <span class="num"><%= pipeline.rechazado %></span><span class="label">Rechazados</span>
+      <span class="num"><%= pipeline.rechazado %></span><span class="label"><%= tr('Rechazados') %></span>
     </a>
     <a class="pipe slim <%= filters.estado === 'reserva' ? 'active' : '' %>" href="/panel/candidaturas?estado=reserva">
-      <span class="num"><%= pipeline.reserva %></span><span class="label">Reserva</span>
+      <span class="num"><%= pipeline.reserva %></span><span class="label"><%= tr('Reserva') %></span>
     </a>
   </div>
 
@@ -37,63 +37,63 @@
   <div class="card filters-card">
     <form action="/panel/candidaturas" method="get">
       <div class="search-row">
-        <label for="q" class="sr-only">Buscar</label>
-        <input id="q" type="search" name="q" maxlength="80" placeholder="Nombre, puesto, teléfono…" value="<%= filters.q %>">
-        <button class="btn small" type="submit"><%- icon('search') %><span class="hide-xs">Buscar</span></button>
+        <label for="q" class="sr-only"><%= tr('Buscar') %></label>
+        <input id="q" type="search" name="q" maxlength="80" placeholder="<%= tr('Nombre, puesto, teléfono…') %>" value="<%= filters.q %>">
+        <button class="btn small" type="submit"><%- icon('search') %><span class="hide-xs"><%= tr('Buscar') %></span></button>
       </div>
       <details class="more-filters" <%= advanced ? 'open' : '' %>>
-        <summary>Más filtros<% if (advanced) { %> <span class="badge brand">activos</span><% } %></summary>
+        <summary><%= tr('Más filtros') %><% if (advanced) { %> <span class="badge brand"><%= tr('activos') %></span><% } %></summary>
         <div class="filters">
           <div class="field">
-            <label for="estado">Estado</label>
+            <label for="estado"><%= tr('Estado') %></label>
             <select id="estado" name="estado">
-              <option value="">Todos</option>
+              <option value=""><%= tr('Todos') %></option>
               <% Object.keys(STATUSES).forEach(function(key) { %>
-                <option value="<%= key %>" <%= filters.estado === key ? 'selected' : '' %>><%= STATUSES[key].label %></option>
+                <option value="<%= key %>" <%= filters.estado === key ? 'selected' : '' %>><%= statusLabel(key) %></option>
               <% }) %>
             </select>
           </div>
           <div class="field">
-            <label for="puesto">Puesto</label>
+            <label for="puesto"><%= tr('Puesto') %></label>
             <select id="puesto" name="puesto">
-              <option value="">Todos</option>
+              <option value=""><%= tr('Todos') %></option>
               <% jobs.forEach(function(job) { %>
                 <option value="<%= job.id %>" <%= String(filters.puesto) === String(job.id) ? 'selected' : '' %>><%= job.title %></option>
               <% }) %>
             </select>
           </div>
           <div class="field">
-            <label for="disp">Disponibilidad</label>
+            <label for="disp"><%= tr('Disponibilidad') %></label>
             <select id="disp" name="disp">
-              <option value="">Todas</option>
+              <option value=""><%= tr('Todas') %></option>
               <% Object.keys(AVAILABILITIES).forEach(function(key) { if (!key) return; %>
-                <option value="<%= key %>" <%= filters.disp === key ? 'selected' : '' %>><%= AVAILABILITIES[key] %></option>
+                <option value="<%= key %>" <%= filters.disp === key ? 'selected' : '' %>><%= availabilityLabel(key) %></option>
               <% }) %>
             </select>
           </div>
           <div class="field">
-            <label for="orden">Orden</label>
+            <label for="orden"><%= tr('Orden') %></label>
             <select id="orden" name="orden">
-              <option value="recientes" <%= filters.orden === 'recientes' ? 'selected' : '' %>>Más recientes</option>
-              <option value="antiguas" <%= filters.orden === 'antiguas' ? 'selected' : '' %>>Más antiguas</option>
+              <option value="recientes" <%= filters.orden === 'recientes' ? 'selected' : '' %>><%= tr('Más recientes') %></option>
+              <option value="antiguas" <%= filters.orden === 'antiguas' ? 'selected' : '' %>><%= tr('Más antiguas') %></option>
             </select>
           </div>
           <div class="field">
-            <label for="desde">Desde</label>
+            <label for="desde"><%= tr('Desde') %></label>
             <input id="desde" type="date" name="desde" value="<%= filters.desde %>">
           </div>
           <div class="field">
-            <label for="hasta">Hasta</label>
+            <label for="hasta"><%= tr('Hasta') %></label>
             <input id="hasta" type="date" name="hasta" value="<%= filters.hasta %>">
           </div>
           <label class="check check-plain">
             <input type="checkbox" name="favs" value="1" <%= filters.favs ? 'checked' : '' %>>
-            <span>Solo favoritos</span>
+            <span><%= tr('Solo favoritos') %></span>
           </label>
         </div>
         <div class="actions-row tight">
-          <button class="btn small" type="submit">Aplicar filtros</button>
-          <% if (anyFilter) { %><a class="btn secondary small" href="/panel/candidaturas">Quitar filtros</a><% } %>
+          <button class="btn small" type="submit"><%= tr('Aplicar filtros') %></button>
+          <% if (anyFilter) { %><a class="btn secondary small" href="/panel/candidaturas"><%= tr('Quitar filtros') %></a><% } %>
         </div>
       </details>
     </form>
@@ -103,17 +103,17 @@
     <div class="card empty">
       <% if (anyFilter) { %>
         <span class="empty-icon">🔍</span>
-        <p>No hay candidaturas con estos filtros.</p>
-        <div class="actions-row center spaced"><a class="btn secondary small" href="/panel/candidaturas">Quitar filtros</a></div>
+        <p><%= tr('No hay candidaturas con estos filtros.') %></p>
+        <div class="actions-row center spaced"><a class="btn secondary small" href="/panel/candidaturas"><%= tr('Quitar filtros') %></a></div>
       <% } else { %>
         <span class="empty-icon">📭</span>
-        <p>Aún no has recibido candidaturas. Cuando alguien acerque el móvil a tu etiqueta o escanee tu QR, aparecerá aquí.</p>
-        <div class="actions-row center spaced"><a class="btn small" href="/panel/qr">Ver mi código QR</a></div>
+        <p><%= tr('Aún no has recibido candidaturas. Cuando alguien acerque el móvil a tu etiqueta o escanee tu QR, aparecerá aquí.') %></p>
+        <div class="actions-row center spaced"><a class="btn small" href="/panel/qr"><%= tr('Ver mi código QR') %></a></div>
       <% } %>
     </div>
   <% } else { %>
     <% if (rows.length === 200) { %>
-      <p class="muted small">Mostrando los 200 resultados más recientes. Usa los filtros para afinar.</p>
+      <p class="muted small"><%= tr('Mostrando los 200 resultados más recientes. Usa los filtros para afinar.') %></p>
     <% } %>
     <div class="app-list">
       <% rows.forEach(function(r) { %>
@@ -122,9 +122,9 @@
           <div class="grow">
             <div class="who">
               <%= r.first_name %> <%= r.last_name %>
-              <% if (r.favorite) { %><span class="star" title="Favorito">★</span><% } %>
+              <% if (r.favorite) { %><span class="star" title="<%= tr('Favorito') %>">★</span><% } %>
             </div>
-            <div class="meta"><%= r.job_title || 'Sin puesto' %> · <%= r.phone || 'sin teléfono' %></div>
+            <div class="meta"><%= r.job_title || tr('Sin puesto') %> · <%= r.phone || tr('sin teléfono') %></div>
             <div class="meta"><%= r.email %><% if (r.availability) { %> · <%= availabilityLabel(r.availability) %><% } %></div>
             <% if (r.experience) { %><div class="meta"><%= r.experience %></div><% } %>
           </div>

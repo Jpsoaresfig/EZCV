@@ -11,6 +11,7 @@
     "check": "node src/db/check.js",
     "retention": "node src/db/retention.js",
     "delete-account": "node src/db/delete-account.js",
+    "demo:seed": "node src/db/demo-seed.js",
     "test": "node --test test/unit.test.js && node test/db.js && node test/smoke.js",
     "test:unit": "node --test test/unit.test.js",
     "test:db": "node test/db.js",

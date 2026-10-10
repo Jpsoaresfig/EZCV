@@ -4,7 +4,7 @@
 <main class="container">
   <div class="page-title">
     <h1><%= a.first_name %> <%= a.last_name %></h1>
-    <a class="btn ghost small" href="/panel/candidaturas">← Candidaturas</a>
+    <a class="btn ghost small" href="/panel/candidaturas">← <%= tr('Candidaturas') %></a>
   </div>
 
   <%- include('../partials/flash') %>
@@ -18,19 +18,19 @@
         <span class="avatar"><%= initials(a.first_name, a.last_name) %></span>
         <div>
           <span class="badge badge-lg <%= (STATUSES[a.status] || {}).color || 'slate' %>"><%= statusLabel(a.status) %></span>
-          <div class="muted small spaced-sm">Recibida el <%= fmtDate(a.applied_at) %> (<%= fmtRelative(a.applied_at) %>)</div>
+          <div class="muted small spaced-sm"><%= tr('Recibida el {date}', { date: fmtDate(a.applied_at) }) %> (<%= fmtRelative(a.applied_at) %>)</div>
         </div>
       </div>
       <form action="/panel/candidaturas/<%= a.id %>/favorito" method="post">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <button class="btn <%= a.favorite ? 'primary' : 'secondary' %> small" type="submit">
-          <%= a.favorite ? '★ Favorito' : '☆ Favorito' %>
+          <%= (a.favorite ? '★ ' : '☆ ') + tr('Favorito') %>
         </button>
       </form>
     </div>
 
     <div class="actions-row">
-      <a class="btn small" href="tel:<%= String(a.phone).replace(/[^\d+]/g, '') %>"><%- icon('phone') %> Llamar</a>
+      <a class="btn small" href="tel:<%= String(a.phone).replace(/[^\d+]/g, '') %>"><%- icon('phone') %> <%= tr('Llamar') %></a>
       <%
         /* wa.me exige o número internacional sem «+». Os candidatos escrevem
          * quase sempre o móvel espanhol sem indicativo (612 345 678): sem o
@@ -39,9 +39,9 @@
         if (/^[6789]\d{8}$/.test(wa)) wa = '34' + wa;
       %>
       <% if (wa) { %>
-        <a class="btn secondary small btn-wa" href="https://wa.me/<%= wa %>" target="_blank" rel="noopener" title="Abre WhatsApp con este número"><%- icon('chat') %> WhatsApp</a>
+        <a class="btn secondary small btn-wa" href="https://wa.me/<%= wa %>" target="_blank" rel="noopener" title="<%= tr('Abre WhatsApp con este número') %>"><%- icon('chat') %> WhatsApp</a>
       <% } %>
-      <a class="btn secondary small" href="mailto:<%= a.email %>?subject=<%= encodeURIComponent('Candidatura para ' + (a.job_title || 'tu establecimiento')) %>"><%- icon('mail') %> Email</a>
+      <a class="btn secondary small" href="mailto:<%= a.email %>?subject=<%= encodeURIComponent(tr('Candidatura para {job}', { job: a.job_title || tr('tu establecimiento') })) %>"><%- icon('mail') %> Email</a>
     </div>
   </div>
 
@@ -49,10 +49,10 @@
     <div class="stack">
 
       <div class="card o-datos">
-        <div class="section-title">Datos personales</div>
+        <div class="section-title"><%= tr('Datos personales') %></div>
         <div class="detail-grid">
           <div class="detail-item">
-            <div class="k">Nombre</div>
+            <div class="k"><%= tr('Nombre') %></div>
             <div class="v"><%= a.first_name %> <%= a.last_name %></div>
           </div>
           <div class="detail-item">
@@ -60,52 +60,52 @@
             <div class="v"><a href="mailto:<%= a.email %>"><%= a.email %></a></div>
           </div>
           <div class="detail-item">
-            <div class="k">Teléfono</div>
+            <div class="k"><%= tr('Teléfono') %></div>
             <div class="v"><%= a.phone %></div>
           </div>
           <% if (a.doc_number) { %>
             <%# Só candidaturas antigas: o documento deixou de ser recolhido (minimização). %>
             <div class="detail-item">
-              <div class="k">Documento</div>
+              <div class="k"><%= tr('Documento') %></div>
               <div class="v"><%= docTypeLabel(a.doc_type) %> · <%= a.doc_number %>
-                <div class="dim tiny">Dato antiguo: ya no se recoge. No lo copies fuera de Fíchame salvo que lo necesites para contratar.</div>
+                <div class="dim tiny"><%= tr('Dato antiguo: ya no se recoge. No lo copies fuera de Fíchame salvo que lo necesites para contratar.') %></div>
               </div>
             </div>
           <% } %>
         </div>
 
-        <div class="section-title">Información profesional</div>
+        <div class="section-title"><%= tr('Información profesional') %></div>
         <div class="detail-grid">
           <div class="detail-item">
-            <div class="k">Puesto</div>
+            <div class="k"><%= tr('Puesto') %></div>
             <div class="v">
-              <%= a.job_title || 'No especificado' %>
+              <%= a.job_title || tr('No especificado') %>
               <% if (a.job_name) { %>
-                <span class="dim small">(<%= a.job_active ? 'vacante activa' : 'vacante cerrada' %>)</span>
+                <span class="dim small">(<%= a.job_active ? tr('vacante activa') : tr('vacante cerrada') %>)</span>
               <% } %>
             </div>
           </div>
           <div class="detail-item">
-            <div class="k">Disponibilidad</div>
+            <div class="k"><%= tr('Disponibilidad') %></div>
             <div class="v"><%= availabilityLabel(a.availability) || '—' %></div>
           </div>
           <div class="detail-item">
-            <div class="k">Protección de datos</div>
+            <div class="k"><%= tr('Protección de datos') %></div>
             <div class="v">
               <% if (consent) { %>
                 <div class="small">
-                  <% if (consent.selection_basis === 'rgpd_6_1_b') { %>Candidatura: medidas precontractuales (art. 6.1.b RGPD)
-                  <% } else if (consent.selection_basis === 'rgpd_6_1_a') { %>Solo interés futuro: consentimiento (art. 6.1.a RGPD)
-                  <% } else { %>Candidatura anterior a 2026-10 (registro histórico)<% } %>
-                  <% if (consent.privacy_notice_version) { %><span class="dim tiny"> · aviso v<%= consent.privacy_notice_version %></span><% } %>
+                  <% if (consent.selection_basis === 'rgpd_6_1_b') { %><%= tr('Candidatura: medidas precontractuales (art. 6.1.b RGPD)') %>
+                  <% } else if (consent.selection_basis === 'rgpd_6_1_a') { %><%= tr('Solo interés futuro: consentimiento (art. 6.1.a RGPD)') %>
+                  <% } else { %><%= tr('Candidatura anterior a 2026-10 (registro histórico)') %><% } %>
+                  <% if (consent.privacy_notice_version) { %><span class="dim tiny"> · <%= tr('aviso v{version}', { version: consent.privacy_notice_version }) %></span><% } %>
                 </div>
                 <div class="small">
-                  Futuras oportunidades:
+                  <%= tr('Futuras oportunidades:') %>
                   <% if (consent.future_opportunity_consent && !consent.future_withdrawn_at) { %>
-                    <strong>Sí</strong> <span class="dim tiny">desde <%= fmtDate(consent.future_granted_at || consent.created_at) %></span>
+                    <strong><%= tr('Sí') %></strong> <span class="dim tiny"><%= tr('desde {date}', { date: fmtDate(consent.future_granted_at || consent.created_at) }) %></span>
                   <% } else if (consent.future_withdrawn_at) { %>
-                    <strong>Retirado</strong> <span class="dim tiny">el <%= fmtDate(consent.future_withdrawn_at) %></span>
-                  <% } else { %>No<% } %>
+                    <strong><%= tr('Retirado') %></strong> <span class="dim tiny"><%= tr('el {date}', { date: fmtDate(consent.future_withdrawn_at) }) %></span>
+                  <% } else { %><%= tr('No') %><% } %>
                 </div>
               <% } else { %>—<% } %>
             </div>
@@ -113,44 +113,43 @@
         </div>
 
         <% if (a.experience) { %>
-          <div class="section-title">Experiencia</div>
+          <div class="section-title"><%= tr('Experiencia') %></div>
           <p class="pre"><%= a.experience %></p>
         <% } %>
         <% if (a.observations) { %>
-          <div class="section-title">Observaciones del candidato</div>
+          <div class="section-title"><%= tr('Observaciones del candidato') %></div>
           <p class="pre"><%= a.observations %></p>
         <% } %>
       </div>
 
       <div class="card o-notas">
-        <h2>Notas internas</h2>
+        <h2><%= tr('Notas internas') %></h2>
         <p class="help help-lift">
-          Solo visibles para tu establecimiento. Pero son datos personales del candidato:
-          si ejerce su <strong>derecho de acceso</strong>, tendrás que entregárselas.
+          <%= tr('Solo visibles para tu establecimiento. Pero son datos personales del candidato: si ejerce su') %>
+          <strong><%= tr('derecho de acceso') %></strong><%= tr(', tendrás que entregárselas.') %>
         </p>
         <div class="notice-box">
-          Escribe solo hechos relevantes para el puesto (experiencia, disponibilidad, próximos pasos).
-          <strong>No anotes</strong> salud, embarazo, discapacidad, religión, origen, nacionalidad, edad,
-          situación familiar, orientación sexual, ideas políticas ni afiliación sindical: son datos
-          especialmente protegidos o pueden constituir discriminación en el acceso al empleo.
+          <%= tr('Escribe solo hechos relevantes para el puesto (experiencia, disponibilidad, próximos pasos).') %>
+          <strong><%= tr('No anotes') %></strong>
+          <%= tr('salud, embarazo, discapacidad, religión, origen, nacionalidad, edad, situación familiar, orientación sexual, ideas políticas ni afiliación sindical: son datos especialmente protegidos o pueden constituir discriminación en el acceso al empleo.') %>
         </div>
 
         <form action="/panel/candidaturas/<%= a.id %>/notas" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="field">
-            <label for="nota">Añadir nota</label>
-            <textarea id="nota" name="nota" maxlength="2000" placeholder="Ej.: 2 años en sala. Disponible tardes. Entrevista el viernes a las 11."></textarea>
+            <label for="nota"><%= tr('Añadir nota') %></label>
+            <textarea id="nota" name="nota" maxlength="2000" placeholder="<%= tr('Ej.: 2 años en sala. Disponible tardes. Entrevista el viernes a las 11.') %>"></textarea>
           </div>
           <label class="check check-plain">
             <input type="checkbox" name="confirmar_sensible" value="1">
-            <span class="small">Confirmo que esta nota no contiene datos protegidos o que son imprescindibles y legítimos para el puesto (queda registrado).</span>
+            <span class="small"><%= tr('Confirmo que esta nota no contiene datos protegidos o que son imprescindibles y legítimos para el puesto (queda registrado).') %></span>
           </label>
-          <button class="btn small" type="submit">Guardar nota</button>
+          <button class="btn small" type="submit"><%= tr('Guardar nota') %></button>
         </form>
 
         <div class="spaced">
           <% if (notes.length === 0) { %>
-            <p class="dim small flat">Sin notas todavía.</p>
+            <p class="dim small flat"><%= tr('Sin notas todavía.') %></p>
           <% } else { %>
             <% notes.forEach(function(note) { %>
               <div class="note">
@@ -159,7 +158,7 @@
                   <span><%= fmtDate(note.created_at) %><% if (note.author) { %> · <%= note.author %><% } %></span>
                   <form action="/panel/candidaturas/<%= a.id %>/notas/<%= note.id %>/eliminar" method="post">
                     <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                    <button class="btn danger small" type="submit">Eliminar</button>
+                    <button class="btn danger small" type="submit"><%= tr('Eliminar') %></button>
                   </form>
                 </div>
               </div>
@@ -173,59 +172,59 @@
     <div class="stack">
 
       <div class="card o-cv">
-        <h2>Currículum</h2>
+        <h2><%= tr('Currículum') %></h2>
         <% if (cv) { %>
           <p class="muted small"><%= cv.original_filename %> · <%= fmtSize(cv.size_bytes) %></p>
           <div class="actions-row tight">
-            <a class="btn small" href="/panel/cv/<%= cv.id %>" target="_blank" rel="noopener">Ver CV</a>
-            <a class="btn secondary small" href="/panel/cv/<%= cv.id %>?descargar=1">Descargar CV</a>
+            <a class="btn small" href="/panel/cv/<%= cv.id %>" target="_blank" rel="noopener"><%= tr('Ver CV') %></a>
+            <a class="btn secondary small" href="/panel/cv/<%= cv.id %>?descargar=1"><%= tr('Descargar CV') %></a>
           </div>
         <% } else { %>
-          <p class="dim flat">Sin CV adjunto.</p>
+          <p class="dim flat"><%= tr('Sin CV adjunto.') %></p>
         <% } %>
       </div>
 
       <div class="card o-estado">
-        <h2>Estado</h2>
+        <h2><%= tr('Estado') %></h2>
         <form action="/panel/candidaturas/<%= a.id %>/estado" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <div class="field">
-            <select name="status" aria-label="Estado de la candidatura">
+            <select name="status" aria-label="<%= tr('Estado de la candidatura') %>">
               <% Object.keys(STATUSES).forEach(function(key) { %>
-                <option value="<%= key %>" <%= a.status === key ? 'selected' : '' %>><%= STATUSES[key].label %></option>
+                <option value="<%= key %>" <%= a.status === key ? 'selected' : '' %>><%= statusLabel(key) %></option>
               <% }) %>
             </select>
           </div>
-          <button class="btn small block" type="submit">Guardar estado</button>
+          <button class="btn small block" type="submit"><%= tr('Guardar estado') %></button>
         </form>
-        <p class="help">«Reserva / Futuras oportunidades» solo está disponible si el candidato dio su consentimiento para ello.</p>
+        <p class="help"><%= tr('«Reserva / Futuras oportunidades» solo está disponible si el candidato dio su consentimiento para ello.') %></p>
       </div>
 
       <div class="card o-conservacion">
-        <h2>Conservación de datos</h2>
+        <h2><%= tr('Conservación de datos') %></h2>
         <% if (a.legal_hold) { %>
-          <p class="small"><span class="badge amber">Bloqueo activo</span> <%= a.legal_hold_reason %></p>
-          <p class="help">Mientras esté activo, la candidatura no se borrará automáticamente ni se podrá eliminar.</p>
+          <p class="small"><span class="badge amber"><%= tr('Bloqueo activo') %></span> <%= a.legal_hold_reason %></p>
+          <p class="help"><%= tr('Mientras esté activo, la candidatura no se borrará automáticamente ni se podrá eliminar.') %></p>
           <form action="/panel/candidaturas/<%= a.id %>/bloqueo" method="post">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
             <input type="hidden" name="accion" value="retirar">
-            <button class="btn secondary small" type="submit">Retirar bloqueo</button>
+            <button class="btn secondary small" type="submit"><%= tr('Retirar bloqueo') %></button>
           </form>
         <% } else { %>
           <p class="small">
-            <% if (a.retention_until) { %>Se borrará automáticamente a partir del <strong><%= fmtDate(a.retention_until) %></strong><% } else { %>Sin fecha de borrado calculada<% } %>.
+            <% if (a.retention_until) { %><%= tr('Se borrará automáticamente a partir del') %> <strong><%= fmtDate(a.retention_until) %></strong><% } else { %><%= tr('Sin fecha de borrado calculada') %><% } %>.
           </p>
           <details>
-            <summary class="small">Bloquear el borrado (obligación legal o reclamación)…</summary>
+            <summary class="small"><%= tr('Bloquear el borrado (obligación legal o reclamación)…') %></summary>
             <div class="details-body">
               <form action="/panel/candidaturas/<%= a.id %>/bloqueo" method="post">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <input type="hidden" name="accion" value="activar">
                 <div class="field">
-                  <label for="motivo">Motivo *</label>
-                  <input id="motivo" type="text" name="motivo" maxlength="300" placeholder="Ej.: reclamación laboral en curso">
+                  <label for="motivo"><%= tr('Motivo *') %></label>
+                  <input id="motivo" type="text" name="motivo" maxlength="300" placeholder="<%= tr('Ej.: reclamación laboral en curso') %>">
                 </div>
-                <button class="btn secondary small" type="submit">Activar bloqueo</button>
+                <button class="btn secondary small" type="submit"><%= tr('Activar bloqueo') %></button>
               </form>
             </div>
           </details>
@@ -233,22 +232,22 @@
         <% if (consent && consent.future_opportunity_consent && !consent.future_withdrawn_at) { %>
           <form action="/panel/candidaturas/<%= a.id %>/retirar-consentimiento" method="post" class="spaced-sm">
             <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <button class="btn secondary small" type="submit">Registrar retirada del consentimiento</button>
+            <button class="btn secondary small" type="submit"><%= tr('Registrar retirada del consentimiento') %></button>
           </form>
-          <p class="help">Úsalo si el candidato te pide que dejes de guardar sus datos para futuras vacantes.</p>
+          <p class="help"><%= tr('Úsalo si el candidato te pide que dejes de guardar sus datos para futuras vacantes.') %></p>
         <% } %>
       </div>
 
       <div class="card o-derechos">
-        <h2>Derechos del candidato</h2>
-        <p class="help help-lift">Para atender una solicitud de acceso o portabilidad, descarga todos sus datos en este establecimiento (el CV se descarga aparte).</p>
-        <a class="btn secondary small" href="/panel/candidaturas/<%= a.id %>/exportar">Exportar datos (JSON)</a>
+        <h2><%= tr('Derechos del candidato') %></h2>
+        <p class="help help-lift"><%= tr('Para atender una solicitud de acceso o portabilidad, descarga todos sus datos en este establecimiento (el CV se descarga aparte).') %></p>
+        <a class="btn secondary small" href="/panel/candidaturas/<%= a.id %>/exportar"><%= tr('Exportar datos (JSON)') %></a>
       </div>
 
       <div class="card o-historial">
-        <h2>Historial</h2>
+        <h2><%= tr('Historial') %></h2>
         <% if (history.length === 0) { %>
-          <p class="dim small flat">Sin eventos todavía.</p>
+          <p class="dim small flat"><%= tr('Sin eventos todavía.') %></p>
         <% } else { %>
           <div class="timeline">
             <% history.forEach(function(h) { %>
@@ -261,6 +260,15 @@
                        acompanharem o idioma da interface em vez de ficarem
                        congeladas na base de dados. */
                     var detalhe = h.detail || '';
+                    /* Os outros detalhes são textos fixos escritos pelas funções
+                       SQL (em espanhol); o do bloqueio leva o motivo escrito
+                       pelo negócio, que não se traduz. */
+                    var BLOQUEIO = 'Conservación bloqueada: ';
+                    if (detalhe.indexOf(BLOQUEIO) === 0) {
+                      detalhe = tr('Conservación bloqueada: {reason}', { reason: detalhe.slice(BLOQUEIO.length) });
+                    } else {
+                      detalhe = tr(detalhe);
+                    }
                     if (h.event === 'estado' && h.new_status) {
                       detalhe = (h.old_status ? statusLabel(h.old_status) + ' → ' : '') + statusLabel(h.new_status);
                     }
@@ -277,28 +285,28 @@
       </div>
 
       <div class="card danger-zone o-perigo">
-        <h2>Zona peligrosa</h2>
-        <p class="help help-lift">Eliminar la candidatura borra también su CV y sus notas de forma permanente.</p>
+        <h2><%= tr('Zona peligrosa') %></h2>
+        <p class="help help-lift"><%= tr('Eliminar la candidatura borra también su CV y sus notas de forma permanente.') %></p>
         <details>
-          <summary class="summary-danger">Eliminar esta candidatura…</summary>
+          <summary class="summary-danger"><%= tr('Eliminar esta candidatura…') %></summary>
           <div class="details-body">
             <form action="/panel/candidaturas/<%= a.id %>/eliminar" method="post">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-              <button class="btn danger small" type="submit">Sí, eliminar definitivamente</button>
+              <button class="btn danger small" type="submit"><%= tr('Sí, eliminar definitivamente') %></button>
             </form>
           </div>
         </details>
         <details class="spaced-sm">
-          <summary class="summary-danger">Suprimir todos los datos de esta persona (derecho de supresión)…</summary>
+          <summary class="summary-danger"><%= tr('Suprimir todos los datos de esta persona (derecho de supresión)…') %></summary>
           <div class="details-body">
-            <p class="help">Borra todas sus candidaturas en tu establecimiento, con CV, notas, historial y consentimientos. No afecta a otros establecimientos.</p>
+            <p class="help"><%= tr('Borra todas sus candidaturas en tu establecimiento, con CV, notas, historial y consentimientos. No afecta a otros establecimientos.') %></p>
             <form action="/panel/candidaturas/<%= a.id %>/eliminar-candidato" method="post">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <label class="check check-plain">
                 <input type="checkbox" name="confirmo" value="1">
-                <span class="small">Confirmo la supresión definitiva.</span>
+                <span class="small"><%= tr('Confirmo la supresión definitiva.') %></span>
               </label>
-              <button class="btn danger small" type="submit">Suprimir datos del candidato</button>
+              <button class="btn danger small" type="submit"><%= tr('Suprimir datos del candidato') %></button>
             </form>
           </div>
         </details>

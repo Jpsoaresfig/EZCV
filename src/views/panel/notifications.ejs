@@ -1,18 +1,18 @@
-<%- include('../partials/head', { title: 'Avisos' }) %>
+<%- include('../partials/head', { title: tr('Avisos') }) %>
 <%- include('../partials/panel_nav') %>
 
 <main class="container">
   <div class="page-title">
-    <h1>Avisos</h1>
+    <h1><%= tr('Avisos') %></h1>
     <div class="actions-row flat">
       <% if (typeof unreadCount !== 'undefined' && unreadCount > 0) { %>
         <form action="/panel/notificaciones/marcar-leidas" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
           <input type="hidden" name="volver" value="/panel/notificaciones">
-          <button class="btn secondary small" type="submit">Marcar todo como leído</button>
+          <button class="btn secondary small" type="submit"><%= tr('Marcar todo como leído') %></button>
         </form>
       <% } %>
-      <a class="btn ghost small" href="/panel">← Inicio</a>
+      <a class="btn ghost small" href="/panel">← <%= tr('Inicio') %></a>
     </div>
   </div>
 
@@ -21,7 +21,7 @@
   <% if (notifications.length === 0) { %>
     <div class="card empty">
       <span class="empty-icon">🔔</span>
-      <p>Todavía no hay avisos. Aquí aparecerán las nuevas candidaturas y el resultado de los emails de notificación.</p>
+      <p><%= tr('Todavía no hay avisos. Aquí aparecerán las nuevas candidaturas y el resultado de los emails de notificación.') %></p>
     </div>
   <% } else { %>
     <div class="card">
@@ -29,11 +29,11 @@
         <table class="table">
           <thead>
             <tr>
-              <th>Fecha</th>
-              <th>Aviso</th>
-              <th>Candidato</th>
-              <th>Canal</th>
-              <th>Estado</th>
+              <th><%= tr('Fecha') %></th>
+              <th><%= tr('Aviso') %></th>
+              <th><%= tr('Candidato') %></th>
+              <th><%= tr('Canal') %></th>
+              <th><%= tr('Estado') %></th>
             </tr>
           </thead>
           <tbody>
@@ -44,37 +44,37 @@
                   <div class="dim tiny"><%= fmtRelative(n.created_at) %></div>
                 </td>
                 <td>
-                  <strong><%= n.type === 'nueva_candidatura' ? 'Nueva candidatura' : (n.type === 'solicitud_derechos' ? 'Solicitud de derechos' : n.type) %></strong>
+                  <strong><%= n.type === 'nueva_candidatura' ? tr('Nueva candidatura') : (n.type === 'solicitud_derechos' ? tr('Solicitud de derechos') : n.type) %></strong>
                   <% if (n.jobTitle) { %><div class="dim tiny"><%= n.jobTitle %></div><% } %>
                 </td>
                 <td>
                   <% if (n.type === 'solicitud_derechos') { %>
-                    <a href="/panel/derechos">Gestionar (plazo 1 mes)</a>
+                    <a href="/panel/derechos"><%= tr('Gestionar (plazo 1 mes)') %></a>
                   <% } else if (n.application_id) { %>
-                    <a href="/panel/candidaturas/<%= n.application_id %>"><%= n.candidateName || 'Ver candidatura' %></a>
+                    <a href="/panel/candidaturas/<%= n.application_id %>"><%= n.candidateName || tr('Ver candidatura') %></a>
                   <% } else { %>
                     <span class="dim">—</span>
                   <% } %>
                 </td>
-                <td class="nowrap"><%= n.channel === 'email' ? 'Email' : 'Panel' %></td>
+                <td class="nowrap"><%= n.channel === 'email' ? 'Email' : tr('Panel') %></td>
                 <td>
                   <%
                     /* `logged` significa que no hay SMTP configurado: el email
                        solo se escribió en el log del servidor. */
                     var ESTADOS = {
-                      unread:  { label: 'Sin leer',       color: 'blue'   },
-                      read:    { label: 'Leído',          color: 'slate'  },
-                      pending: { label: 'Pendiente',      color: 'amber'  },
-                      sent:    { label: 'Enviado',        color: 'green'  },
-                      failed:  { label: 'Falló',          color: 'red'    },
-                      logged:  { label: 'Solo en el log', color: 'slate'  }
+                      unread:  { label: tr('Sin leer'),       color: 'blue'   },
+                      read:    { label: tr('Leído'),          color: 'slate'  },
+                      pending: { label: tr('Pendiente'),      color: 'amber'  },
+                      sent:    { label: tr('Enviado'),        color: 'green'  },
+                      failed:  { label: tr('Falló'),          color: 'red'    },
+                      logged:  { label: tr('Solo en el log'), color: 'slate'  }
                     };
                     var estado = ESTADOS[n.status] || { label: n.status, color: 'slate' };
                   %>
                   <span class="badge <%= estado.color %>"><%= estado.label %></span>
                   <% if (n.status === 'failed') { %>
                     <%# o detalhe técnico (em português, do servidor SMTP) fica só no admin %>
-                    <div class="dim tiny">No se pudo enviar el email.</div>
+                    <div class="dim tiny"><%= tr('No se pudo enviar el email.') %></div>
                   <% } %>
                 </td>
               </tr>

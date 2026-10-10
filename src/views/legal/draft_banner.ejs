@@ -1,3 +1,8 @@
+<% if (typeof lang !== 'undefined' && lang !== 'es') { %>
+<div class="card" lang="<%= lang %>">
+  <p class="flat small"><%= tr('Los textos legales (privacidad, términos y consentimientos) se muestran en español, que es su versión oficial.') %></p>
+</div>
+<% } %>
 <div class="card attention">
   <p class="flat small">
     <strong>BORRADOR — REQUIERE REVISIÓN JURÍDICA ANTES DE USO COMERCIAL.</strong>

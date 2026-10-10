@@ -1,19 +1,20 @@
-<%- include('../partials/head', { title: 'Términos de uso' }) %>
+<%- include('../partials/head', { title: tr('Términos de uso') }) %>
 <%- include('../partials/panel_nav') %>
 
 <main class="container">
   <div class="page-title">
-    <h1>Términos de uso</h1>
-    <a class="btn ghost small" href="/panel">← Inicio</a>
+    <h1><%= tr('Términos de uso') %></h1>
+    <a class="btn ghost small" href="/panel">← <%= tr('Inicio') %></a>
   </div>
 
   <%- include('../partials/flash') %>
 
   <div class="card narrow-card">
     <% if (pending) { %>
-      <h2>Hemos actualizado los términos</h2>
-      <p>Hay una nueva versión de los <a href="/terminos" target="_blank" rel="noopener">Términos de uso</a> (versión <%= version %>). Esto es lo que cambia:</p>
-      <ul>
+      <h2><%= tr('Hemos actualizado los términos') %></h2>
+      <p><%= tr('Hay una nueva versión de los') %> <a href="/terminos" target="_blank" rel="noopener"><%= tr('Términos de uso') %></a> (<%= tr('versión {version}', { version: version }) %>). <%= tr('Esto es lo que cambia:') %></p>
+      <%# Lista de alterações: conteúdo legal, fica em espanhol. %>
+      <ul lang="es">
         <% changes.forEach(function (c) { %><li><%= c %></li><% }) %>
       </ul>
 
@@ -21,15 +22,15 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <label class="check">
           <input type="checkbox" name="acepto" value="1" required>
-          <span>He leído y acepto la nueva versión de los <a href="/terminos" target="_blank" rel="noopener">Términos de uso</a> y el <a href="/encargo" target="_blank" rel="noopener">Acuerdo de encargo del tratamiento</a>.</span>
+          <span><%= tr('He leído y acepto la nueva versión de los') %> <a href="/terminos" target="_blank" rel="noopener"><%= tr('Términos de uso') %></a> <%= tr('y el') %> <a href="/encargo" target="_blank" rel="noopener"><%= tr('Acuerdo de encargo del tratamiento') %></a>.</span>
         </label>
-        <button class="btn spaced" type="submit">Aceptar</button>
+        <button class="btn spaced" type="submit"><%= tr('Aceptar') %></button>
       </form>
 
-      <p class="help">Si no estás de acuerdo, puedes darte de baja escribiendo a <%= operator.email %>. Antes del cierre puedes pedir una copia de los datos de tus candidatos.</p>
+      <p class="help"><%= tr('Si no estás de acuerdo, puedes darte de baja escribiendo a {email}. Antes del cierre puedes pedir una copia de los datos de tus candidatos.', { email: operator.email }) %></p>
     <% } else { %>
-      <p>Tienes aceptada la versión vigente de los <a href="/terminos" target="_blank" rel="noopener">Términos de uso</a> (<%= r.terms_version %>)<% if (r.terms_accepted_at) { %>, desde el <%= fmtDate(r.terms_accepted_at) %><% } %>, y del <a href="/encargo" target="_blank" rel="noopener">Acuerdo de encargo del tratamiento</a> (<%= r.dpa_version %>).</p>
-      <p class="help">Si los cambiamos, te avisaremos aquí y por email con al menos 30 días de antelación.</p>
+      <p><%= tr('Tienes aceptada la versión vigente de los') %> <a href="/terminos" target="_blank" rel="noopener"><%= tr('Términos de uso') %></a> (<%= r.terms_version %>)<% if (r.terms_accepted_at) { %>, <%= tr('desde el {date}', { date: fmtDate(r.terms_accepted_at) }) %><% } %>, <%= tr('y del') %> <a href="/encargo" target="_blank" rel="noopener"><%= tr('Acuerdo de encargo del tratamiento') %></a> (<%= r.dpa_version %>).</p>
+      <p class="help"><%= tr('Si los cambiamos, te avisaremos aquí y por email con al menos 30 días de antelación.') %></p>
     <% } %>
   </div>
 </main>

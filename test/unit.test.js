@@ -195,29 +195,32 @@ test('google: URL de autorização com PKCE S256, state e nonce', () => {
   assert.equal(url.searchParams.get('scope'), 'openid email profile');
 });
 
-test('/conoce: língua por ?lang=, depois pelo browser, por omissão espanhol', () => {
-  const req = (lang, al) => ({ query: lang ? { lang } : {}, headers: al ? { 'accept-language': al } : {} });
+test('/conoce: língua por ?lang=, depois a do site (req.lang), por omissão espanhol', () => {
+  const req = (lang, siteLang) => ({ query: lang ? { lang } : {}, headers: {}, lang: siteLang });
   assert.equal(pickLang(req()), 'es');
   assert.equal(pickLang(req('en')), 'en');
   assert.equal(pickLang(req('EN')), 'en');
+  assert.equal(pickLang(req('pt')), 'pt');
   assert.equal(pickLang(req('fr')), 'es');
-  assert.equal(pickLang(req('', 'en-GB,en;q=0.9')), 'en');
-  assert.equal(pickLang(req('', 'pt-PT,en;q=0.5')), 'es');
-  assert.equal(pickLang(req('es', 'en-US')), 'es');
+  assert.equal(pickLang(req('', 'en')), 'en');
+  assert.equal(pickLang(req('', 'pt')), 'pt');
+  assert.equal(pickLang(req('fr', 'pt')), 'pt');
+  assert.equal(pickLang(req('es', 'en')), 'es');
 });
 
-test('/conoce: espanhol e inglês têm exatamente a mesma estrutura', () => {
+test('/conoce: espanhol, inglês e português têm exatamente a mesma estrutura', () => {
   const shape = (v) => Array.isArray(v) ? v.map(shape)
     : v && typeof v === 'object' ? Object.fromEntries(Object.keys(v).sort().map((k) => [k, shape(v[k])]))
     : typeof v;
   assert.deepEqual(shape(COPY.en), shape(COPY.es));
+  assert.deepEqual(shape(COPY.pt), shape(COPY.es));
 });
 
 test('/conoce: o texto não promete funcionalidades que o produto não tem', () => {
   /* As únicas menções a automatismos são negações honestas. */
   const all = JSON.stringify(COPY).toLowerCase()
-    .replace(/sin filtros automáticos|no automatic filters/g, '')
-    .replace(/cobrar automáticamente|charged automatically/g, '');
+    .replace(/sin filtros automáticos|no automatic filters|sem filtros automáticos/g, '')
+    .replace(/cobrar automáticamente|charged automatically|cobrado automaticamente/g, '');
   for (const word of ['inteligencia artificial', 'artificial intelligence', ' ia ', ' ai ', 'matching',
     'automátic', 'automatic', 'videollamada', 'video call', 'agenda', 'calendar']) {
     assert.ok(!all.includes(word), `texto menciona «${word.trim()}»`);

@@ -1,9 +1,14 @@
-<% if (typeof termsPending !== 'undefined' && termsPending && path !== '/panel/terminos') { %>
+<% if (typeof isDemo !== 'undefined' && isDemo) { %>
+  <div class="flash ok">
+    <span><strong><%= tr('Demostración con datos ficticios.') %></strong> <%= tr('Ningún candidato ni negocio de esta cuenta es real y los cambios no se guardan.') %> <a href="/registro"><%= tr('Crea tu cuenta gratis') %></a>.</span>
+  </div>
+<% } %>
+<% if (!(typeof isDemo !== 'undefined' && isDemo) && typeof termsPending !== 'undefined' && termsPending && path !== '/panel/terminos') { %>
   <div class="flash err">
-    <span>Hemos actualizado los términos de uso. <a href="/panel/terminos">Revisa los cambios y acéptalos</a>.</span>
+    <span><%= tr('Hemos actualizado los términos de uso.') %> <a href="/panel/terminos"><%= tr('Revisa los cambios y acéptalos') %></a>.</span>
   </div>
 <% } %>
 <% if (typeof query !== 'undefined' && query) { %>
-  <% if (query.ok) { %><div class="flash ok"><%= query.ok %></div><% } %>
-  <% if (query.err) { %><div class="flash err"><%= query.err %></div><% } %>
+  <% if (query.ok) { %><div class="flash ok"><%= tr(query.ok) %></div><% } %>
+  <% if (query.err) { %><div class="flash err"><%= tr(query.err) %></div><% } %>
 <% } %>

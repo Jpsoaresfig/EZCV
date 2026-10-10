@@ -6,6 +6,7 @@ const path = require('path');
 
 const config = require('../config');
 const { COPY, pickLang } = require('../lib/conoce');
+const { translate } = require('../lib/i18n');
 
 const router = express.Router();
 
@@ -13,7 +14,8 @@ const router = express.Router();
  * ficheiro em public/video/ — sem ele, a página mostra o espaço reservado
  * «Vídeo en preparación». Verificado a cada pedido para que copiar o ficheiro
  * não exija reiniciar o servidor; o mtime entra no URL porque os estáticos
- * têm cache longa. Opcionalmente, um vídeo próprio para a versão inglesa. */
+ * têm cache longa. Opcionalmente, um vídeo próprio para a versão inglesa
+ * (o português usa o espanhol). */
 const VIDEO_DIR = path.join(__dirname, '..', '..', 'public', 'video');
 
 function demoVideo(lang) {
@@ -37,10 +39,12 @@ function demoVideo(lang) {
  * ver a página que está a distribuir. Não renderiza nenhum QR. */
 router.get('/conoce', (req, res) => {
   const lang = pickLang(req);
-  res.setHeader('Vary', 'Accept-Language');
+  res.setHeader('Vary', 'Accept-Language, Cookie');
   res.render('public/conoce', {
-    t: COPY[lang],
+    t: COPY[lang] || COPY.es,
     lang,
+    // ?lang= pode diferir do idioma do site: o rodapé segue a página.
+    tr: (text, vars) => translate(lang, text, vars),
     video: demoVideo(lang),
     contactEmail: config.contactEmail
   });

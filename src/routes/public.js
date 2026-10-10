@@ -13,6 +13,7 @@ const { notifyNewApplication, notifyRightsRequest } = require('../lib/mailer');
 const { PRIVACY_NOTICE_VERSION, CONSENT_VERSION, futureText, interestText, days2months } = require('../lib/consent');
 const { operator } = require('../lib/legal');
 const storage = require('../lib/storage');
+const { DEMO_PREFIX } = require('../lib/demo');
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ const PUBLIC_COLUMNS = [
   'id', 'slug', 'name', 'commercial_name', 'legal_name', 'privacy_email', 'email',
   'address', 'postal_code', 'city', 'establishment_type', 'description',
   'logo_path', 'photo_path', 'hiring_status',
-  'retention_closed_days', 'retention_inactive_days', 'retention_reserve_days'
+  'retention_closed_days', 'retention_inactive_days', 'retention_reserve_days', 'test_prefix'
 ].join(', ');
 
 /* Estabelecimento inexistente e estabelecimento desativado dão a MESMA
@@ -54,6 +55,10 @@ async function getPublicRestaurant(slug) {
     'restaurante público'
   );
   if (r) {
+    /* Negócio fictício do modo demo: a página mostra-se, mas não recebe
+     * candidaturas nem pedidos (ver src/lib/demo.js). */
+    r.demo = r.test_prefix === DEMO_PREFIX;
+    delete r.test_prefix;
     r.controller = r.legal_name || r.name;
     r.contact = r.privacy_email || r.email;
   }
@@ -137,7 +142,7 @@ const applyLimiters = [
 
 router.post('/r/:slug/apply', ...applyLimiters, uploadCvFile, async (req, res) => {
   const restaurant = await getPublicRestaurant(req.params.slug);
-  if (!restaurant) return notFoundRestaurant(res, 'Enlace no válido.');
+  if (!restaurant || restaurant.demo) return notFoundRestaurant(res, 'Enlace no válido.');
 
   const jobs = await openJobs(restaurant.id);
 
@@ -326,7 +331,7 @@ const interestLimiters = [
 
 router.post('/r/:slug/interes', ...interestLimiters, async (req, res) => {
   const restaurant = await getPublicRestaurant(req.params.slug);
-  if (!restaurant) return notFoundRestaurant(res, 'Enlace no válido.');
+  if (!restaurant || restaurant.demo) return notFoundRestaurant(res, 'Enlace no válido.');
 
   if (!verifyCsrf(req)) {
     return res.status(403).render('error', {
@@ -404,7 +409,7 @@ router.post('/r/:slug/interes', ...interestLimiters, async (req, res) => {
  */
 router.get('/r/:slug/enviado', ensureSession, async (req, res) => {
   const restaurant = await getPublicRestaurant(req.params.slug);
-  if (!restaurant) return notFoundRestaurant(res, 'Enlace no válido.');
+  if (!restaurant || restaurant.demo) return notFoundRestaurant(res, 'Enlace no válido.');
   res.render('public/sent', { restaurant, future: req.query.tipo === 'futuro' });
 });
 
@@ -443,7 +448,7 @@ router.post('/r/:slug/derechos',
   dbRateLimit({ windowMs: 24 * 60 * 60 * 1000, max: 10, name: 'rights-ip', key: (req) => String(req.ip) }),
   async (req, res) => {
     const restaurant = await getPublicRestaurant(req.params.slug);
-    if (!restaurant) return notFoundRestaurant(res);
+    if (!restaurant || restaurant.demo) return notFoundRestaurant(res);
     if (!verifyCsrf(req)) {
       return res.status(403).render('error', { status: 403, title: 'Sesión no válida', message: 'Vuelve a abrir la página.' });
     }

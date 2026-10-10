@@ -1,36 +1,36 @@
-<%- include('../partials/head', { title: 'Vacantes' }) %>
+<%- include('../partials/head', { title: tr('Vacantes') }) %>
 <%- include('../partials/panel_nav') %>
 
 <main class="container">
   <div class="page-title">
-    <h1>Vacantes</h1>
-    <a class="btn ghost small" href="/panel">← Inicio</a>
+    <h1><%= tr('Vacantes') %></h1>
+    <a class="btn ghost small" href="/panel">← <%= tr('Inicio') %></a>
   </div>
 
   <%- include('../partials/flash') %>
 
   <%# Recolhido quando já há vagas: a lista é o que interessa ver primeiro. %>
   <details class="card create-job" <%= jobs.length === 0 ? 'open' : '' %>>
-    <summary class="create-job-summary"><span class="create-job-plus">+</span> Nueva vacante</summary>
-    <p class="help">Mientras no haya ninguna vacante activa, tu página ofrece el formulario de futuras oportunidades.</p>
+    <summary class="create-job-summary"><span class="create-job-plus">+</span> <%= tr('Nueva vacante') %></summary>
+    <p class="help"><%= tr('Mientras no haya ninguna vacante activa, tu página ofrece el formulario de futuras oportunidades.') %></p>
 
     <form action="/panel/vagas/crear" method="post">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="field">
-        <label for="titulo">Título *</label>
-        <input id="titulo" type="text" name="titulo" maxlength="80" placeholder="Ej.: Dependiente/a, Camarero/a…" required>
+        <label for="titulo"><%= tr('Título') %> *</label>
+        <input id="titulo" type="text" name="titulo" maxlength="80" placeholder="<%= tr('Ej.: Dependiente/a, Camarero/a…') %>" required>
       </div>
       <div class="field">
-        <label for="descripcion">Descripción</label>
-        <textarea id="descripcion" name="descripcion" maxlength="2000" placeholder="Ej.: Buscamos dependiente/a para tienda céntrica…"></textarea>
+        <label for="descripcion"><%= tr('Descripción') %></label>
+        <textarea id="descripcion" name="descripcion" maxlength="2000" placeholder="<%= tr('Ej.: Buscamos dependiente/a para tienda céntrica…') %>"></textarea>
       </div>
       <div class="field">
-        <label for="requisitos">Requisitos</label>
-        <textarea id="requisitos" name="requisitos" maxlength="2000" placeholder="Ej.: Experiencia previa (valorada), disponibilidad de fines de semana…"></textarea>
+        <label for="requisitos"><%= tr('Requisitos') %></label>
+        <textarea id="requisitos" name="requisitos" maxlength="2000" placeholder="<%= tr('Ej.: Experiencia previa (valorada), disponibilidad de fines de semana…') %>"></textarea>
       </div>
       <div class="hint-row">
         <div class="field">
-          <label for="contrato">Tipo de contrato</label>
+          <label for="contrato"><%= tr('Tipo de contrato') %></label>
           <select id="contrato" name="contrato">
             <% Object.keys(CONTRACT_TYPES).forEach(function(key) { %>
               <option value="<%= key %>"><%= CONTRACT_TYPES[key] %></option>
@@ -38,7 +38,7 @@
           </select>
         </div>
         <div class="field">
-          <label for="jornada">Jornada</label>
+          <label for="jornada"><%= tr('Jornada') %></label>
           <select id="jornada" name="jornada">
             <% Object.keys(WORK_SCHEDULES).forEach(function(key) { %>
               <option value="<%= key %>"><%= WORK_SCHEDULES[key] %></option>
@@ -46,7 +46,7 @@
           </select>
         </div>
         <div class="field">
-          <label for="disponibilidad">Disponibilidad</label>
+          <label for="disponibilidad"><%= tr('Disponibilidad') %></label>
           <select id="disponibilidad" name="disponibilidad">
             <% Object.keys(AVAILABILITIES).forEach(function(key) { %>
               <option value="<%= key %>"><%= AVAILABILITIES[key] %></option>
@@ -54,19 +54,19 @@
           </select>
         </div>
       </div>
-      <button class="btn small" type="submit">Crear vacante</button>
+      <button class="btn small" type="submit"><%= tr('Crear vacante') %></button>
     </form>
   </details>
 
   <div class="page-title">
-    <h2>Vacantes actuales</h2>
+    <h2><%= tr('Vacantes actuales') %></h2>
     <span class="count"><%= jobs.length %></span>
   </div>
 
   <% if (jobs.length === 0) { %>
     <div class="card empty">
       <span class="empty-icon">💼</span>
-      <p>No tienes vacantes. Crea la primera arriba. Mientras no haya vacantes activas, la página NFC ofrecerá el formulario de futuras oportunidades.</p>
+      <p><%= tr('No tienes vacantes. Crea la primera arriba. Mientras no haya vacantes activas, la página NFC ofrecerá el formulario de futuras oportunidades.') %></p>
     </div>
   <% } else { %>
     <div class="stack">
@@ -74,12 +74,12 @@
         <div class="card">
           <div class="row-between">
             <h3 class="flat"><%= job.title %></h3>
-            <span class="badge <%= job.active ? 'green' : 'slate' %>"><%= job.active ? 'Activa' : 'Desactivada' %></span>
+            <span class="badge <%= job.active ? 'green' : 'slate' %>"><%= job.active ? tr('Activa') : tr('Desactivada') %></span>
           </div>
 
           <% if (job.description) { %><p class="muted small pre spaced-sm"><%= job.description %></p><% } %>
           <% if (job.requirements) { %>
-            <p class="muted small pre"><strong>Requisitos:</strong> <%= job.requirements %></p>
+            <p class="muted small pre"><strong><%= tr('Requisitos:') %></strong> <%= job.requirements %></p>
           <% } %>
 
           <div class="row spaced-sm">
@@ -95,29 +95,29 @@
           </div>
 
           <p class="dim tiny spaced-sm">
-            <%= plural(job.applicants, 'candidatura recibida', 'candidaturas recibidas') %> · creada el <%= fmtDate(job.created_at) %>
+            <%= plural(job.applicants, 'candidatura recibida', 'candidaturas recibidas') %> · <%= tr('creada el {date}', { date: fmtDate(job.created_at) }) %>
           </p>
 
           <details>
-            <summary>Editar…</summary>
+            <summary><%= tr('Editar…') %></summary>
             <div class="details-body">
               <form action="/panel/vagas/<%= job.id %>/editar" method="post">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
                 <div class="field">
-                  <label>Título</label>
+                  <label><%= tr('Título') %></label>
                   <input type="text" name="titulo" maxlength="80" value="<%= job.title %>" required>
                 </div>
                 <div class="field">
-                  <label>Descripción</label>
+                  <label><%= tr('Descripción') %></label>
                   <textarea name="descripcion" maxlength="2000"><%= job.description %></textarea>
                 </div>
                 <div class="field">
-                  <label>Requisitos</label>
+                  <label><%= tr('Requisitos') %></label>
                   <textarea name="requisitos" maxlength="2000"><%= job.requirements %></textarea>
                 </div>
                 <div class="hint-row">
                   <div class="field">
-                    <label>Tipo de contrato</label>
+                    <label><%= tr('Tipo de contrato') %></label>
                     <select name="contrato">
                       <% Object.keys(CONTRACT_TYPES).forEach(function(key) { %>
                         <option value="<%= key %>" <%= job.contract_type === key ? 'selected' : '' %>><%= CONTRACT_TYPES[key] %></option>
@@ -125,7 +125,7 @@
                     </select>
                   </div>
                   <div class="field">
-                    <label>Jornada</label>
+                    <label><%= tr('Jornada') %></label>
                     <select name="jornada">
                       <% Object.keys(WORK_SCHEDULES).forEach(function(key) { %>
                         <option value="<%= key %>" <%= job.work_schedule === key ? 'selected' : '' %>><%= WORK_SCHEDULES[key] %></option>
@@ -133,7 +133,7 @@
                     </select>
                   </div>
                   <div class="field">
-                    <label>Disponibilidad</label>
+                    <label><%= tr('Disponibilidad') %></label>
                     <select name="disponibilidad">
                       <% Object.keys(AVAILABILITIES).forEach(function(key) { %>
                         <option value="<%= key %>" <%= job.availability === key ? 'selected' : '' %>><%= AVAILABILITIES[key] %></option>
@@ -141,7 +141,7 @@
                     </select>
                   </div>
                 </div>
-                <button class="btn secondary small" type="submit">Guardar cambios</button>
+                <button class="btn secondary small" type="submit"><%= tr('Guardar cambios') %></button>
               </form>
             </div>
           </details>
@@ -150,18 +150,18 @@
             <form action="/panel/vagas/<%= job.id %>/toggle" method="post">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <% if (job.active) { %>
-                <button class="btn secondary small" type="submit">Desactivar vacante</button>
+                <button class="btn secondary small" type="submit"><%= tr('Desactivar vacante') %></button>
               <% } else { %>
-                <button class="btn small" type="submit">Activar vacante</button>
+                <button class="btn small" type="submit"><%= tr('Activar vacante') %></button>
               <% } %>
             </form>
             <details>
-              <summary class="summary-danger">Eliminar vacante…</summary>
+              <summary class="summary-danger"><%= tr('Eliminar vacante…') %></summary>
               <div class="details-body">
-                <p class="help help-lift">Las candidaturas recibidas para esta vacante se conservan.</p>
+                <p class="help help-lift"><%= tr('Las candidaturas recibidas para esta vacante se conservan.') %></p>
                 <form action="/panel/vagas/<%= job.id %>/eliminar" method="post">
                   <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-                  <button class="btn danger small" type="submit">Sí, eliminar esta vacante</button>
+                  <button class="btn danger small" type="submit"><%= tr('Sí, eliminar esta vacante') %></button>
                 </form>
               </div>
             </details>

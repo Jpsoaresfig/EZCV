@@ -48,6 +48,15 @@ A etiqueta **não é programada pelo sistema**: o Fíchame fornece a URL e o don
 - **Vídeo:** `public/video/fichame-demo.mp4` (legendas em espanhol) e `fichame-demo-en.mp4` (inglês), ~1 min 45 s, gravados da aplicação real com dados fictícios. Para regenerar depois de mudar a interface: ver o cabeçalho de [`scripts/demo-video/record.js`](scripts/demo-video/record.js). Sem ficheiro, a página mostra «Vídeo en preparación». Nada é descarregado até carregar no play.
 - `CONTACT_EMAIL` (opcional) mostra um botão «Escríbenos» na secção de opinião.
 
+**Idiomas** — espanhol, inglês e português
+- Detetado pelo browser; escolha em *Configuración → Idioma* ou no rodapé (cookie `fichame_lang`, só quando se escolhe).
+- Estilo gettext: o texto espanhol nas views é a chave de `tr('…')`; traduções em `src/locales/`. `node scripts/i18n-check.js` lista o que falta.
+- Textos legais (privacidade, termos, consentimentos) ficam em espanhol, a versão oficial. O `/admin` também.
+
+**Demo** — `/demo` (botão na `/conoce`)
+- Negócio fictício com 124 candidaturas inventadas, criado por `npm run demo:seed` (correr de novo recria-o com datas atuais).
+- Identificado como demonstração em todos os ecrãs; painel só de leitura; a página pública `/r/demo` não aceita candidaturas. Emails em `example.com`, telefones `000…`.
+
 **Admin da plataforma** — `/admin`
 - Métricas globais, ativação de estabelecimentos, bloqueio de utilizadores e logs de segurança.
 - **Divulgación** (`/admin/divulgacion`): o QR único que leva a `/conoce`, para descarregar (PNG/SVG), imprimir ou copiar o link. Só o admin o vê.

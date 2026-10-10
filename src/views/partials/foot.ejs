@@ -1,8 +1,19 @@
   <footer class="footer">
-    Fíchame · Candidaturas por NFC para cualquier negocio
-    · <a href="/privacidad">Privacidad</a>
-    · <a href="/cookies">Cookies</a>
-    · <a href="/terminos">Términos</a>
+    <%= tr('Fíchame · Candidaturas por NFC para cualquier negocio') %>
+    · <a href="/privacidad"><%= tr('Privacidad') %></a>
+    · <a href="/cookies"><%= tr('Cookies') %></a>
+    · <a href="/terminos"><%= tr('Términos') %></a>
+    <%
+      /* Páginas de erro voltam ao início: o caminho no link faria duas
+       * respostas 404 diferentes, e o 404 tem de ser igual para quem procura
+       * contas que existem ou não. */
+      var langNext = typeof status !== 'undefined' && status >= 400 ? '/' : (path || '/');
+    %>
+    <nav class="lang-switch" aria-label="<%= tr('Idioma') %>">
+      <% LANGS.forEach(function (l) { %>
+        <a href="/idioma/<%= l %>?next=<%= encodeURIComponent(langNext) %>" lang="<%= l %>"<%- l === lang ? ' aria-current="true"' : '' %>><%= l.toUpperCase() %></a>
+      <% }) %>
+    </nav>
   </footer>
   <script src="/js/app.js?v=<%= assetV %>" defer></script>
 </body>

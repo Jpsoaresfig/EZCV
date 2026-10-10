@@ -1,34 +1,32 @@
-<%- include('../partials/head', { title: 'Derechos' }) %>
+<%- include('../partials/head', { title: tr('Derechos') }) %>
 <%- include('../partials/panel_nav') %>
 
 <%
 var KINDS = {
-  acceso: 'Acceso', rectificacion: 'Rectificación', supresion: 'Supresión', oposicion: 'Oposición',
-  limitacion: 'Limitación', portabilidad: 'Portabilidad', retirada_consentimiento: 'Retirada del consentimiento', otro: 'Otra consulta'
+  acceso: tr('Acceso'), rectificacion: tr('Rectificación'), supresion: tr('Supresión'), oposicion: tr('Oposición'),
+  limitacion: tr('Limitación'), portabilidad: tr('Portabilidad'), retirada_consentimiento: tr('Retirada del consentimiento'), otro: tr('Otra consulta')
 };
-var ESTADOS = { recibida: 'Recibida', en_curso: 'En curso', resuelta: 'Resuelta', denegada: 'Denegada' };
+var ESTADOS = { recibida: tr('Recibida'), en_curso: tr('En curso'), resuelta: tr('Resuelta'), denegada: tr('Denegada') };
 %>
 
 <main class="container">
   <div class="page-title">
-    <h1>Solicitudes de derechos</h1>
-    <a class="btn ghost small" href="/panel/privacidad">Guía de privacidad</a>
+    <h1><%= tr('Solicitudes de derechos') %></h1>
+    <a class="btn ghost small" href="/panel/privacidad"><%= tr('Guía de privacidad') %></a>
   </div>
 
   <%- include('../partials/flash') %>
 
   <div class="card">
     <p class="flat small">
-      Las personas que se candidatan pueden pedir acceso, rectificación, supresión, oposición, limitación,
-      portabilidad o retirar su consentimiento. <strong>Tienes un mes para responder</strong> (ampliable dos
-      meses en casos complejos, avisando al interesado). Responde siempre al email que figura en la candidatura;
-      si el email de la solicitud no coincide con ninguna candidatura, pide una verificación razonable antes de
-      entregar datos. Para acceso/portabilidad usa «Exportar datos» en la ficha; para supresión, «Suprimir datos del candidato».
+      <%= tr('Las personas que se candidatan pueden pedir acceso, rectificación, supresión, oposición, limitación, portabilidad o retirar su consentimiento.') %>
+      <strong><%= tr('Tienes un mes para responder') %></strong>
+      <%= tr('(ampliable dos meses en casos complejos, avisando al interesado). Responde siempre al email que figura en la candidatura; si el email de la solicitud no coincide con ninguna candidatura, pide una verificación razonable antes de entregar datos. Para acceso/portabilidad usa «Exportar datos» en la ficha; para supresión, «Suprimir datos del candidato».') %>
     </p>
   </div>
 
   <% if (requests.length === 0) { %>
-    <div class="card empty"><p>No hay solicitudes.</p></div>
+    <div class="card empty"><p><%= tr('No hay solicitudes.') %></p></div>
   <% } %>
 
   <% requests.forEach(function(r) {
@@ -40,22 +38,22 @@ var ESTADOS = { recibida: 'Recibida', en_curso: 'En curso', resuelta: 'Resuelta'
       <div class="row-between">
         <div>
           <strong><%= KINDS[r.kind] || r.kind %></strong> · <span class="dim small"><%= r.public_ref %></span>
-          <div class="small">De: <%= r.requester_name %> &lt;<%= r.requester_email %>&gt; · <%= fmtDate(r.created_at) %></div>
+          <div class="small"><%= tr('De:') %> <%= r.requester_name %> &lt;<%= r.requester_email %>&gt; · <%= fmtDate(r.created_at) %></div>
         </div>
         <div class="nowrap">
           <span class="badge <%= open ? (overdue ? 'red' : 'amber') : 'green' %>"><%= ESTADOS[r.status] %></span>
-          <div class="dim tiny">Plazo: <%= fmtDate(r.due_at) %><%= r.extended ? ' (prorrogado)' : '' %><%= overdue ? ' — VENCIDO' : '' %></div>
+          <div class="dim tiny"><%= tr('Plazo:') %> <%= fmtDate(r.due_at) %><%= r.extended ? ' (' + tr('prorrogado') + ')' : '' %><%= overdue ? ' — ' + tr('VENCIDO') : '' %></div>
         </div>
       </div>
       <% if (r.message) { %><p class="pre small"><%= r.message %></p><% } %>
 
       <div class="small spaced-sm">
         <% if (found.length === 0) { %>
-          <span class="dim">Ninguna candidatura con este email en tu establecimiento.</span>
+          <span class="dim"><%= tr('Ninguna candidatura con este email en tu establecimiento.') %></span>
         <% } else { %>
-          Candidaturas con este email:
+          <%= tr('Candidaturas con este email:') %>
           <% found.forEach(function(f) { %>
-            <a href="/panel/candidaturas/<%= f.id %>"><%= f.first_name %> <%= f.last_name %> · <%= f.job_title || 'sin puesto' %> (<%= fmtDate(f.applied_at) %>)</a>
+            <a href="/panel/candidaturas/<%= f.id %>"><%= f.first_name %> <%= f.last_name %> · <%= f.job_title || tr('sin puesto') %> (<%= fmtDate(f.applied_at) %>)</a>
           <% }) %>
         <% } %>
       </div>
@@ -64,7 +62,7 @@ var ESTADOS = { recibida: 'Recibida', en_curso: 'En curso', resuelta: 'Resuelta'
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
         <div class="hint-row">
           <div class="field">
-            <label for="estado-<%= r.id %>">Estado</label>
+            <label for="estado-<%= r.id %>"><%= tr('Estado') %></label>
             <select id="estado-<%= r.id %>" name="estado">
               <% Object.keys(ESTADOS).forEach(function(k) { %>
                 <option value="<%= k %>" <%= r.status === k ? 'selected' : '' %>><%= ESTADOS[k] %></option>
@@ -72,17 +70,17 @@ var ESTADOS = { recibida: 'Recibida', en_curso: 'En curso', resuelta: 'Resuelta'
             </select>
           </div>
           <div class="field">
-            <label for="nota-<%= r.id %>">Nota interna (qué se hizo)</label>
+            <label for="nota-<%= r.id %>"><%= tr('Nota interna (qué se hizo)') %></label>
             <input id="nota-<%= r.id %>" type="text" name="nota" maxlength="2000" value="<%= r.resolution_note %>">
           </div>
         </div>
         <% if (open && !r.extended) { %>
           <label class="check check-plain">
             <input type="checkbox" name="prorrogar" value="1">
-            <span class="small">Prorrogar 2 meses (solo si es complejo; debes informar al interesado dentro del primer mes).</span>
+            <span class="small"><%= tr('Prorrogar 2 meses (solo si es complejo; debes informar al interesado dentro del primer mes).') %></span>
           </label>
         <% } %>
-        <button class="btn small" type="submit">Guardar</button>
+        <button class="btn small" type="submit"><%= tr('Guardar') %></button>
       </form>
     </div>
   <% }) %>

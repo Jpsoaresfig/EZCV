@@ -1,4 +1,4 @@
-<%- include('../partials/head', { title: 'Registro' }) %>
+<%- include('../partials/head', { title: tr('Registro') }) %>
 
 <div class="auth-wrap auth-wrap-top">
   <div class="auth-card">
@@ -7,18 +7,18 @@
         <img class="brand-mark" src="/img/logo.svg?v=<%= assetV %>" alt="" width="28" height="28">
         <span>Fíchame</span>
       </a>
-      <p>Crea la página de candidaturas de tu establecimiento</p>
+      <p><%= tr('Crea la página de candidaturas de tu establecimiento') %></p>
     </div>
 
     <div class="card">
-      <h2>Registra tu establecimiento</h2>
+      <h2><%= tr('Registra tu establecimiento') %></h2>
       <% if (locals.google) { %>
-        <div class="flash ok">Cuenta de Google verificada: <strong><%= google.email %></strong>. Completa los datos de tu negocio para terminar.</div>
+        <div class="flash ok"><%= tr('Cuenta de Google verificada:') %> <strong><%= google.email %></strong>. <%= tr('Completa los datos de tu negocio para terminar.') %></div>
       <% } else { %>
-        <p class="muted small">Después podrás usar tu URL exclusiva en la etiqueta NFC.</p>
+        <p class="muted small"><%= tr('Después podrás usar tu URL exclusiva en la etiqueta NFC.') %></p>
         <% if (locals.googleEnabled) { %>
-          <a class="btn secondary block lg btn-google" href="/login/google"><%- include('../partials/google_icon') %> Registrarse con Google</a>
-          <div class="auth-sep"><span>o con tu email</span></div>
+          <a class="btn secondary block lg btn-google" href="/login/google"><%- include('../partials/google_icon') %> <%= tr('Registrarse con Google') %></a>
+          <div class="auth-sep"><span><%= tr('o con tu email') %></span></div>
         <% } %>
       <% } %>
 
@@ -26,109 +26,111 @@
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
 
         <div class="field">
-          <label for="restaurant_name">Nombre del establecimiento *</label>
+          <label for="restaurant_name"><%= tr('Nombre del establecimiento') %> *</label>
           <input id="restaurant_name" type="text" name="restaurant_name" maxlength="100" required value="<%= form.restaurant_name || '' %>">
-          <% if (errors && errors.restaurant_name) { %><div class="field-error"><%= errors.restaurant_name %></div><% } %>
+          <% if (errors && errors.restaurant_name) { %><div class="field-error"><%= tr(errors.restaurant_name) %></div><% } %>
         </div>
 
         <div class="field">
-          <label for="commercial_name">Nombre comercial <span class="dim label-hint">(si es diferente)</span></label>
+          <label for="commercial_name"><%= tr('Nombre comercial') %> <span class="dim label-hint"><%= tr('(si es diferente)') %></span></label>
           <input id="commercial_name" type="text" name="commercial_name" maxlength="100" value="<%= form.commercial_name || '' %>">
-          <div class="help">Es el nombre que verán los candidatos en la página de la etiqueta NFC.</div>
+          <div class="help"><%= tr('Es el nombre que verán los candidatos en la página de la etiqueta NFC.') %></div>
         </div>
 
         <div class="field">
-          <label for="establecimiento">Tipo de establecimiento *</label>
+          <label for="establecimiento"><%= tr('Tipo de establecimiento') %> *</label>
           <select id="establecimiento" name="establecimiento" required>
-            <option value="">Selecciona…</option>
+            <option value=""><%= tr('Selecciona…') %></option>
             <% Object.keys(ESTABLISHMENT_TYPES).forEach(function(key) { %>
               <option value="<%= key %>" <%= form.establishment_type === key ? 'selected' : '' %>><%= ESTABLISHMENT_TYPES[key] %></option>
             <% }) %>
           </select>
-          <% if (errors && errors.establishment_type) { %><div class="field-error"><%= errors.establishment_type %></div><% } %>
+          <% if (errors && errors.establishment_type) { %><div class="field-error"><%= tr(errors.establishment_type) %></div><% } %>
         </div>
 
         <div class="field">
-          <label for="legal_name">Razón social o nombre del titular *</label>
+          <label for="legal_name"><%= tr('Razón social o nombre del titular') %> *</label>
           <input id="legal_name" type="text" name="legal_name" maxlength="150" required value="<%= form.legal_name || '' %>" autocomplete="organization">
-          <div class="help">La empresa o persona autónoma titular del negocio. Se muestra a los candidatos como <strong>responsable del tratamiento</strong> de sus datos (art. 13 RGPD).</div>
-          <% if (errors && errors.legal_name) { %><div class="field-error"><%= errors.legal_name %></div><% } %>
+          <div class="help"><%= tr('La empresa o persona autónoma titular del negocio. Se muestra a los candidatos como') %> <strong><%= tr('responsable del tratamiento') %></strong> <%= tr('de sus datos (art. 13 RGPD).') %></div>
+          <% if (errors && errors.legal_name) { %><div class="field-error"><%= tr(errors.legal_name) %></div><% } %>
         </div>
 
         <div class="field">
-          <label for="owner_name">Nombre de la persona de contacto *</label>
+          <label for="owner_name"><%= tr('Nombre de la persona de contacto') %> *</label>
           <input id="owner_name" type="text" name="owner_name" maxlength="100" required value="<%= form.owner_name || '' %>">
-          <% if (errors && errors.owner_name) { %><div class="field-error"><%= errors.owner_name %></div><% } %>
+          <% if (errors && errors.owner_name) { %><div class="field-error"><%= tr(errors.owner_name) %></div><% } %>
         </div>
 
         <% if (!locals.google) { %>
         <div class="field">
-          <label for="email">Email *</label>
+          <label for="email"><%= tr('Email') %> *</label>
           <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" autocomplete="email">
-          <% if (errors && errors.email) { %><div class="field-error"><%= errors.email %></div><% } %>
+          <% if (errors && errors.email) { %><div class="field-error"><%= tr(errors.email) %></div><% } %>
         </div>
-        <% } else if (errors && errors.email) { %><div class="field-error"><%= errors.email %></div><% } %>
+        <% } else if (errors && errors.email) { %><div class="field-error"><%= tr(errors.email) %></div><% } %>
 
         <div class="field">
-          <label for="telefono">Teléfono <span class="dim label-hint">(opcional)</span></label>
+          <label for="telefono"><%= tr('Teléfono') %> <span class="dim label-hint"><%= tr('(opcional)') %></span></label>
           <input id="telefono" type="tel" name="telefono" maxlength="30" value="<%= form.phone || '' %>" inputmode="tel">
-          <% if (errors && errors.phone) { %><div class="field-error"><%= errors.phone %></div><% } %>
+          <% if (errors && errors.phone) { %><div class="field-error"><%= tr(errors.phone) %></div><% } %>
         </div>
 
         <div class="field">
-          <label for="direccion">Dirección</label>
+          <label for="direccion"><%= tr('Dirección') %></label>
           <input id="direccion" type="text" name="direccion" maxlength="200" value="<%= form.address || '' %>">
         </div>
 
         <div class="hint-row">
           <div class="field">
-            <label for="cp">Código postal</label>
+            <label for="cp"><%= tr('Código postal') %></label>
             <input id="cp" type="text" name="cp" maxlength="5" pattern="\d{5}" inputmode="numeric" placeholder="28013" value="<%= form.postal_code || '' %>">
-            <% if (errors && errors.postal_code) { %><div class="field-error"><%= errors.postal_code %></div><% } %>
+            <% if (errors && errors.postal_code) { %><div class="field-error"><%= tr(errors.postal_code) %></div><% } %>
           </div>
           <div class="field">
-            <label for="ciudad">Ciudad *</label>
+            <label for="ciudad"><%= tr('Ciudad') %> *</label>
             <input id="ciudad" type="text" name="ciudad" maxlength="100" required value="<%= form.city || '' %>">
-            <% if (errors && errors.city) { %><div class="field-error"><%= errors.city %></div><% } %>
+            <% if (errors && errors.city) { %><div class="field-error"><%= tr(errors.city) %></div><% } %>
           </div>
         </div>
 
         <div class="field">
-          <label for="descripcion">Descripción breve</label>
-          <textarea id="descripcion" name="descripcion" maxlength="1500" rows="3" placeholder="Ej.: Cocina mediterránea en el centro de Madrid. Buscamos equipo con ganas de aprender."><%= form.description || '' %></textarea>
-          <div class="help">Se muestra en la página pública de tu etiqueta NFC.</div>
+          <label for="descripcion"><%= tr('Descripción breve') %></label>
+          <textarea id="descripcion" name="descripcion" maxlength="1500" rows="3" placeholder="<%= tr('Ej.: Cocina mediterránea en el centro de Madrid. Buscamos equipo con ganas de aprender.') %>"><%= form.description || '' %></textarea>
+          <div class="help"><%= tr('Se muestra en la página pública de tu etiqueta NFC.') %></div>
         </div>
 
         <% if (!locals.google) { %>
         <div class="field">
-          <label for="password">Contraseña * <span class="dim label-hint">(mínimo <%= minPassword %> caracteres)</span></label>
+          <label for="password"><%= tr('Contraseña') %> * <span class="dim label-hint"><%= tr('(mínimo {n} caracteres)', { n: minPassword }) %></span></label>
           <input id="password" type="password" name="password" required minlength="<%= minPassword %>" autocomplete="new-password">
-          <% if (errors && errors.password) { %><div class="field-error"><%= errors.password %></div><% } %>
+          <% if (errors && errors.password) { %><div class="field-error"><%= tr(errors.password) %></div><% } %>
         </div>
 
         <div class="field">
-          <label for="password2">Repetir contraseña *</label>
+          <label for="password2"><%= tr('Repetir contraseña') %> *</label>
           <input id="password2" type="password" name="password2" required autocomplete="new-password">
-          <% if (errors && errors.password2) { %><div class="field-error"><%= errors.password2 %></div><% } %>
+          <% if (errors && errors.password2) { %><div class="field-error"><%= tr(errors.password2) %></div><% } %>
         </div>
         <% } %>
 
         <div class="notice-box">
-          <strong>Antes de crear la cuenta</strong>
-          <p>Tu negocio será el <strong>responsable del tratamiento</strong> de los datos de las personas que se candidaten. Fíchame trata esos datos solo por tu cuenta y siguiendo tus instrucciones (<strong>encargado del tratamiento</strong>). Fíchame no selecciona candidatos ni decide por ti.</p>
+          <strong><%= tr('Antes de crear la cuenta') %></strong>
+          <p><%= tr('Tu negocio será el') %> <strong><%= tr('responsable del tratamiento') %></strong> <%= tr('de los datos de las personas que se candidaten. Fíchame trata esos datos solo por tu cuenta y siguiendo tus instrucciones') %> (<strong><%= tr('encargado del tratamiento') %></strong>). <%= tr('Fíchame no selecciona candidatos ni decide por ti.') %></p>
         </div>
 
+        <%# O texto de aceitação dos termos fica em espanhol (versão oficial). %>
+        <% if (lang !== 'es') { %><p class="help"><%= tr('Los textos legales (privacidad, términos y consentimientos) se muestran en español, que es su versión oficial.') %></p><% } %>
         <label class="check">
           <input type="checkbox" name="acepto" value="1" <%= form.accept ? 'checked' : '' %>>
           <span>He leído y acepto los <a href="/terminos" target="_blank" rel="noopener">Términos de uso</a> y el <a href="/encargo" target="_blank" rel="noopener">Acuerdo de encargo del tratamiento</a>, y he leído la <a href="/privacidad" target="_blank" rel="noopener">Política de privacidad</a>. *</span>
         </label>
-        <% if (errors && errors.acepto) { %><div class="field-error consent-error"><%= errors.acepto %></div><% } %>
+        <% if (errors && errors.acepto) { %><div class="field-error consent-error"><%= tr(errors.acepto) %></div><% } %>
 
-        <button class="btn block lg spaced" type="submit">Crear cuenta</button>
+        <button class="btn block lg spaced" type="submit"><%= tr('Crear cuenta') %></button>
       </form>
 
       <p class="small muted center auth-alt">
-        ¿Ya tienes cuenta? <a href="/login">Inicia sesión</a>
+        <%= tr('¿Ya tienes cuenta?') %> <a href="/login"><%= tr('Inicia sesión') %></a>
       </p>
     </div>
   </div>

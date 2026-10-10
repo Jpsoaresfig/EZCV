@@ -1,9 +1,9 @@
-<%- include('../partials/head', { title: 'Candidatura enviada' }) %>
+<%- include('../partials/head', { title: tr('Candidatura enviada') }) %>
 
 <header class="hero">
   <div class="container-narrow hero-body">
     <h1><%= restaurant.commercial_name || restaurant.name %></h1>
-    <p class="sub">Gracias por tu interés</p>
+    <p class="sub"><%= tr('Gracias por tu interés') %></p>
   </div>
 </header>
 
@@ -11,27 +11,24 @@
   <div class="card center pad-lg">
     <div class="success-mark">✓</div>
     <% if (future) { %>
-      <h2>¡Datos guardados correctamente!</h2>
+      <h2><%= tr('¡Datos guardados correctamente!') %></h2>
       <p class="muted">
-        Conservaremos tu candidatura para futuras oportunidades laborales y te
-        contactaremos si surge una vacante.
+        <%= tr('Conservaremos tu candidatura para futuras oportunidades laborales y te contactaremos si surge una vacante.') %>
       </p>
     <% } else { %>
-      <h2>¡Candidatura enviada correctamente!</h2>
+      <h2><%= tr('¡Candidatura enviada correctamente!') %></h2>
       <p class="muted">
-        El establecimiento ha recibido tus datos y tu CV. Si tu perfil encaja,
-        te contactarán por teléfono o email.
+        <%= tr('El establecimiento ha recibido tus datos y tu CV. Si tu perfil encaja, te contactarán por teléfono o email.') %>
       </p>
     <% } %>
     <div class="actions-row center-row spaced">
-      <a class="btn secondary" href="/r/<%= restaurant.slug %>">Volver a la página</a>
+      <a class="btn secondary" href="/r/<%= restaurant.slug %>"><%= tr('Volver a la página') %></a>
     </div>
   </div>
 
   <p class="dim tiny center">
-    Puedes pedir el acceso, la rectificación o la supresión de tus datos, o
-    retirar el consentimiento de futuras oportunidades, en cualquier momento.
-    <a href="/r/<%= restaurant.slug %>/privacidad#derechos">Ejercer mis derechos</a>.
+    <%= tr('Puedes pedir el acceso, la rectificación o la supresión de tus datos, o retirar el consentimiento de futuras oportunidades, en cualquier momento.') %>
+    <a href="/r/<%= restaurant.slug %>/privacidad#derechos"><%= tr('Ejercer mis derechos') %></a>.
   </p>
 </main>
 

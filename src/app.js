@@ -12,6 +12,7 @@ const { rateLimit } = require('./middleware/rateLimit');
 const { STATUSES, AVAILABILITIES, DOC_TYPES, ESTABLISHMENT_TYPES, CONTRACT_TYPES, WORK_SCHEDULES, statusLabel, availabilityLabel, docTypeLabel, historyLabel } = require('./lib/statuses');
 const { icon, initials } = require('./lib/icons');
 const { newRef, recordError } = require('./lib/errors');
+const { i18n, setLanguageRoute, translate, LANGS, LANG_NAMES } = require('./lib/i18n');
 
 /* O PostgREST devolve timestamptz como ISO 8601 com fuso ("…+00:00"), que o
  * Date do JS lê diretamente. O ramo que acrescenta 'Z' cobre valores sem
@@ -185,6 +186,9 @@ function createApp() {
     res.locals.path = req.path || '';
     next();
   });
+  /* Idioma da interface (src/lib/i18n.js). Depois de app.locals estar
+   * preenchido: os helpers traduzidos chamam os originais. */
+  app.use(i18n);
   app.use(express.urlencoded({ extended: false, limit: '100kb' }));
   app.use(express.json({ limit: '50kb' }));
   app.use(csrfProtection);
@@ -214,7 +218,14 @@ function createApp() {
   app.locals.maxUploadMb = Math.round(config.maxUploadBytes / (1024 * 1024));
   app.locals.maxImgMb = Math.round(config.maxImageBytes / (1024 * 1024));
   app.locals.assetV = assetVersion();
+  /* Valores por omissão para páginas renderizadas antes do middleware de
+   * idioma (ex.: erro ao carregar a sessão): espanhol, sem tradução. */
+  app.locals.lang = 'es';
+  app.locals.LANGS = LANGS;
+  app.locals.LANG_NAMES = LANG_NAMES;
+  app.locals.tr = (text, vars) => translate('es', text, vars);
 
+  app.get('/idioma/:lang', setLanguageRoute);
   app.use('/', require('./routes/legal'));
   app.use('/', require('./routes/presentation'));
   app.use('/', require('./routes/public'));

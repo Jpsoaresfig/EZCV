@@ -14,6 +14,7 @@ const { emailTag } = require('../lib/privacy');
 const { sendPasswordReset } = require('../lib/mailer');
 const { TERMS_VERSION, DPA_VERSION, recordAcceptance } = require('../lib/legal');
 const { ESTABLISHMENT_TYPES } = require('../lib/statuses');
+const { DEMO_EMAIL, isDemoUser } = require('../lib/demo');
 
 const router = express.Router();
 
@@ -73,7 +74,12 @@ function passwordProblem(pw, email) {
  * A aceitação dos Termos e do Acordo de Encargo é contratual (não é um
  * consentimento RGPD) e fica registada com a versão e a data.
  */
-router.get('/registro', ensureSession, (req, res) => {
+router.get('/registro', ensureSession, async (req, res) => {
+  /* Da demo para o registo: a sessão demo termina aqui. */
+  if (isDemoUser(req.user)) {
+    await destroySession(req, res);
+    return res.redirect('/registro');
+  }
   if (req.user) return res.redirect(req.user.role === 'admin' ? '/admin' : '/panel');
   res.render('auth/register', { form: {}, errors: null, minPassword: MIN_PASSWORD });
 });
@@ -419,6 +425,40 @@ router.post('/logout', async (req, res) => {
   await destroySession(req, res);
   res.redirect('/login');
 });
+
+/* ------------------------------------------------------------------ *
+ * Demo — entra no painel do negócio fictício (src/lib/demo.js)
+ * ------------------------------------------------------------------ *
+ * GET porque é o destino de um link na /conoce. Quem já tem sessão de um
+ * negócio real não é desligado: volta ao seu painel. Sem `npm run demo:seed`
+ * a conta não existe e a rota dá 404. */
+router.get('/demo',
+  rateLimit({
+    windowMs: 15 * 60 * 1000, max: 20, name: 'demo',
+    message: 'Demasiados accesos a la demo. Espera unos minutos.'
+  }),
+  async (req, res) => {
+    if (req.user && !isDemoUser(req.user)) {
+      return res.redirect(req.user.role === 'admin' ? '/admin' : '/panel');
+    }
+    if (req.user) return res.redirect('/panel');
+
+    const user = await one(
+      sb().from('users').select('id, blocked').eq('email', DEMO_EMAIL),
+      'conta demo'
+    );
+    if (!user || user.blocked) {
+      return res.status(404).render('error', {
+        status: 404, title: 'Demo no disponible', message: 'La demostración no está disponible en este momento.'
+      });
+    }
+
+    await destroySession(req, res);
+    await createSession(req, res, user.id);
+    logSecurity('demo_login', `user=${user.id}`, req.ip, { userId: user.id });
+    res.redirect('/panel');
+  }
+);
 
 /* ------------------------------------------------------------------ *
  * Recuperação de senha

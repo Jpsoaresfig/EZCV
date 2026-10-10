@@ -1,9 +1,9 @@
-<%- include('../partials/head', { title: 'Privacidad · ' + (restaurant.commercial_name || restaurant.name) }) %>
+<%- include('../partials/head', { title: tr('Privacidad') + ' · ' + (restaurant.commercial_name || restaurant.name) }) %>
 
 <header class="hero">
   <div class="container-narrow hero-body">
     <h1><%= restaurant.commercial_name || restaurant.name %></h1>
-    <p class="sub">Protección de datos de las candidaturas</p>
+    <p class="sub"><%= tr('Protección de datos de las candidaturas') %></p>
   </div>
 </header>
 
@@ -12,24 +12,25 @@
 <% if (sentRef) { %>
   <div class="card center pad-lg">
     <div class="success-mark">✓</div>
-    <h2>Solicitud registrada</h2>
-    <p>Referencia: <strong><%= sentRef %></strong></p>
+    <h2><%= tr('Solicitud registrada') %></h2>
+    <p><%= tr('Referencia:') %> <strong><%= sentRef %></strong></p>
     <p class="muted">
-      La solicitud se ha enviado al establecimiento, que es quien decide sobre tus
-      datos. Debe responderte en el plazo de <strong>un mes</strong> (ampliable dos
-      meses más en casos complejos, avisándote). Te contestará al email que has
-      indicado; para proteger tus datos, puede pedirte que confirmes tu identidad.
+      <%= tr('La solicitud se ha enviado al establecimiento, que es quien decide sobre tus datos. Debe responderte en el plazo de') %>
+      <strong><%= tr('un mes') %></strong>
+      <%= tr('(ampliable dos meses más en casos complejos, avisándote). Te contestará al email que has indicado; para proteger tus datos, puede pedirte que confirmes tu identidad.') %>
     </p>
-    <p class="help">Si no recibes respuesta, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>
+    <p class="help"><%= tr('Si no recibes respuesta, puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).') %></p>
     <div class="actions-row center-row spaced">
-      <a class="btn secondary" href="/r/<%= restaurant.slug %>">Volver a la página</a>
+      <a class="btn secondary" href="/r/<%= restaurant.slug %>"><%= tr('Volver a la página') %></a>
     </div>
   </div>
 <% } else { %>
 
   <div class="card">
-    <h2>Información sobre el tratamiento de tus datos</h2>
-    <p class="dim tiny">Versión del texto: <%= noticeVersion %></p>
+    <h2><%= tr('Información sobre el tratamiento de tus datos') %></h2>
+    <p class="dim tiny"><%= tr('Versión del texto:') %> <%= noticeVersion %></p>
+    <%# A informação legal abaixo fica em espanhol (versão oficial). %>
+    <% if (lang !== 'es') { %><p class="help"><%= tr('Los textos legales (privacidad, términos y consentimientos) se muestran en español, que es su versión oficial.') %></p><% } %>
 
     <h3>Responsable del tratamiento</h3>
     <p>
@@ -75,8 +76,8 @@
   </div>
 
   <div class="card" id="derechos">
-    <h2>Ejercer mis derechos</h2>
-    <p class="help help-lift">La solicitud llega al establecimiento, que debe responderte en un mes. Usa el mismo email con el que enviaste la candidatura: así pueden encontrar tus datos.</p>
+    <h2><%= tr('Ejercer mis derechos') %></h2>
+    <p class="help help-lift"><%= tr('La solicitud llega al establecimiento, que debe responderte en un mes. Usa el mismo email con el que enviaste la candidatura: así pueden encontrar tus datos.') %></p>
 
     <form action="/r/<%= restaurant.slug %>/derechos" method="post">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -86,31 +87,31 @@
       </div>
 
       <div class="field">
-        <label for="tipo">¿Qué quieres solicitar? *</label>
+        <label for="tipo"><%= tr('¿Qué quieres solicitar?') %> *</label>
         <select id="tipo" name="tipo" required>
-          <option value="">Selecciona…</option>
+          <option value=""><%= tr('Selecciona…') %></option>
           <% Object.keys(kinds).forEach(function(k) { %>
-            <option value="<%= k %>" <%= form.kind === k ? 'selected' : '' %>><%= kinds[k] %></option>
+            <option value="<%= k %>" <%= form.kind === k ? 'selected' : '' %>><%= tr(kinds[k]) %></option>
           <% }) %>
         </select>
-        <% if (errors && errors.tipo) { %><div class="field-error"><%= errors.tipo %></div><% } %>
+        <% if (errors && errors.tipo) { %><div class="field-error"><%= tr(errors.tipo) %></div><% } %>
       </div>
       <div class="field">
-        <label for="nombre">Nombre *</label>
+        <label for="nombre"><%= tr('Nombre') %> *</label>
         <input id="nombre" type="text" name="nombre" maxlength="100" required value="<%= form.name || '' %>" autocomplete="name">
-        <% if (errors && errors.nombre) { %><div class="field-error"><%= errors.nombre %></div><% } %>
+        <% if (errors && errors.nombre) { %><div class="field-error"><%= tr(errors.nombre) %></div><% } %>
       </div>
       <div class="field">
-        <label for="email">Email con el que te candidataste *</label>
+        <label for="email"><%= tr('Email con el que te candidataste') %> *</label>
         <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" autocomplete="email" inputmode="email">
-        <% if (errors && errors.email) { %><div class="field-error"><%= errors.email %></div><% } %>
+        <% if (errors && errors.email) { %><div class="field-error"><%= tr(errors.email) %></div><% } %>
       </div>
       <div class="field">
-        <label for="mensaje">Detalles <span class="dim label-hint">(opcional)</span></label>
-        <textarea id="mensaje" name="mensaje" maxlength="1500" rows="3" placeholder="Ej.: quiero que corrijan mi teléfono."><%= form.message || '' %></textarea>
-        <div class="help">No incluyas documentos de identidad ni datos sensibles.</div>
+        <label for="mensaje"><%= tr('Detalles') %> <span class="dim label-hint"><%= tr('(opcional)') %></span></label>
+        <textarea id="mensaje" name="mensaje" maxlength="1500" rows="3" placeholder="<%= tr('Ej.: quiero que corrijan mi teléfono.') %>"><%= form.message || '' %></textarea>
+        <div class="help"><%= tr('No incluyas documentos de identidad ni datos sensibles.') %></div>
       </div>
-      <button class="btn block" type="submit">Enviar solicitud</button>
+      <button class="btn block" type="submit"><%= tr('Enviar solicitud') %></button>
     </form>
   </div>
 

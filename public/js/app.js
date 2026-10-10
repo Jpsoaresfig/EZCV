@@ -31,7 +31,7 @@ document.addEventListener('click', function (e) {
   var text = btn.getAttribute('data-copy');
   var done = function () {
     var old = btn.textContent;
-    btn.textContent = '¡Copiado!';
+    btn.textContent = { en: 'Copied!', pt: 'Copiado!' }[document.documentElement.lang] || '¡Copiado!';
     setTimeout(function () { btn.textContent = old; }, 1600);
   };
   if (navigator.clipboard && navigator.clipboard.writeText) {

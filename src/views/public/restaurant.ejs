@@ -9,7 +9,7 @@
 
   <div class="container-narrow hero-body">
     <% if (restaurant.logo_path) { %>
-      <img class="hero-logo" src="/r/<%= restaurant.slug %>/imagen/logo?v=<%= String(restaurant.logo_path).split('/').pop() %>" alt="Logo de <%= restaurant.name %>">
+      <img class="hero-logo" src="/r/<%= restaurant.slug %>/imagen/logo?v=<%= String(restaurant.logo_path).split('/').pop() %>" alt="<%= tr('Logo de {name}', { name: restaurant.name }) %>">
     <% } %>
 
     <h1><%= restaurant.commercial_name || restaurant.name %></h1>
@@ -29,25 +29,29 @@
     <% } %>
 
     <% if (mode === 'form') { %>
-      <span class="badge-open"><span class="dot green"></span> Estamos contratando</span>
+      <span class="badge-open"><span class="dot green"></span> <%= tr('Estamos contratando') %></span>
     <% } else { %>
-      <span class="badge-closed"><span class="dot red"></span> No estamos contratando</span>
+      <span class="badge-closed"><span class="dot red"></span> <%= tr('No estamos contratando') %></span>
     <% } %>
   </div>
 </header>
 
 <main class="container-narrow public-main">
 
+<% if (restaurant.demo) { %>
+  <div class="flash ok"><strong><%= tr('Página de demostración.') %></strong> <%= tr('Este negocio es ficticio y el formulario no envía nada.') %> <a href="/registro"><%= tr('Crea la página de tu negocio gratis') %></a>.</div>
+<% } %>
+
 <% if (typeof query !== 'undefined' && query && query.err) { %>
-  <div class="flash err"><%= query.err %></div>
+  <div class="flash err"><%= tr(query.err) %></div>
 <% } %>
 
 <% if (mode === 'form') { %>
 
   <% if (jobs.length > 0) { %>
     <div class="card">
-      <h2>Vacantes abiertas</h2>
-      <p class="help help-lift">Puedes elegir una en el formulario, o dejarlo sin especificar.</p>
+      <h2><%= tr('Vacantes abiertas') %></h2>
+      <p class="help help-lift"><%= tr('Puedes elegir una en el formulario, o dejarlo sin especificar.') %></p>
       <% jobs.forEach(function(job) { %>
         <div class="job-item">
           <div class="title"><%= job.title %></div>
@@ -68,11 +72,11 @@
   <% } %>
 
   <div class="card">
-    <h2>Envía tu candidatura</h2>
-    <p class="help help-lift">Menos de 2 minutos. Solo necesitas tus datos y tu CV en PDF. No hace falta crear ninguna cuenta.</p>
+    <h2><%= tr('Envía tu candidatura') %></h2>
+    <p class="help help-lift"><%= tr('Menos de 2 minutos. Solo necesitas tus datos y tu CV en PDF. No hace falta crear ninguna cuenta.') %></p>
 
     <% if (errors && errors.general) { %>
-      <div class="flash err"><%= errors.general.join(' ') %></div>
+      <div class="flash err"><%= errors.general.map(function(e) { return tr(e); }).join(' ') %></div>
     <% } %>
 
     <form action="/r/<%= restaurant.slug %>/apply" method="post" enctype="multipart/form-data" novalidate>
@@ -82,52 +86,52 @@
         <input type="text" name="sitio_web" tabindex="-1" autocomplete="off">
       </div>
 
-      <div class="section-title">Tus datos</div>
+      <div class="section-title"><%= tr('Tus datos') %></div>
 
       <div class="field">
-        <label for="nombre">Nombre *</label>
+        <label for="nombre"><%= tr('Nombre') %> *</label>
         <input id="nombre" type="text" name="nombre" maxlength="100" required value="<%= form.nombre || '' %>" autocomplete="given-name">
-        <% if (errors && errors.nombre) { %><div class="field-error"><%= errors.nombre %></div><% } %>
+        <% if (errors && errors.nombre) { %><div class="field-error"><%= tr(errors.nombre) %></div><% } %>
       </div>
 
       <div class="field">
-        <label for="apellidos">Apellidos</label>
+        <label for="apellidos"><%= tr('Apellidos') %></label>
         <input id="apellidos" type="text" name="apellidos" maxlength="100" value="<%= form.apellidos || '' %>" autocomplete="family-name">
       </div>
 
       <div class="field">
-        <label for="email">Email *</label>
+        <label for="email"><%= tr('Email') %> *</label>
         <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" autocomplete="email" inputmode="email">
-        <% if (errors && errors.email) { %><div class="field-error"><%= errors.email %></div><% } %>
+        <% if (errors && errors.email) { %><div class="field-error"><%= tr(errors.email) %></div><% } %>
       </div>
 
       <div class="field">
-        <label for="telefono">Número de teléfono *</label>
+        <label for="telefono"><%= tr('Número de teléfono') %> *</label>
         <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= form.telefono || '' %>" autocomplete="tel" inputmode="tel">
-        <% if (errors && errors.telefono) { %><div class="field-error"><%= errors.telefono %></div><% } %>
+        <% if (errors && errors.telefono) { %><div class="field-error"><%= tr(errors.telefono) %></div><% } %>
       </div>
 
-      <div class="section-title">El puesto</div>
+      <div class="section-title"><%= tr('El puesto') %></div>
 
       <div class="field">
-        <label for="puesto">Puesto al que aspiras</label>
+        <label for="puesto"><%= tr('Puesto al que aspiras') %></label>
         <select id="puesto" name="puesto">
-          <option value="">No especifico / cualquiera</option>
+          <option value=""><%= tr('No especifico / cualquiera') %></option>
           <% jobs.forEach(function(job) { %>
             <option value="<%= job.id %>" <%= String(form.puesto) === String(job.id) ? 'selected' : '' %>><%= job.title %></option>
           <% }) %>
-          <option value="otro" <%= form.puesto === 'otro' ? 'selected' : '' %>>Otro</option>
+          <option value="otro" <%= form.puesto === 'otro' ? 'selected' : '' %>><%= tr('Otro') %></option>
         </select>
-        <% if (errors && errors.puesto) { %><div class="field-error"><%= errors.puesto %></div><% } %>
+        <% if (errors && errors.puesto) { %><div class="field-error"><%= tr(errors.puesto) %></div><% } %>
       </div>
 
       <div class="field <%= form.puesto === 'otro' ? '' : 'is-hidden' %>" id="otro-puesto-field">
-        <label for="otro_puesto">¿Qué puesto?</label>
+        <label for="otro_puesto"><%= tr('¿Qué puesto?') %></label>
         <input id="otro_puesto" type="text" name="otro_puesto" maxlength="80" value="<%= form.otro_puesto || '' %>">
       </div>
 
       <div class="field">
-        <label for="disponibilidad">Disponibilidad</label>
+        <label for="disponibilidad"><%= tr('Disponibilidad') %></label>
         <select id="disponibilidad" name="disponibilidad">
           <% Object.keys(AVAILABILITIES).forEach(function(key) { %>
             <option value="<%= key %>" <%= form.disponibilidad === key ? 'selected' : '' %>><%= AVAILABILITIES[key] %></option>
@@ -136,49 +140,52 @@
       </div>
 
       <div class="field">
-        <label for="experiencia">Experiencia</label>
-        <textarea id="experiencia" name="experiencia" maxlength="2000" placeholder="Ej.: 2 años de atención al cliente en…"><%= form.experiencia || '' %></textarea>
+        <label for="experiencia"><%= tr('Experiencia') %></label>
+        <textarea id="experiencia" name="experiencia" maxlength="2000" placeholder="<%= tr('Ej.: 2 años de atención al cliente en…') %>"><%= form.experiencia || '' %></textarea>
       </div>
 
       <div class="field">
-        <label for="observaciones">Observaciones <span class="dim label-hint">(opcional)</span></label>
-        <textarea id="observaciones" name="observaciones" maxlength="1000" placeholder="Ej.: puedo incorporarme en dos semanas."><%= form.observaciones || '' %></textarea>
+        <label for="observaciones"><%= tr('Observaciones') %> <span class="dim label-hint"><%= tr('(opcional)') %></span></label>
+        <textarea id="observaciones" name="observaciones" maxlength="1000" placeholder="<%= tr('Ej.: puedo incorporarme en dos semanas.') %>"><%= form.observaciones || '' %></textarea>
       </div>
 
       <div class="notice-box">
-        <strong>Comparte solo lo necesario para el puesto.</strong>
-        <p>No hace falta —ni en el formulario ni en el CV— tu DNI/NIE, fecha de nacimiento, nacionalidad, estado civil, fotografía, ni datos sobre salud, discapacidad, religión, ideas políticas, afiliación sindical, origen étnico u orientación sexual. Si tu CV los incluye, puedes quitarlos antes de enviarlo.</p>
+        <strong><%= tr('Comparte solo lo necesario para el puesto.') %></strong>
+        <p><%= tr('No hace falta —ni en el formulario ni en el CV— tu DNI/NIE, fecha de nacimiento, nacionalidad, estado civil, fotografía, ni datos sobre salud, discapacidad, religión, ideas políticas, afiliación sindical, origen étnico u orientación sexual. Si tu CV los incluye, puedes quitarlos antes de enviarlo.') %></p>
       </div>
 
-      <div class="section-title">Tu currículum</div>
+      <div class="section-title"><%= tr('Tu currículum') %></div>
 
       <div class="field">
-        <label for="cv">CV en PDF *</label>
+        <label for="cv"><%= tr('CV en PDF') %> *</label>
         <div class="file-pick">
           <input class="file-pick-input" id="cv" type="file" name="cv" accept="application/pdf,.pdf" required>
           <label class="file-pick-box" for="cv">
             <span class="file-pick-icon"><%- icon('file') %></span>
             <span class="file-pick-text">
-              <strong data-file-action data-empty="Elegir PDF" data-change="Cambiar archivo">Elegir PDF</strong>
-              <span>Toca para buscar tu CV en el móvil</span>
+              <strong data-file-action data-empty="<%= tr('Elegir PDF') %>" data-change="<%= tr('Cambiar archivo') %>"><%= tr('Elegir PDF') %></strong>
+              <span><%= tr('Toca para buscar tu CV en el móvil') %></span>
             </span>
           </label>
         </div>
         <div class="file-name" data-file-name></div>
-        <div class="help">PDF · máximo <%= maxUploadMb %> MB</div>
-        <% if (errors && errors.cv) { %><div class="field-error"><%= errors.cv %></div><% } %>
+        <div class="help"><%= tr('PDF · máximo {n} MB', { n: maxUploadMb }) %></div>
+        <% if (errors && errors.cv) { %><div class="field-error"><%= tr(errors.cv) %></div><% } %>
       </div>
 
-      <div class="section-title">Protección de datos</div>
+      <div class="section-title"><%= tr('Protección de datos') %></div>
+
+      <%# A informação de privacidade e o consentimento ficam em espanhol (versão oficial). %>
+      <% if (lang !== 'es') { %><p class="help"><%= tr('Los textos legales (privacidad, términos y consentimientos) se muestran en español, que es su versión oficial.') %></p><% } %>
 
       <%- include('privacy_layer', { purpose: 'gestionar tu candidatura en este proceso de selección', basis: 'La aplicación, a petición tuya, de medidas precontractuales: tú nos envías la candidatura para optar a un empleo (art. 6.1.b RGPD). No necesitas dar ningún consentimiento para candidatarte.', keep: 'Mientras el proceso siga abierto y, como máximo, ' + retention.inactive + ' sin actividad. Cuando el proceso termine, se borran en ' + retention.closed + ', salvo que marques la casilla de abajo.' }) %>
 
       <label class="check">
         <input type="checkbox" name="consentimiento_futuro" value="1" <%= form.consent_futuro ? 'checked' : '' %>>
-        <span><strong>Opcional.</strong> <%= consentFutureText %></span>
+        <span><strong><%= tr('Opcional.') %></strong> <%= consentFutureText %></span>
       </label>
 
-      <button class="btn block lg spaced" type="submit">Enviar candidatura</button>
+      <button class="btn block lg spaced" type="submit"<%= restaurant.demo ? ' disabled' : '' %>><%= tr('Enviar candidatura') %></button>
     </form>
   </div>
 
@@ -186,17 +193,17 @@
 
   <div class="card">
     <% if (mode === 'paused') { %>
-      <h2>Actualmente no estamos contratando.</h2>
-      <p class="muted">Puedes volver a consultar más adelante.</p>
+      <h2><%= tr('Actualmente no estamos contratando.') %></h2>
+      <p class="muted"><%= tr('Puedes volver a consultar más adelante.') %></p>
     <% } else { %>
-      <h2>Actualmente no tenemos vacantes disponibles.</h2>
-      <p class="muted">Déjanos tus datos y te contactaremos cuando haya una oportunidad.</p>
+      <h2><%= tr('Actualmente no tenemos vacantes disponibles.') %></h2>
+      <p class="muted"><%= tr('Déjanos tus datos y te contactaremos cuando haya una oportunidad.') %></p>
     <% } %>
 
-    <div class="section-title">¿Quieres que guardemos tu candidatura para futuras oportunidades?</div>
+    <div class="section-title"><%= tr('¿Quieres que guardemos tu candidatura para futuras oportunidades?') %></div>
 
     <% if (errors && errors.general) { %>
-      <div class="flash err"><%= errors.general.join(' ') %></div>
+      <div class="flash err"><%= errors.general.map(function(e) { return tr(e); }).join(' ') %></div>
     <% } %>
 
     <form action="/r/<%= restaurant.slug %>/interes" method="post">
@@ -207,22 +214,25 @@
       </div>
 
       <div class="field">
-        <label for="nombre">Nombre *</label>
+        <label for="nombre"><%= tr('Nombre') %> *</label>
         <input id="nombre" type="text" name="nombre" maxlength="100" required value="<%= form.nombre || '' %>" autocomplete="given-name">
       </div>
       <div class="field">
-        <label for="email">Email *</label>
+        <label for="email"><%= tr('Email') %> *</label>
         <input id="email" type="email" name="email" maxlength="120" required value="<%= form.email || '' %>" inputmode="email" autocomplete="email">
       </div>
       <div class="field">
-        <label for="telefono">Teléfono *</label>
+        <label for="telefono"><%= tr('Teléfono') %> *</label>
         <input id="telefono" type="tel" name="telefono" maxlength="30" required value="<%= form.telefono || '' %>" inputmode="tel" autocomplete="tel">
       </div>
       <div class="field">
-        <label for="experiencia">¿En qué te gustaría trabajar?</label>
-        <textarea id="experiencia" name="experiencia" maxlength="500" rows="3" placeholder="Ej.: camarero/a o dependiente/a, 2 años de experiencia, disponible por las tardes."><%= form.experiencia || '' %></textarea>
-        <div class="help">Opcional. Una frase basta. No incluyas datos personales que no sean necesarios.</div>
+        <label for="experiencia"><%= tr('¿En qué te gustaría trabajar?') %></label>
+        <textarea id="experiencia" name="experiencia" maxlength="500" rows="3" placeholder="<%= tr('Ej.: camarero/a o dependiente/a, 2 años de experiencia, disponible por las tardes.') %>"><%= form.experiencia || '' %></textarea>
+        <div class="help"><%= tr('Opcional. Una frase basta. No incluyas datos personales que no sean necesarios.') %></div>
       </div>
+
+      <%# A informação de privacidade e o consentimento ficam em espanhol (versão oficial). %>
+      <% if (lang !== 'es') { %><p class="help"><%= tr('Los textos legales (privacidad, términos y consentimientos) se muestran en español, que es su versión oficial.') %></p><% } %>
 
       <%- include('privacy_layer', { purpose: 'avisarte si surge una vacante en este establecimiento', basis: 'Tu consentimiento (art. 6.1.a RGPD), que das marcando la casilla. Puedes retirarlo cuando quieras.', keep: 'Durante ' + retention.reserve + ' desde hoy, o hasta que retires el consentimiento.' }) %>
 
@@ -231,7 +241,7 @@
         <span><%= consentInterestText %> *</span>
       </label>
 
-      <button class="btn block lg" type="submit">Guardar mi candidatura</button>
+      <button class="btn block lg" type="submit"<%= restaurant.demo ? ' disabled' : '' %>><%= tr('Guardar mi candidatura') %></button>
     </form>
   </div>
 

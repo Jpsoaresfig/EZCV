@@ -14,6 +14,7 @@ const { uploadRestaurantImages } = require('../middleware/uploads');
 const { destroyUserSessions } = require('../middleware/session');
 const { findProtectedTerms } = require('../lib/sensitive');
 const { passwordProblem } = require('./auth');
+const { isDemoUser } = require('../lib/demo');
 const storage = require('../lib/storage');
 const { QR_OPTIONS } = require('../lib/qr');
 const { TERMS_VERSION, TERMS_CHANGES, operator, termsPending, recordAcceptance } = require('../lib/legal');
@@ -48,6 +49,21 @@ router.use('/panel', async (req, res, next) => {
   res.locals.unreadCount = unread.status === 'fulfilled' ? unread.value : 0;
   res.locals.termsPending = legal.status === 'fulfilled' && termsPending(legal.value);
   next();
+});
+
+/* Demo só de leitura: qualquer alteração volta à página de onde veio com o
+ * aviso. Só o caminho do Referer é usado (nunca o host), por isso não há
+ * redirecionamento para fora do site. */
+router.use('/panel', (req, res, next) => {
+  res.locals.isDemo = isDemoUser(req.user);
+  if (!res.locals.isDemo || ['GET', 'HEAD'].includes(req.method)) return next();
+
+  let back = '/panel';
+  try {
+    const ref = new URL(req.get('referer') || '', 'http://x');
+    if (ref.pathname.startsWith('/panel')) back = ref.pathname;
+  } catch { /* Referer inválido: volta ao início */ }
+  res.redirect(back + '?err=' + encodeURIComponent('Esto es una demostración: los cambios no se guardan. Crea tu cuenta gratis para usar Fíchame con tu negocio.'));
 });
 
 function clean(value, max = 200) {
@@ -216,8 +232,6 @@ router.get('/panel/candidaturas', async (req, res) => {
     filters: { q, estado, puesto, disp, desde, hasta, favs, orden: ascending ? 'antiguas' : 'recientes' },
     totalFiltered: rows.length,
     pipeline,
-    STATUSES,
-    AVAILABILITIES,
     query: req.query
   });
 });
@@ -298,8 +312,6 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
     history: withAuthor(history),
     cv,
     consent,
-    STATUSES,
-    AVAILABILITIES,
     query: req.query
   });
 });
@@ -342,7 +354,7 @@ router.post('/panel/candidaturas/:id/estado', async (req, res) => {
   }
 
   res.redirect(`/panel/candidaturas/${id}?ok=` +
-    encodeURIComponent(`Estado actualizado: ${statusLabel(status)}`));
+    encodeURIComponent(req.tr('Estado actualizado: {status}', { status: req.tr(statusLabel(status)) })));
 });
 
 /* ================================================================== *
@@ -732,7 +744,7 @@ router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
 
   if (req.uploadError) {
     const msg = req.uploadError === 'TAMAÑO_IMAGEN'
-      ? `La imagen supera el límite de ${Math.round(config.maxImageBytes / (1024 * 1024))} MB.`
+      ? req.tr('La imagen supera el límite de {mb} MB.', { mb: Math.round(config.maxImageBytes / (1024 * 1024)) })
       : req.uploadError === 'IMAGEN_INVALIDA'
         ? 'El archivo no es una imagen válida (solo PNG, JPG o WEBP).'
         : 'Solo se aceptan imágenes PNG, JPG o WEBP.';
@@ -780,7 +792,7 @@ router.post('/panel/restaurante', uploadRestaurantImages, async (req, res) => {
     return res.status(422).render('panel/restaurant', {
       restaurant: { ...saved, ...form },
       nfcUrl: `${config.appUrl}/r/${saved.slug}`,
-      query: { err: Object.values(errors).join(' ') }
+      query: { err: Object.values(errors).map((e) => req.tr(e)).join(' ') }
     });
   }
 
@@ -1204,7 +1216,7 @@ router.post('/panel/candidaturas/:id/eliminar-candidato', async (req, res) => {
   });
 
   res.redirect('/panel/candidaturas?ok=' + encodeURIComponent(
-    `Datos del candidato suprimidos: ${result.applications} candidatura(s) con sus CV, notas, historial y consentimientos.`));
+    req.tr('Datos del candidato suprimidos: {n} candidatura(s) con sus CV, notas, historial y consentimientos.', { n: result.applications })));
 });
 
 /* ================================================================== *

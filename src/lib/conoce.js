@@ -1,6 +1,6 @@
 'use strict';
 
-/* Texto da página de apresentação (/conoce), em espanhol e inglês.
+/* Texto da página de apresentação (/conoce), em espanhol, inglês e português.
  *
  * É a página para onde aponta o QR dos cartões que o admin entrega aos
  * estabelecimentos (Admin → Divulgación). Quem a abre não conhece o produto:
@@ -12,15 +12,15 @@
  * agenda. Ao acrescentar uma frase aqui, confirmar primeiro no painel.
  */
 
-const LANGS = ['es', 'en'];
+const LANGS = ['es', 'en', 'pt'];
 
-/* ?lang= explícito ganha; senão a primeira língua do browser. Por omissão
- * espanhol: os cartões são entregues em Espanha. */
+/* ?lang= explícito ganha; senão o idioma do site (req.lang, do middleware
+ * i18n: cookie do seletor ou língua do browser). Por omissão espanhol: os
+ * cartões são entregues em Espanha. */
 function pickLang(req) {
-  const q = String(req.query.lang || '').toLowerCase();
+  const q = String((req.query && req.query.lang) || '').toLowerCase();
   if (LANGS.includes(q)) return q;
-  const first = String(req.headers['accept-language'] || '').split(',')[0].trim().toLowerCase();
-  return first.startsWith('en') ? 'en' : 'es';
+  return LANGS.includes(req.lang) ? req.lang : 'es';
 }
 
 const es = {
@@ -160,6 +160,14 @@ const es = {
     unsupported: 'Tu navegador no puede reproducir este vídeo.'
   },
 
+  demo: {
+    kicker: 'Pruébalo tú mismo',
+    title: 'Entra en un panel de ejemplo.',
+    lead: 'Un restaurante ficticio con más de 100 candidaturas inventadas, para que veas el panel por dentro: filtros, estados, notas y CV. Sin registrarte.',
+    cta: 'Abrir la demo',
+    note: 'Datos de demostración: ninguna persona ni negocio de la demo es real, y los cambios no se guardan.'
+  },
+
   benefits: {
     kicker: 'Ventajas',
     title: '¿Por qué lo necesita tu negocio?',
@@ -226,7 +234,7 @@ const en = {
     lead: 'When you’re short-staffed, every day counts. Fíchame gathers everyone who wants to work with you in one place: you see their details and CV, organise them and pick the right person. No HR department, and nothing to pay.',
     cta: 'Start free',
     cta2: 'See how it works',
-    note: 'Free during the market test · No card · No commitment · The app is currently in Spanish.'
+    note: 'Free during the market test · No card · No commitment'
   },
 
   quick: {
@@ -350,6 +358,14 @@ const en = {
     unsupported: 'Your browser cannot play this video.'
   },
 
+  demo: {
+    kicker: 'Try it yourself',
+    title: 'Open a sample dashboard.',
+    lead: 'A fictional restaurant with over 100 made-up applications, so you can see the dashboard from the inside: filters, statuses, notes and CVs. No sign-up needed.',
+    cta: 'Open the demo',
+    note: 'Demo data: no person or business in the demo is real, and changes are not saved.'
+  },
+
   benefits: {
     kicker: 'Benefits',
     title: 'Why your business needs it',
@@ -399,10 +415,208 @@ const en = {
     lead: 'Create your free account, set up your first opening in a few minutes and share your link to start receiving candidates.',
     cta: 'Start free',
     login: 'I already have an account',
-    note: 'Free during the market test. No credit card. The app is currently in Spanish.'
+    note: 'Free during the market test. No credit card.'
   }
 };
 
-const COPY = { es, en };
+const pt = {
+  htmlLang: 'pt',
+  title: 'Contrata a pessoa certa sem perder candidatos — grátis',
+  description: 'Grátis durante o teste de mercado: recebe os teus candidatos, vê o CV deles e organiza as tuas contratações num só lugar, sem departamento de RH.',
+  nav: { login: 'Entrar', start: 'Começar grátis', langLabel: 'Idioma' },
+
+  hero: {
+    badge: 'Teste de mercado · 100 % grátis',
+    title: 'Encontra o teu próximo funcionário',
+    titleHl: 'sem perder tempo nem candidatos.',
+    lead: 'Quando te falta alguém no negócio, cada dia conta. O Fíchame reúne num só lugar todos os que querem trabalhar contigo: vês os dados e o CV de cada um, organiza-los e escolhes a pessoa certa. Sem departamento de Recursos Humanos e sem pagar nada.',
+    cta: 'Começar grátis',
+    cta2: 'Ver como funciona',
+    note: 'Grátis durante o teste de mercado · Sem cartão · Sem fidelização'
+  },
+
+  quick: {
+    title: 'Em poucas palavras',
+    items: [
+      { q: 'O que é?', a: 'Uma web para organizar os teus candidatos e as tuas contratações.' },
+      { q: 'Preciso de RH?', a: 'Não. Podes tratar disso tu mesmo, a partir do telemóvel.' },
+      { q: 'É preciso instalar alguma coisa?', a: 'Não. Funciona no browser.' },
+      { q: 'Quanto custa?', a: 'Nada: 0 € durante o teste de mercado, sem cartão e sem fidelização.' }
+    ]
+  },
+
+  problem: {
+    kicker: 'O problema',
+    title: 'Quantos bons candidatos já te escaparam?',
+    items: [
+      { emoji: '📄', text: 'Receber currículos' },
+      { emoji: '📱', text: 'Responder a mensagens' },
+      { emoji: '🗂️', text: 'Organizar candidatos' },
+      { emoji: '📞', text: 'Ligar e marcar entrevistas' },
+      { emoji: '📝', text: 'Tomar notas' },
+      { emoji: '⏳', text: 'Lembrar em que ponto está cada um' }
+    ],
+    scatter: 'E tudo espalhado entre papéis, WhatsApp, emails, folhas de cálculo… e a tua memória.',
+    pain: 'Enquanto procuras aquele CV entre as mensagens, o bom candidato aceita outro trabalho. E o turno que falta acabas por fazê-lo tu.',
+    answer: 'O Fíchame põe ordem em tudo isso, num só lugar. E é grátis.'
+  },
+
+  what: {
+    kicker: 'O que é o Fíchame?',
+    title: 'As tuas contratações, organizadas num só sítio.',
+    p1: 'O Fíchame é uma plataforma de recrutamento pensada para que negócios e pequenos estabelecimentos organizem as suas contratações.',
+    p2: 'Em vez de acompanhares os candidatos em papéis, mensagens e folhas de cálculo soltas, segues tudo dentro da plataforma.',
+    highlight: 'Podes gerir os teus candidatos tu mesmo. Não é preciso ter uma equipa de Recursos Humanos para começar.',
+    for: 'Para restaurantes, bares, cafés, lojas, comércio e qualquer negócio que precise de contratar.',
+    biz: ['Restaurantes', 'Bares', 'Cafés', 'Lojas', 'Comércio', 'Hotéis', 'Cabeleireiros', 'Ginásios', '…e mais']
+  },
+
+  can: {
+    kicker: 'O que podes fazer',
+    title: 'Tudo o que precisas para contratar, sem complicações.',
+    items: [
+      {
+        icon: 'jobs',
+        title: 'Criar vagas',
+        text: 'Quando precisas de alguém, crias a vaga com o tipo de contrato, o horário e os requisitos.',
+        chips: ['Empregado/a de mesa', 'Empregado/a de loja', 'Cozinheiro/a', 'Rececionista']
+      },
+      {
+        icon: 'people',
+        title: 'Receber candidatos',
+        text: 'O teu negócio tem o seu próprio link. Quem quiser trabalhar contigo abre-o no telemóvel, escolhe a vaga e envia os seus dados e o CV em PDF, sem criar nenhuma conta.'
+      },
+      {
+        icon: 'file',
+        title: 'Ver os teus candidatos',
+        text: 'Cada candidato tem a sua ficha: contacto, disponibilidade, experiência e CV. Sem procurar em mensagens nem em papéis.'
+      },
+      {
+        icon: 'chart',
+        title: 'Organizar o processo',
+        text: 'Marca em que etapa está cada pessoa e saberás sempre a quem ligar, quem entrevistar e quem guardar para mais tarde.',
+        pipeline: ['Novo', 'Revisto', 'Contactar', 'Entrevista', 'Contratado']
+      },
+      {
+        icon: 'search',
+        title: 'Gerir tudo num só lugar',
+        text: 'Pesquisa e filtra, marca favoritos, escreve notas internas e liga, envia um email ou abre o WhatsApp a partir da ficha.'
+      }
+    ],
+    share: {
+      title: 'Como chegam os candidatos?',
+      text: 'Através do link do teu negócio. Podes pô-lo no teu espaço com uma etiqueta NFC ou com o código QR que o Fíchame te prepara para imprimir, ou partilhá-lo por WhatsApp e nas redes sociais.',
+      note: 'O Fíchame não publica as tuas vagas em portais de emprego: és tu que decides onde partilhas o teu link.'
+    }
+  },
+
+  nohr: {
+    kicker: 'Sem RH',
+    title: 'Não tens equipa de Recursos Humanos? Não faz mal.',
+    lead: 'O Fíchame também foi pensado para negócios em que é o próprio dono ou gerente que trata das contratações.',
+    start: 'Sem departamento de RH',
+    steps: [
+      'Tu crias a vaga',
+      'Recebes os candidatos',
+      'Revês a informação deles',
+      'Organiza-los por etapas',
+      'Escolhes quem segue em frente'
+    ],
+    end: 'Consegues fazê-lo sozinho.'
+  },
+
+  how: {
+    kicker: 'Como funciona',
+    title: 'Como funciona?',
+    lead: 'Seis passos, do «preciso de alguém» ao «já tenho a pessoa».',
+    steps: [
+      { title: 'Precisas de contratar', text: 'Percebes que te faz falta mais uma pessoa no teu negócio.' },
+      { title: 'Crias a vaga no Fíchame', text: 'Indicas que função procuras, o tipo de contrato, o horário e os requisitos.' },
+      { title: 'Os candidatos inscrevem-se', text: 'Quem estiver interessado abre o teu link, escolhe a vaga e envia os seus dados e o CV.' },
+      { title: 'Acompanhas os teus candidatos', text: 'Todas as candidaturas chegam organizadas ao teu painel. Avisamos-te quando entra uma nova.' },
+      { title: 'Avalias e organizas', text: 'Lês o CV, escreves notas e passas cada pessoa de etapa: revisto, contactar, entrevista…' },
+      { title: 'Encontras a pessoa certa', text: 'Com toda a informação à mão, és tu que decides quem segue em frente. Sem filtros automáticos.' }
+    ]
+  },
+
+  video: {
+    kicker: 'O Fíchame na prática',
+    title: 'Vê o Fíchame a funcionar.',
+    lead: 'Num minuto vais ver como funciona, do princípio ao fim, com a aplicação real.',
+    play: 'Ver o vídeo',
+    soon: 'Vídeo em preparação',
+    soonText: 'Muito em breve vais poder ver aqui uma gravação da aplicação passo a passo.',
+    chapters: [
+      'Criar uma vaga',
+      'Colocar o teu QR ou etiqueta NFC',
+      'Receber candidaturas',
+      'Ver os candidatos',
+      'Organizar o processo'
+    ],
+    unsupported: 'O teu browser não consegue reproduzir este vídeo.'
+  },
+
+  demo: {
+    kicker: 'Experimenta tu mesmo',
+    title: 'Entra num painel de exemplo.',
+    lead: 'Um restaurante fictício com mais de 100 candidaturas inventadas, para veres o painel por dentro: filtros, estados, notas e CV. Sem te registares.',
+    cta: 'Abrir a demo',
+    note: 'Dados de demonstração: nenhuma pessoa nem negócio da demo é real, e as alterações não são guardadas.'
+  },
+
+  benefits: {
+    kicker: 'Vantagens',
+    title: 'Porque é que o teu negócio precisa disto?',
+    items: [
+      { icon: 'home', title: 'Nenhum candidato se perde', text: 'Todos os que se inscrevem chegam ao teu painel com os seus dados e o CV. Nada fica esquecido numa conversa.' },
+      { icon: 'file', title: 'Menos papel', text: 'Menos currículos impressos e documentos que se perdem.' },
+      { icon: 'chart', title: 'Decides mais cedo', text: 'Vês de relance quem é cada candidato e em que etapa está, para ligares a tempo aos melhores.' },
+      { icon: 'phone', title: 'A partir do telemóvel', text: 'Tratas disso entre cliente e cliente, sem saltar entre papéis, WhatsApp e folhas de cálculo.' },
+      { icon: 'star', title: 'O controlo é teu', text: 'O dono ou o gerente acompanha o processo diretamente.' },
+      { icon: 'store', title: 'Sem equipa de RH', text: 'Um processo de seleção organizado sem contratar ninguém para o gerir.' }
+    ]
+  },
+
+  free: {
+    kicker: 'Preço',
+    title: 'Grátis. Sem letras pequenas.',
+    p1: 'O Fíchame está em fase de teste de mercado: estamos a testá-lo com negócios reais para que seja mesmo útil no dia a dia.',
+    p2: 'Por isso, durante esta fase, usas o Fíchame grátis. O teu negócio ganha organização e não arriscas nada.',
+    price: '0 €',
+    priceLabel: 'Grátis durante o teste de mercado',
+    items: ['Sem mensalidade', 'Sem cartão de crédito', 'Sem fidelização'],
+    fine: 'Não te pedimos nenhum dado de pagamento, por isso não há nada que possa ser cobrado automaticamente.'
+  },
+
+  feedback: {
+    kicker: 'A tua opinião conta',
+    title: 'Ajuda-nos a melhorar o Fíchame.',
+    text: 'Estamos a construir o Fíchame a partir das necessidades reais de quem contrata. Ao experimentá-lo e dares-nos a tua opinião, ajudas-nos a perceber o que funciona e o que pode melhorar.',
+    cta: 'Experimentar o Fíchame',
+    mail: 'Escreve-nos'
+  },
+
+  faq: {
+    kicker: 'Dúvidas frequentes',
+    title: 'O que costumam perguntar-nos',
+    items: [
+      { q: 'É difícil de usar?', a: 'Não. Foi pensado para ser usado no telemóvel, entre cliente e cliente. Criar a conta e a primeira vaga leva poucos minutos, e o painel guia-te com uns primeiros passos.' },
+      { q: 'Tenho de instalar alguma coisa?', a: 'Não. Nem tu nem os candidatos têm de instalar nenhuma aplicação: tudo funciona no browser do telemóvel ou do computador.' },
+      { q: 'Preciso de uma etiqueta NFC?', a: 'Não é obrigatório. Podes imprimir o código QR que o painel te prepara ou simplesmente partilhar o link do teu negócio.' },
+      { q: 'E se já não precisar de contratar?', a: 'Pausas as candidaturas com um botão. A tua página vai mostrar que não estás a contratar e podes reativá-la quando quiseres.' },
+      { q: 'Quem vê os CV dos meus candidatos?', a: 'Só tu, a partir do teu painel. Os CV não têm links públicos e nenhum outro negócio pode ver as tuas candidaturas.' }
+    ]
+  },
+
+  final: {
+    title: 'A tua próxima contratação pode começar hoje.',
+    lead: 'Cria a tua conta grátis, prepara a tua primeira vaga em poucos minutos e partilha o teu link para começares a receber candidatos.',
+    cta: 'Começar grátis',
+    login: 'Já tenho conta',
+    note: 'Grátis durante o teste de mercado. Sem cartão de crédito.'
+  }
+};
+
+const COPY = { es, en, pt };
 
 module.exports = { LANGS, pickLang, COPY };

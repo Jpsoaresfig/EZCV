@@ -3,18 +3,19 @@
 <!-- Página de apresentação (/conoce) — destino do QR dos cartões entregues aos
      estabelecimentos. Mobile-first: quem chega aqui acabou de escanear o
      cartão com o telemóvel e não conhece o produto. O texto vem de
-     src/lib/conoce.js (es/en); esta vista só monta as secções. -->
+     src/lib/conoce.js (es/en/pt); esta vista só monta as secções. -->
 
 <header class="lp-top">
   <div class="lp-wrap lp-top-row cn-top-row">
-    <a class="brand" href="/conoce<%= lang === 'en' ? '?lang=en' : '' %>">
+    <a class="brand" href="/conoce<%= lang !== 'es' ? '?lang=' + lang : '' %>">
       <img class="brand-mark" src="/img/logo.svg?v=<%= assetV %>" alt="" width="28" height="28">
       <span>Fíchame</span>
     </a>
     <div class="lp-top-actions">
       <nav class="cn-lang" aria-label="<%= t.nav.langLabel %>">
-        <a href="/conoce?lang=es" hreflang="es" lang="es" <%- lang === 'es' ? 'aria-current="true"' : '' %>>ES</a>
-        <a href="/conoce?lang=en" hreflang="en" lang="en" <%- lang === 'en' ? 'aria-current="true"' : '' %>>EN</a>
+        <% ['es', 'en', 'pt'].forEach(function (l) { %>
+          <a href="/idioma/<%= l %>?next=/conoce" hreflang="<%= l %>" lang="<%= l %>" <%- lang === l ? 'aria-current="true"' : '' %>><%= l.toUpperCase() %></a>
+        <% }) %>
       </nav>
       <a class="btn ghost small cn-hide-xs" href="/login"><%= t.nav.login %></a>
       <a class="btn small" href="/registro"><%= t.nav.start %></a>
@@ -210,6 +211,21 @@
       <ol class="cn-chapters">
         <% t.video.chapters.forEach(function (c) { %><li><%= c %></li><% }) %>
       </ol>
+    </div>
+  </section>
+
+  <!-- 7b. Demo: painel com dados fictícios, identificados como tal (src/lib/demo.js). -->
+  <section class="lp-section cn-demo" id="demo">
+    <div class="lp-wrap">
+      <div class="lp-head">
+        <span class="lp-kicker"><%= t.demo.kicker %></span>
+        <h2><%= t.demo.title %></h2>
+        <p><%= t.demo.lead %></p>
+      </div>
+      <div class="lp-cta-row">
+        <a class="btn lg" href="/demo" rel="nofollow"><%= t.demo.cta %></a>
+      </div>
+      <p class="help"><%= t.demo.note %></p>
     </div>
   </section>
 

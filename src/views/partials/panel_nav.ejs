@@ -6,15 +6,15 @@
  * O CSS decide qual aparece; não há duplicação de lógica.
  */
 var navItems = [
-  { href: '/panel',                 icon: 'home',   label: 'Inicio',        short: 'Inicio',   exact: true },
-  { href: '/panel/candidaturas',    icon: 'people', label: 'Candidaturas',  short: 'Candidatos', badge: true },
-  { href: '/panel/vagas',           icon: 'jobs',   label: 'Vacantes',      short: 'Vacantes' },
-  { href: '/panel/notificaciones',  icon: 'bell',   label: 'Avisos',        short: 'Avisos' },
-  { href: '/panel/derechos',        icon: 'shield', label: 'Derechos RGPD', short: 'Derechos', sideOnly: true },
-  { href: '/panel/privacidad',      icon: 'lock',   label: 'Privacidad',    short: 'Privacidad', sideOnly: true },
-  { href: '/panel/restaurante',     icon: 'store',  label: 'Mi negocio',     short: 'Mi negocio' },
-  { href: '/panel/configuracion',   icon: 'cog',    label: 'Configuración', short: 'Ajustes' },
-  { href: '/panel/reportar',        icon: 'chat',   label: 'Reportar un problema', short: 'Reportar', sideOnly: true }
+  { href: '/panel',                 icon: 'home',   label: tr('Inicio'),        short: tr('Inicio'),   exact: true },
+  { href: '/panel/candidaturas',    icon: 'people', label: tr('Candidaturas'),  short: tr('Candidatos'), badge: true },
+  { href: '/panel/vagas',           icon: 'jobs',   label: tr('Vacantes'),      short: tr('Vacantes') },
+  { href: '/panel/notificaciones',  icon: 'bell',   label: tr('Avisos'),        short: tr('Avisos') },
+  { href: '/panel/derechos',        icon: 'shield', label: tr('Derechos RGPD'), short: tr('Derechos'), sideOnly: true },
+  { href: '/panel/privacidad',      icon: 'lock',   label: tr('Privacidad'),    short: tr('Privacidad'), sideOnly: true },
+  { href: '/panel/restaurante',     icon: 'store',  label: tr('Mi negocio'),     short: tr('Mi negocio') },
+  { href: '/panel/configuracion',   icon: 'cog',    label: tr('Configuración'), short: tr('Ajustes') },
+  { href: '/panel/reportar',        icon: 'chat',   label: tr('Reportar un problema'), short: tr('Reportar'), sideOnly: true }
 ];
 
 function isActive(item) {
@@ -40,7 +40,7 @@ var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCou
   <div class="sidenav-foot">
     <form action="/logout" method="post">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-      <button class="btn ghost small block" type="submit">Cerrar sesión</button>
+      <button class="btn ghost small block" type="submit"><%= tr('Cerrar sesión') %></button>
     </form>
   </div>
 </aside>
@@ -55,13 +55,13 @@ var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCou
     <div class="appbar-end">
       <form action="/logout" method="post">
         <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-        <button class="btn secondary small" type="submit">Salir</button>
+        <button class="btn secondary small" type="submit"><%= tr('Salir') %></button>
       </form>
     </div>
   </div>
 </header>
 
-<nav class="tabbar" aria-label="Navegación principal">
+<nav class="tabbar" aria-label="<%= tr('Navegación principal') %>">
   <%# No telemóvel, Derechos e Privacidad estão em Ajustes (6 separadores no máximo). %>
   <% navItems.filter(function(item) { return !item.sideOnly; }).forEach(function(item) { %>
     <a class="<%= isActive(item) ? 'active' : '' %>" href="<%= item.href %>">
