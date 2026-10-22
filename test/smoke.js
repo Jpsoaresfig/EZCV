@@ -380,7 +380,7 @@ async function main() {
     check('alterar estado', res.status === 302);
     res = await call('GET', `/panel/candidaturas/${appId}`, { jar: ownerJar });
     html = await text(res);
-    check('estado "Contactar" refletido', html.includes('Contactar'));
+    check('estado "Por contactar" refletido', html.includes('Por contactar'));
 
     res = await call('POST', `/panel/candidaturas/${appId}/notas`, {
       jar: ownerJar, body: form({ nota: 'Llamar el viernes.', _csrf: detailCsrf })
@@ -517,15 +517,16 @@ async function main() {
     console.log('\n— Pipeline, ordenação e publicidade dos dados —');
     res = await call('GET', '/panel/candidaturas', { jar: ownerJar });
     html = await text(res);
-    check('pipeline visual de estados',
-      res.status === 200 && html.includes('class="pipeline"') && html.includes('/panel/candidaturas?estado=nuevo"'));
-    check('card mostra telefone e email',
-      html.includes('600111222') && html.includes('juan.garcia@example.com'));
+    check('separadores simples de estado',
+      res.status === 200 && html.includes('class="group-tabs"') && html.includes('/panel/candidaturas?grupo=nuevas"'));
+    check('card mostra telefone', html.includes('600111222'));
     check('card mostra disponibilidade', html.includes('Tarde'));
     res = await call('GET', '/panel/candidaturas?orden=antiguas', { jar: ownerJar });
     check('ordenação por mais antigas aceite', res.status === 200 && (await text(res)).includes('Más antiguas'));
     res = await call('GET', '/panel/candidaturas?favs=1', { jar: ownerJar });
     check('filtro favoritos (vazio)', (await text(res)).includes('No hay candidaturas'));
+    res = await call('GET', '/panel/candidaturas?grupo=terminadas', { jar: ownerJar });
+    check('separador «Terminadas» filtra (vazio)', (await text(res)).includes('No hay candidaturas'));
     res = await call('GET', `/r/${slugA}`);
     html = await text(res);
     check('página pública mostra descrição e tipo',
@@ -573,8 +574,9 @@ async function main() {
     html = await text(res);
     check('perfil mostra favorito e base jurídica com versão do aviso',
       html.includes('★ Favorito') && html.includes('art. 6.1.b RGPD') && html.includes('aviso v2026-10'));
-    check('histórico regista recepção e mudança de estado',
-      html.includes('Candidatura recibida') && html.includes('Nuevo → Contactar'));
+    /* Abrir a ficha marcou-a como «Visto» antes de passar a «Por contactar». */
+    check('histórico regista recepção, «Visto» automático e mudança de estado',
+      html.includes('Candidatura recibida') && html.includes('Nuevo → Visto') && html.includes('Visto → Por contactar'));
     check('nota com autor', html.includes('Ana López'));
     res = await call('GET', '/panel/candidaturas?favs=1', { jar: ownerJar });
     check('filtro de favoritos encontra favorito', (await text(res)).includes('Juan García'));
@@ -635,14 +637,14 @@ async function main() {
     html = await text(res);
     check('vaga mostra contrato Indefinido e jornada completa',
       html.includes('Indefinido') && html.includes('Jornada completa'));
-    const cocineroDel = html.match(/Cocinero\/a[\s\S]*?\/panel\/vagas\/(\d+)\/eliminar/);
+    const cocineroDel = html.match(/<h3 class="flat">Cocinero\/a<\/h3>[\s\S]*?\/panel\/vagas\/(\d+)\/eliminar/);
     check('link de eliminar vaga presente', Boolean(cocineroDel));
     res = await call('GET', '/panel/vagas', { jar: ownerJar });
     const jobsCsrf2 = csrfOf(await text(res));
     res = await call('POST', `/panel/vagas/${cocineroDel[1]}/eliminar`, { jar: ownerJar, body: form({ _csrf: jobsCsrf2 }) });
     check('eliminar vaga', res.status === 302);
     res = await call('GET', '/panel/vagas', { jar: ownerJar });
-    check('vaga eliminada some da lista', !(await text(res)).includes('Cocinero/a'));
+    check('vaga eliminada some da lista', !(await text(res)).includes('<h3 class="flat">Cocinero/a</h3>'));
     res = await call('GET', '/panel/candidaturas', { jar: ownerJar });
     check('candidaturas antigas preservadas após eliminar vaga', (await text(res)).includes('Juan García'));
 
@@ -706,7 +708,7 @@ async function main() {
     res = await call('GET', '/panel/candidaturas', { jar: ownerJar });
     html = await text(res);
     check('interesse guardado como Reserva',
-      html.includes('Lucía') && html.includes('Reserva / Futuras oportunidades'));
+      html.includes('Lucía') && html.includes('Para el futuro'));
     check('descrição do interesse aparece no painel', html.includes('Dependienta, 3 años en tienda de ropa'));
 
     res = await call('GET', '/panel', { jar: ownerJar });
@@ -993,7 +995,7 @@ async function main() {
     const resCsrf = csrfOf(await text(res));
     res = await call('POST', `/panel/candidaturas/${appId}/estado`, { jar: ownerJar, body: form({ status: 'reserva', _csrf: resCsrf }) });
     check('reserva sem consentimento recusada',
-      res.status === 302 && decodeURIComponent(res.headers.get('location') || '').includes('consentimiento'));
+      res.status === 302 && decodeURIComponent(res.headers.get('location') || '').includes('Para el futuro'));
     {
       const { data: st } = await sb.from('applications').select('status, future_interest').eq('id', appId).maybeSingle();
       check('estado e future_interest inalterados', st.status === 'contactar' && st.future_interest === false);
@@ -1396,8 +1398,8 @@ async function main() {
     check('filtro por contratado encontra o candidato', (await text(res)).includes('Juan García'));
 
     res = await call('GET', `/panel/candidaturas/${appId}`, { jar: ownerJar });
-    check('histórico regista Contactar → Contratado',
-      (await text(res)).includes('Contactar → Contratado'));
+    check('histórico regista Por contactar → Contratado',
+      (await text(res)).includes('Por contactar → Contratado'));
 
     console.log('\n— Bloqueio legal impede supressão —');
     res = await call('GET', `/panel/candidaturas/${appId}`, { jar: ownerJar });

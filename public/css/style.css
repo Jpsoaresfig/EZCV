@@ -34,7 +34,7 @@
   --surface-3:  #f1eeec;
   --ink:        #1c1917;
   --ink-2:      #57534e;
-  --ink-3:      #8a827c;
+  --ink-3:      #736b65; /* contraste AA mesmo em texto pequeno */
   --line:       #e7e3e0;
   --line-2:     #d6d1cc;
 
@@ -199,8 +199,8 @@ hr {
    =========================================================================== */
 .muted  { color: var(--ink-2); }
 .dim    { color: var(--ink-3); }
-.small  { font-size: .875rem; }
-.tiny   { font-size: .8rem; }
+.small  { font-size: .9375rem; }
+.tiny   { font-size: .875rem; }
 .strong { font-weight: 650; }
 .pre    { white-space: pre-wrap; overflow-wrap: anywhere; }
 .nowrap { white-space: nowrap; }
@@ -444,9 +444,9 @@ hr {
   gap: 3px;
   padding: 6px 2px;
   border-radius: var(--r-md);
-  color: var(--ink-3);
-  font-size: .68rem;
-  font-weight: 600;
+  color: var(--ink-2);
+  font-size: .78rem;
+  font-weight: 650;
   letter-spacing: -.01em;
   position: relative;
   min-height: 52px;
@@ -636,11 +636,74 @@ main { padding-bottom: 28px; }
 .danger-zone { border-color: var(--err-line); }
 .danger-zone h2 { color: var(--err); }
 
+/* Início: um bloco «o que fazer agora» */
+.today { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+.today.has-new { border-color: var(--brand-tint-2); background: var(--brand-tint); }
+.today-title { margin: 0; font-size: 1.3rem; font-weight: 750; line-height: 1.3; display: flex; align-items: center; gap: 8px; }
+.today.is-clear .today-title svg { width: 24px; height: 24px; color: var(--ok); }
+.today-list { list-style: none; margin: 4px 0 0; padding: 12px 0 0; width: 100%; border-top: 1px solid var(--line); display: grid; gap: 4px; }
+.today-list a { display: inline-block; padding: 8px 0; font-size: 1.05rem; font-weight: 650; }
+.today-unread { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; }
+.today-unread form { margin: 0; }
+.status-strip form { margin: 0; flex-shrink: 0; }
+
+/* Lista de candidaturas: separadores simples */
+.group-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 6px; margin-bottom: 14px; -webkit-overflow-scrolling: touch; }
+.group-tab {
+  display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0;
+  min-height: 48px; padding: 10px 16px;
+  border: 1.5px solid var(--line-2); border-radius: var(--r-full);
+  background: var(--surface); color: var(--ink);
+  font-size: 1rem; font-weight: 650;
+}
+.group-tab:hover { text-decoration: none; border-color: var(--ink-3); }
+.group-tab.active { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.group-num { min-width: 26px; padding: 1px 8px; border-radius: var(--r-full); background: var(--surface-3); color: var(--ink); font-size: .9rem; text-align: center; }
+.group-tab.active .group-num { background: color-mix(in srgb, var(--surface) 22%, transparent); color: var(--surface); }
+.group-tab.has-new:not(.active) .group-num { background: var(--brand); color: #fff; }
+.filter-chip { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 14px; }
+
+/* Estado da candidatura: botões de um toque com todas as opções à vista
+   (substitui a lista + «Guardar», que obrigava a dois passos). */
+.status-picker { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0; }
+.status-opt {
+  display: flex; align-items: center; gap: 10px;
+  min-height: 52px; padding: 10px 14px;
+  background: var(--surface); color: var(--ink);
+  border: 1.5px solid var(--line-2); border-radius: var(--r-md);
+  font: inherit; font-size: 1rem; font-weight: 600; text-align: left;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.status-opt:hover { border-color: var(--ink-3); background: var(--surface-2); }
+.status-opt.is-current { border-color: var(--brand); background: var(--brand-tint); color: var(--brand-ink); }
+.status-opt svg { width: 18px; height: 18px; margin-left: auto; flex-shrink: 0; }
+.status-opt .dot { box-shadow: none; }
+.status-opt[value="reserva"] { grid-column: 1 / -1; }
+.dot.blue   { background: #3b82f6; }
+.dot.slate  { background: #8a827c; }
+.dot.amber  { background: #f59e0b; }
+.dot.cyan   { background: #06b6d4; }
+.dot.violet { background: #8b5cf6; }
+.dot.orange { background: #f97316; }
+.status-opt .dot.green { background: #22c55e; }
+.status-opt .dot.red   { background: #ef4444; }
+
+/* «Más opciones» da ficha: privacidade, histórico e eliminar recolhidos. */
+.more-card > summary { font-size: 1.05rem; padding: 2px 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.more-card > summary .dim { font-weight: 500; }
+.more-card > summary { list-style: none; }
+.more-card > summary::-webkit-details-marker { display: none; }
+.more-card > summary::after { content: "▾"; margin-left: auto; color: var(--ink-2); transition: transform .2s var(--ease); }
+.more-card[open] > summary::after { transform: rotate(180deg); }
+.more-card[open] > summary { margin-bottom: 4px; }
+.sub-block { padding-top: 18px; margin-top: 18px; border-top: 1px solid var(--line); }
+.sub-block h2 { font-size: 1.05rem; }
+
 details > summary {
   cursor: pointer;
   font-weight: 600;
-  font-size: .9rem;
-  padding: 4px 0;
+  font-size: .95rem;
+  padding: 8px 0;
 }
 details > summary:hover { color: var(--brand); }
 .summary-danger { color: var(--err); }
@@ -1168,9 +1231,9 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
 .btn.primary:hover { background: var(--brand-hover); }
 
 .btn.small {
-  padding: 8px 14px;
-  font-size: .875rem;
-  min-height: 38px;
+  padding: 9px 15px;
+  font-size: .9375rem;
+  min-height: 44px; /* alvo de toque mínimo recomendado */
   border-radius: var(--r-sm);
 }
 .btn.lg { padding: 15px 26px; font-size: 1.03rem; min-height: 52px; }
@@ -1693,8 +1756,7 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
   .detail-cols .o-cv        { order: 2; }
   .detail-cols .o-datos     { order: 3; }
   .detail-cols .o-notas     { order: 4; }
-  .detail-cols .o-historial { order: 5; }
-  .detail-cols .o-perigo    { order: 6; }
+  .detail-cols .o-mas       { order: 5; }
   .detail-cols .card { margin-bottom: 0; }
 }
 
@@ -1722,6 +1784,9 @@ input[type=file]:hover { border-color: var(--brand); background: var(--brand-tin
   .table-wrap { margin: 0 -17px; padding: 0 17px; }
   .brand-sub { display: none; }
   .actions-row .btn { flex: 1 1 auto; }
+  .status-strip { flex-wrap: wrap; }
+  .status-strip form, .status-strip form .btn { width: 100%; }
+  .today .btn.lg { width: 100%; }
   .hint-row { grid-template-columns: 1fr; }
 }
 
@@ -3137,3 +3202,6 @@ tr:target td { box-shadow: inset 0 0 0 9999px color-mix(in srgb, var(--brand) 8%
 .reset-link { width: 100%; font-family: var(--mono); font-size: .8rem; }
 .reset-mail { white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; padding: 10px 12px;
   background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--r-sm); font-size: .85rem; }
+
+/* «Siguiente candidato» no fim da ficha: largo e fácil de acertar. */
+.next-bar { margin-top: 20px; }

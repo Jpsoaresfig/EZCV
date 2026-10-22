@@ -9,36 +9,49 @@
 
   <%- include('../partials/flash') %>
 
-  <% const mainKeys = ['nuevo','revisado','contactar','contactado','entrevista','contratado']; %>
-  <div class="pipeline">
-    <% mainKeys.forEach(function(key, i) { %>
-      <a class="pipe <%= filters.estado === key ? 'active' : '' %>" href="/panel/candidaturas?estado=<%= key %>">
-        <span class="num"><%= pipeline[key] %></span>
-        <span class="label"><%= statusLabel(key) %></span>
+  <%
+    /* Separadores simples (Todas / Nuevas / En proceso / Terminadas) em vez
+     * das oito etapas. «Para el futuro» só aparece se houver alguém. */
+    var groupCount = function (g) {
+      return groups[g].statuses.reduce(function (n, k) { return n + (pipeline[k] || 0); }, 0);
+    };
+    var allCount = Object.keys(pipeline).reduce(function (n, k) { return n + (pipeline[k] || 0); }, 0);
+    var noTab = !filters.grupo && !filters.estado;
+  %>
+  <nav class="group-tabs" aria-label="<%= tr('Mostrar') %>">
+    <a class="group-tab <%= noTab ? 'active' : '' %>" href="/panel/candidaturas"<% if (noTab) { %> aria-current="page"<% } %>>
+      <span><%= tr('Todas') %></span><span class="group-num"><%= allCount %></span>
+    </a>
+    <% Object.keys(groups).forEach(function (g) {
+         var n = groupCount(g);
+         if (g === 'futuro' && n === 0 && filters.grupo !== g) return;
+         var on = filters.grupo === g; %>
+      <a class="group-tab <%= on ? 'active' : '' %> <%= g === 'nuevas' && n > 0 ? 'has-new' : '' %>" href="/panel/candidaturas?grupo=<%= g %>"<% if (on) { %> aria-current="page"<% } %>>
+        <span><%= tr(groups[g].label) %></span><span class="group-num"><%= n %></span>
       </a>
-      <% if (i < mainKeys.length - 1) { %><span class="pipe-arrow">→</span><% } %>
     <% }) %>
-    <span class="pipe-sep"></span>
-    <a class="pipe slim <%= filters.estado === 'rechazado' ? 'active' : '' %>" href="/panel/candidaturas?estado=rechazado">
-      <span class="num"><%= pipeline.rechazado %></span><span class="label"><%= tr('Rechazados') %></span>
-    </a>
-    <a class="pipe slim <%= filters.estado === 'reserva' ? 'active' : '' %>" href="/panel/candidaturas?estado=reserva">
-      <span class="num"><%= pipeline.reserva %></span><span class="label"><%= tr('Reserva') %></span>
-    </a>
-  </div>
+  </nav>
+
+  <% if (filters.estado) { %>
+    <p class="filter-chip">
+      <%= tr('Mostrando solo:') %> <span class="badge <%= (STATUSES[filters.estado] || {}).color || 'slate' %>"><%= statusLabel(filters.estado) %></span>
+      <a class="btn ghost small" href="/panel/candidaturas"><%= tr('Ver todas') %></a>
+    </p>
+  <% } %>
 
   <%
     /* Filtros avançados recolhidos por omissão: no telemóvel os 7 campos
      * ocupavam o ecrã inteiro antes do primeiro candidato. Abrem sozinhos
      * se algum estiver em uso. */
     var advanced = Boolean(filters.estado || filters.puesto || filters.disp || filters.desde || filters.hasta || filters.favs || filters.orden === 'antiguas');
-    var anyFilter = advanced || Boolean(filters.q);
+    var anyFilter = advanced || Boolean(filters.q) || Boolean(filters.grupo);
   %>
   <div class="card filters-card">
     <form action="/panel/candidaturas" method="get">
+      <% if (filters.grupo) { %><input type="hidden" name="grupo" value="<%= filters.grupo %>"><% } %>
       <div class="search-row">
         <label for="q" class="sr-only"><%= tr('Buscar') %></label>
-        <input id="q" type="search" name="q" maxlength="80" placeholder="<%= tr('Nombre, puesto, teléfono…') %>" value="<%= filters.q %>">
+        <input id="q" type="search" name="q" maxlength="80" placeholder="<%= tr('Buscar por nombre o teléfono') %>" value="<%= filters.q %>">
         <button class="btn small" type="submit"><%- icon('search') %><span class="hide-xs"><%= tr('Buscar') %></span></button>
       </div>
       <details class="more-filters" <%= advanced ? 'open' : '' %>>
@@ -124,8 +137,8 @@
               <%= r.first_name %> <%= r.last_name %>
               <% if (r.favorite) { %><span class="star" title="<%= tr('Favorito') %>">★</span><% } %>
             </div>
-            <div class="meta"><%= r.job_title || tr('Sin puesto') %> · <%= r.phone || tr('sin teléfono') %></div>
-            <div class="meta"><%= r.email %><% if (r.availability) { %> · <%= availabilityLabel(r.availability) %><% } %></div>
+            <div class="meta"><%= r.job_title || tr('Sin puesto') %><% if (r.availability) { %> · <%= availabilityLabel(r.availability) %><% } %></div>
+            <div class="meta"><%= r.phone || tr('sin teléfono') %></div>
             <% if (r.experience) { %><div class="meta"><%= r.experience %></div><% } %>
           </div>
           <div class="right">

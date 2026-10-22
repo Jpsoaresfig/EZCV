@@ -174,6 +174,15 @@ module.exports = {
 
   // Ficha do candidato
   'Recibida el {date}': { en: 'Received on {date}', pt: 'Recebida a {date}' },
+  'Siguiente': { en: 'Next', pt: 'Seguinte' },
+  'Siguiente candidato': { en: 'Next candidate', pt: 'Candidato seguinte' },
+  'Ver la siguiente nueva': { en: 'See the next new one', pt: 'Ver a próxima nova' },
+  'Hola {name}, te escribo de {business}. Hemos visto tu candidatura para {job}. ¿Cuándo te viene bien hablar?': {
+    en: 'Hi {name}, this is {business}. We have seen your application for {job}. When would be a good time to talk?',
+    pt: 'Olá {name}, escrevo-lhe de {business}. Vimos a sua candidatura para {job}. Quando lhe dá jeito falarmos?'
+  },
+  'nuestro establecimiento': { en: 'our business', pt: 'o nosso estabelecimento' },
+  'trabajar con nosotros': { en: 'working with us', pt: 'trabalhar connosco' },
   'Llamar': { en: 'Call', pt: 'Ligar' },
   'Abre WhatsApp con este número': { en: 'Opens WhatsApp with this number', pt: 'Abre o WhatsApp com este número' },
   'Candidatura para {job}': { en: 'Application for {job}', pt: 'Candidatura para {job}' },
@@ -246,6 +255,68 @@ module.exports = {
   'Sin CV adjunto.': { en: 'No CV attached.', pt: 'Sem CV anexado.' },
   'Estado de la candidatura': { en: 'Application status', pt: 'Estado da candidatura' },
   'Guardar estado': { en: 'Save status', pt: 'Guardar estado' },
+  // Lista: separadores
+  'En proceso': { en: 'In progress', pt: 'Em curso' },
+  'Terminadas': { en: 'Finished', pt: 'Terminadas' },
+  'Mostrar': { en: 'Show', pt: 'Mostrar' },
+  'Mostrando solo:': { en: 'Showing only:', pt: 'A mostrar só:' },
+  'Buscar por nombre o teléfono': { en: 'Search by name or phone', pt: 'Procurar por nome ou telefone' },
+  // Início
+  'Tienes 1 candidatura nueva': { en: 'You have 1 new application', pt: 'Tens 1 candidatura nova' },
+  'Tienes {n} candidaturas nuevas': { en: 'You have {n} new applications', pt: 'Tens {n} candidaturas novas' },
+  'Verla ahora': { en: 'See it now', pt: 'Ver agora' },
+  'Verlas ahora': { en: 'See them now', pt: 'Ver agora' },
+  'Estás al día': { en: 'You are up to date', pt: 'Está tudo em dia' },
+  'No hay candidaturas nuevas. Te avisaremos cuando llegue una.': {
+    en: 'No new applications. We will let you know when one arrives.',
+    pt: 'Não há candidaturas novas. Avisamos-te quando chegar uma.'
+  },
+  '1 persona por contactar': { en: '1 person to contact', pt: '1 pessoa por contactar' },
+  '{n} personas por contactar': { en: '{n} people to contact', pt: '{n} pessoas por contactar' },
+  '1 persona con entrevista': { en: '1 person with an interview', pt: '1 pessoa com entrevista' },
+  '{n} personas con entrevista': { en: '{n} people with an interview', pt: '{n} pessoas com entrevista' },
+  'Últimas candidaturas': { en: 'Latest applications', pt: 'Últimas candidaturas' },
+  // Vagas
+  'Solo hace falta el nombre del puesto. Lo demás es opcional.': {
+    en: 'Only the job name is needed. Everything else is optional.',
+    pt: 'Só é preciso o nome da função. O resto é opcional.'
+  },
+  '¿Qué puesto buscas?': { en: 'What job are you hiring for?', pt: 'Que função procuras?' },
+  'Ej.: Camarero/a': { en: 'E.g. Waiter/Waitress', pt: 'Ex.: Empregado/a de mesa' },
+  'Cuéntalo en pocas palabras': { en: 'Describe it in a few words', pt: 'Conta em poucas palavras' },
+  'Ej.: Para fines de semana, turno de tarde. Buen ambiente.': {
+    en: 'E.g. Weekends, afternoon shift. Friendly team.',
+    pt: 'Ex.: Fins de semana, turno da tarde. Bom ambiente.'
+  },
+  'Añadir más detalles (opcional)': { en: 'Add more details (optional)', pt: 'Adicionar mais detalhes (opcional)' },
+  'Más detalles': { en: 'More details', pt: 'Mais detalhes' },
+  'Publicar vacante': { en: 'Publish opening', pt: 'Publicar vaga' },
+  'Publicada': { en: 'Published', pt: 'Publicada' },
+  'En pausa': { en: 'Paused', pt: 'Em pausa' },
+  'Pausar esta vacante': { en: 'Pause this opening', pt: 'Pausar esta vaga' },
+  'Volver a publicar': { en: 'Publish again', pt: 'Voltar a publicar' },
+  'Cambiar los datos de la vacante': { en: 'Change the opening details', pt: 'Alterar os dados da vaga' },
+  'Todavía no tienes vacantes. Crea la primera arriba: solo hace falta el nombre del puesto.': {
+    en: 'You have no openings yet. Create the first one above: only the job name is needed.',
+    pt: 'Ainda não tens vagas. Cria a primeira acima: só é preciso o nome da função.'
+  },
+  'Tus vacantes': { en: 'Your openings', pt: 'As tuas vagas' },
+  'Camarero/a': { en: 'Waiter/Waitress', pt: 'Empregado/a de mesa' },
+  'Cocinero/a': { en: 'Cook', pt: 'Cozinheiro/a' },
+  'Ayudante de cocina': { en: 'Kitchen assistant', pt: 'Ajudante de cozinha' },
+  'Friegaplatos': { en: 'Dishwasher', pt: 'Copeiro/a' },
+  'Repartidor/a': { en: 'Delivery rider', pt: 'Estafeta' },
+  'Limpieza': { en: 'Cleaning', pt: 'Limpeza' },
+  'Recepcionista': { en: 'Receptionist', pt: 'Rececionista' },
+  '¿En qué punto está?': { en: 'Where is this at?', pt: 'Em que ponto está?' },
+  'Toca una opción para cambiar el estado.': { en: 'Tap an option to change the status.', pt: 'Toca numa opção para mudar o estado.' },
+  'Más opciones': { en: 'More options', pt: 'Mais opções' },
+  'historial, privacidad y eliminar': { en: 'history, privacy and delete', pt: 'histórico, privacidade e eliminar' },
+  'Solo las ves tú y tu equipo. Apunta lo útil para el puesto: experiencia, horarios, próximos pasos.': {
+    en: 'Only you and your team can see them. Write down what matters for the job: experience, hours, next steps.',
+    pt: 'Só tu e a tua equipa as veem. Aponta o que interessa para a função: experiência, horários, próximos passos.'
+  },
+  '¿Qué no debo anotar?': { en: 'What should I not write down?', pt: 'O que não devo anotar?' },
   '«Reserva / Futuras oportunidades» solo está disponible si el candidato dio su consentimiento para ello.': {
     en: '“Talent pool / Future opportunities” is only available if the candidate gave consent for it.',
     pt: '«Reserva / Oportunidades futuras» só está disponível se o candidato deu o seu consentimento para isso.'

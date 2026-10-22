@@ -12,18 +12,27 @@
   <%# Recolhido quando já há vagas: a lista é o que interessa ver primeiro. %>
   <details class="card create-job" <%= jobs.length === 0 ? 'open' : '' %>>
     <summary class="create-job-summary"><span class="create-job-plus">+</span> <%= tr('Nueva vacante') %></summary>
-    <p class="help"><%= tr('Mientras no haya ninguna vacante activa, tu página ofrece el formulario de futuras oportunidades.') %></p>
+    <p class="help"><%= tr('Solo hace falta el nombre del puesto. Lo demás es opcional.') %></p>
 
     <form action="/panel/vagas/crear" method="post">
       <input type="hidden" name="_csrf" value="<%= csrfToken %>">
       <div class="field">
-        <label for="titulo"><%= tr('Título') %> *</label>
-        <input id="titulo" type="text" name="titulo" maxlength="80" placeholder="<%= tr('Ej.: Dependiente/a, Camarero/a…') %>" required>
+        <label for="titulo"><%= tr('¿Qué puesto buscas?') %></label>
+        <%# datalist: sugestões ao escrever, sem obrigar a escolher uma. %>
+        <input id="titulo" type="text" name="titulo" maxlength="80" list="puestos-comunes" placeholder="<%= tr('Ej.: Camarero/a') %>" required>
+        <datalist id="puestos-comunes">
+          <% ['Camarero/a', 'Cocinero/a', 'Ayudante de cocina', 'Friegaplatos', 'Dependiente/a', 'Cajero/a', 'Repartidor/a', 'Limpieza', 'Recepcionista'].forEach(function (t) { %>
+            <option value="<%= tr(t) %>"></option>
+          <% }) %>
+        </datalist>
       </div>
       <div class="field">
-        <label for="descripcion"><%= tr('Descripción') %></label>
-        <textarea id="descripcion" name="descripcion" maxlength="2000" placeholder="<%= tr('Ej.: Buscamos dependiente/a para tienda céntrica…') %>"></textarea>
+        <label for="descripcion"><%= tr('Cuéntalo en pocas palabras') %> <span class="dim"><%= tr('(opcional)') %></span></label>
+        <textarea id="descripcion" name="descripcion" maxlength="2000" placeholder="<%= tr('Ej.: Para fines de semana, turno de tarde. Buen ambiente.') %>"></textarea>
       </div>
+      <details class="spaced-sm">
+        <summary><%= tr('Añadir más detalles (opcional)') %></summary>
+        <div class="details-body">
       <div class="field">
         <label for="requisitos"><%= tr('Requisitos') %></label>
         <textarea id="requisitos" name="requisitos" maxlength="2000" placeholder="<%= tr('Ej.: Experiencia previa (valorada), disponibilidad de fines de semana…') %>"></textarea>
@@ -54,19 +63,21 @@
           </select>
         </div>
       </div>
-      <button class="btn small" type="submit"><%= tr('Crear vacante') %></button>
+        </div>
+      </details>
+      <button class="btn lg" type="submit"><%= tr('Publicar vacante') %></button>
     </form>
   </details>
 
   <div class="page-title">
-    <h2><%= tr('Vacantes actuales') %></h2>
+    <h2><%= tr('Tus vacantes') %></h2>
     <span class="count"><%= jobs.length %></span>
   </div>
 
   <% if (jobs.length === 0) { %>
     <div class="card empty">
       <span class="empty-icon">💼</span>
-      <p><%= tr('No tienes vacantes. Crea la primera arriba. Mientras no haya vacantes activas, la página NFC ofrecerá el formulario de futuras oportunidades.') %></p>
+      <p><%= tr('Todavía no tienes vacantes. Crea la primera arriba: solo hace falta el nombre del puesto.') %></p>
     </div>
   <% } else { %>
     <div class="stack">
@@ -74,7 +85,7 @@
         <div class="card">
           <div class="row-between">
             <h3 class="flat"><%= job.title %></h3>
-            <span class="badge <%= job.active ? 'green' : 'slate' %>"><%= job.active ? tr('Activa') : tr('Desactivada') %></span>
+            <span class="badge <%= job.active ? 'green' : 'slate' %>"><%= job.active ? tr('Publicada') : tr('En pausa') %></span>
           </div>
 
           <% if (job.description) { %><p class="muted small pre spaced-sm"><%= job.description %></p><% } %>
@@ -99,7 +110,7 @@
           </p>
 
           <details>
-            <summary><%= tr('Editar…') %></summary>
+            <summary><%= tr('Cambiar los datos de la vacante') %></summary>
             <div class="details-body">
               <form action="/panel/vagas/<%= job.id %>/editar" method="post">
                 <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -111,6 +122,9 @@
                   <label><%= tr('Descripción') %></label>
                   <textarea name="descripcion" maxlength="2000"><%= job.description %></textarea>
                 </div>
+                <details class="spaced-sm">
+                  <summary><%= tr('Más detalles') %></summary>
+                  <div class="details-body">
                 <div class="field">
                   <label><%= tr('Requisitos') %></label>
                   <textarea name="requisitos" maxlength="2000"><%= job.requirements %></textarea>
@@ -141,7 +155,9 @@
                     </select>
                   </div>
                 </div>
-                <button class="btn secondary small" type="submit"><%= tr('Guardar cambios') %></button>
+                  </div>
+                </details>
+                <button class="btn" type="submit"><%= tr('Guardar cambios') %></button>
               </form>
             </div>
           </details>
@@ -150,9 +166,9 @@
             <form action="/panel/vagas/<%= job.id %>/toggle" method="post">
               <input type="hidden" name="_csrf" value="<%= csrfToken %>">
               <% if (job.active) { %>
-                <button class="btn secondary small" type="submit"><%= tr('Desactivar vacante') %></button>
+                <button class="btn secondary small" type="submit"><%= tr('Pausar esta vacante') %></button>
               <% } else { %>
-                <button class="btn small" type="submit"><%= tr('Activar vacante') %></button>
+                <button class="btn small" type="submit"><%= tr('Volver a publicar') %></button>
               <% } %>
             </form>
             <details>

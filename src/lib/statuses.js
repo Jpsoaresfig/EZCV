@@ -2,16 +2,25 @@
 
 const STATUSES = {
   nuevo:       { label: 'Nuevo',       color: 'blue' },
-  revisado:    { label: 'Revisado',    color: 'slate' },
-  contactar:   { label: 'Contactar',   color: 'amber' },
+  revisado:    { label: 'Visto',       color: 'slate' },
+  contactar:   { label: 'Por contactar', color: 'amber' },
   contactado:  { label: 'Contactado',  color: 'cyan' },
   entrevista:  { label: 'Entrevista',  color: 'violet' },
   contratado:  { label: 'Contratado',  color: 'green' },
   rechazado:   { label: 'Rechazado',   color: 'red' },
-  reserva:     { label: 'Reserva / Futuras oportunidades', color: 'orange' }
+  reserva:     { label: 'Para el futuro', color: 'orange' }
 };
 
 const STATUS_KEYS = Object.keys(STATUSES);
+
+/* Separadores da lista de candidaturas: três grupos simples em vez das oito
+ * etapas, para quem não quer pensar em «pipelines». */
+const STATUS_GROUPS = {
+  nuevas:     { label: 'Nuevas',         statuses: ['nuevo'] },
+  proceso:    { label: 'En proceso',     statuses: ['revisado', 'contactar', 'contactado', 'entrevista'] },
+  terminadas: { label: 'Terminadas',     statuses: ['contratado', 'rechazado'] },
+  futuro:     { label: 'Para el futuro', statuses: ['reserva'] }
+};
 
 const AVAILABILITIES = {
   '':            'Sin especificar',
@@ -89,7 +98,7 @@ function historyLabel(key) {
 }
 
 module.exports = {
-  STATUSES, STATUS_KEYS, AVAILABILITIES, DOC_TYPES,
+  STATUSES, STATUS_KEYS, STATUS_GROUPS, AVAILABILITIES, DOC_TYPES,
   ESTABLISHMENT_TYPES, CONTRACT_TYPES, WORK_SCHEDULES,
   HISTORY_EVENTS,
   statusLabel, availabilityLabel, docTypeLabel, historyLabel

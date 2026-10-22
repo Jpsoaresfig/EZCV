@@ -18,9 +18,9 @@ module.exports = {
 
   // Candidaturas
   'Estado no válido.': { en: 'Invalid status.', pt: 'Estado inválido.' },
-  'Solo se puede pasar a «Reserva» si el candidato ha dado su consentimiento para futuras oportunidades. Sin él, al terminar el proceso los datos deben borrarse.': {
-    en: 'You can only move someone to “Talent pool” if the candidate has consented to future opportunities. Without it, the data must be deleted when the process ends.',
-    pt: 'Só se pode passar para «Reserva» se o candidato tiver dado consentimento para oportunidades futuras. Sem ele, os dados têm de ser apagados quando o processo termina.'
+  'Solo se puede marcar «Para el futuro» si el candidato aceptó que le guardes para otras vacantes. Si no lo aceptó, sus datos se borran al terminar el proceso.': {
+    en: 'You can only mark “For the future” if the candidate agreed to be kept for other openings. If they did not, their data is deleted when the process ends.',
+    pt: 'Só podes marcar «Para o futuro» se o candidato aceitou ficar guardado para outras vagas. Se não aceitou, os dados são apagados quando o processo termina.'
   },
   'Candidato marcado como favorito.': { en: 'Candidate marked as favourite.', pt: 'Candidato marcado como favorito.' },
   'Favorito retirado.': { en: 'Removed from favourites.', pt: 'Favorito removido.' },

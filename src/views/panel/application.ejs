@@ -4,7 +4,10 @@
 <main class="container">
   <div class="page-title">
     <h1><%= a.first_name %> <%= a.last_name %></h1>
-    <a class="btn ghost small" href="/panel/candidaturas">← <%= tr('Candidaturas') %></a>
+    <div class="row">
+      <a class="btn ghost small" href="/panel/candidaturas">← <%= tr('Candidaturas') %></a>
+      <% if (next) { %><a class="btn secondary small" href="/panel/candidaturas/<%= next.id %>"><%= tr('Siguiente') %> →</a><% } %>
+    </div>
   </div>
 
   <%- include('../partials/flash') %>
@@ -18,7 +21,12 @@
         <span class="avatar"><%= initials(a.first_name, a.last_name) %></span>
         <div>
           <span class="badge badge-lg <%= (STATUSES[a.status] || {}).color || 'slate' %>"><%= statusLabel(a.status) %></span>
-          <div class="muted small spaced-sm"><%= tr('Recibida el {date}', { date: fmtDate(a.applied_at) }) %> (<%= fmtRelative(a.applied_at) %>)</div>
+          <%
+            /* fmtRelative só difere da data em «Hoy»/«Ayer»; nos outros dias
+             * devolve a própria data, que ficava repetida entre parênteses. */
+            var rel = fmtRelative(a.applied_at), day = fmtDate(a.applied_at);
+          %>
+          <div class="muted small spaced-sm"><%= tr('Recibida el {date}', { date: day }) %><% if (rel && rel !== day) { %> (<%= rel %>)<% } %></div>
         </div>
       </div>
       <form action="/panel/candidaturas/<%= a.id %>/favorito" method="post">
@@ -30,18 +38,24 @@
     </div>
 
     <div class="actions-row">
-      <a class="btn small" href="tel:<%= String(a.phone).replace(/[^\d+]/g, '') %>"><%- icon('phone') %> <%= tr('Llamar') %></a>
+      <a class="btn" href="tel:<%= String(a.phone).replace(/[^\d+]/g, '') %>"><%- icon('phone') %> <%= tr('Llamar') %></a>
       <%
         /* wa.me exige o número internacional sem «+». Os candidatos escrevem
          * quase sempre o móvel espanhol sem indicativo (612 345 678): sem o
          * 34 à frente o WhatsApp abria um número inválido. */
         var wa = String(a.phone).replace(/[^\d]/g, '').replace(/^00/, '');
         if (/^[6789]\d{8}$/.test(wa)) wa = '34' + wa;
+        /* Mensagem já escrita: o dono só tem de carregar em enviar. */
+        var waText = tr('Hola {name}, te escribo de {business}. Hemos visto tu candidatura para {job}. ¿Cuándo te viene bien hablar?', {
+          name: a.first_name,
+          business: restaurantName || tr('nuestro establecimiento'),
+          job: a.job_title || tr('trabajar con nosotros')
+        });
       %>
       <% if (wa) { %>
-        <a class="btn secondary small btn-wa" href="https://wa.me/<%= wa %>" target="_blank" rel="noopener" title="<%= tr('Abre WhatsApp con este número') %>"><%- icon('chat') %> WhatsApp</a>
+        <a class="btn secondary btn-wa" href="https://wa.me/<%= wa %>?text=<%= encodeURIComponent(waText) %>" target="_blank" rel="noopener" title="<%= tr('Abre WhatsApp con este número') %>"><%- icon('chat') %> WhatsApp</a>
       <% } %>
-      <a class="btn secondary small" href="mailto:<%= a.email %>?subject=<%= encodeURIComponent(tr('Candidatura para {job}', { job: a.job_title || tr('tu establecimiento') })) %>"><%- icon('mail') %> Email</a>
+      <a class="btn secondary" href="mailto:<%= a.email %>?subject=<%= encodeURIComponent(tr('Candidatura para {job}', { job: a.job_title || tr('tu establecimiento') })) %>"><%- icon('mail') %> Email</a>
     </div>
   </div>
 
@@ -89,27 +103,6 @@
             <div class="k"><%= tr('Disponibilidad') %></div>
             <div class="v"><%= availabilityLabel(a.availability) || '—' %></div>
           </div>
-          <div class="detail-item">
-            <div class="k"><%= tr('Protección de datos') %></div>
-            <div class="v">
-              <% if (consent) { %>
-                <div class="small">
-                  <% if (consent.selection_basis === 'rgpd_6_1_b') { %><%= tr('Candidatura: medidas precontractuales (art. 6.1.b RGPD)') %>
-                  <% } else if (consent.selection_basis === 'rgpd_6_1_a') { %><%= tr('Solo interés futuro: consentimiento (art. 6.1.a RGPD)') %>
-                  <% } else { %><%= tr('Candidatura anterior a 2026-10 (registro histórico)') %><% } %>
-                  <% if (consent.privacy_notice_version) { %><span class="dim tiny"> · <%= tr('aviso v{version}', { version: consent.privacy_notice_version }) %></span><% } %>
-                </div>
-                <div class="small">
-                  <%= tr('Futuras oportunidades:') %>
-                  <% if (consent.future_opportunity_consent && !consent.future_withdrawn_at) { %>
-                    <strong><%= tr('Sí') %></strong> <span class="dim tiny"><%= tr('desde {date}', { date: fmtDate(consent.future_granted_at || consent.created_at) }) %></span>
-                  <% } else if (consent.future_withdrawn_at) { %>
-                    <strong><%= tr('Retirado') %></strong> <span class="dim tiny"><%= tr('el {date}', { date: fmtDate(consent.future_withdrawn_at) }) %></span>
-                  <% } else { %><%= tr('No') %><% } %>
-                </div>
-              <% } else { %>—<% } %>
-            </div>
-          </div>
         </div>
 
         <% if (a.experience) { %>
@@ -124,15 +117,21 @@
 
       <div class="card o-notas">
         <h2><%= tr('Notas internas') %></h2>
-        <p class="help help-lift">
-          <%= tr('Solo visibles para tu establecimiento. Pero son datos personales del candidato: si ejerce su') %>
-          <strong><%= tr('derecho de acceso') %></strong><%= tr(', tendrás que entregárselas.') %>
-        </p>
-        <div class="notice-box">
-          <%= tr('Escribe solo hechos relevantes para el puesto (experiencia, disponibilidad, próximos pasos).') %>
-          <strong><%= tr('No anotes') %></strong>
-          <%= tr('salud, embarazo, discapacidad, religión, origen, nacionalidad, edad, situación familiar, orientación sexual, ideas políticas ni afiliación sindical: son datos especialmente protegidos o pueden constituir discriminación en el acceso al empleo.') %>
-        </div>
+        <p class="help help-lift"><%= tr('Solo las ves tú y tu equipo. Apunta lo útil para el puesto: experiencia, horarios, próximos pasos.') %></p>
+        <details class="spaced-sm">
+          <summary class="small"><%= tr('¿Qué no debo anotar?') %></summary>
+          <div class="details-body">
+            <div class="notice-box">
+              <%= tr('Escribe solo hechos relevantes para el puesto (experiencia, disponibilidad, próximos pasos).') %>
+              <strong><%= tr('No anotes') %></strong>
+              <%= tr('salud, embarazo, discapacidad, religión, origen, nacionalidad, edad, situación familiar, orientación sexual, ideas políticas ni afiliación sindical: son datos especialmente protegidos o pueden constituir discriminación en el acceso al empleo.') %>
+            </div>
+            <p class="help">
+              <%= tr('Solo visibles para tu establecimiento. Pero son datos personales del candidato: si ejerce su') %>
+              <strong><%= tr('derecho de acceso') %></strong><%= tr(', tendrás que entregárselas.') %>
+            </p>
+          </div>
+        </details>
 
         <form action="/panel/candidaturas/<%= a.id %>/notas" method="post">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
@@ -140,11 +139,14 @@
             <label for="nota"><%= tr('Añadir nota') %></label>
             <textarea id="nota" name="nota" maxlength="2000" placeholder="<%= tr('Ej.: 2 años en sala. Disponible tardes. Entrevista el viernes a las 11.') %>"></textarea>
           </div>
-          <label class="check check-plain">
-            <input type="checkbox" name="confirmar_sensible" value="1">
-            <span class="small"><%= tr('Confirmo que esta nota no contiene datos protegidos o que son imprescindibles y legítimos para el puesto (queda registrado).') %></span>
-          </label>
-          <button class="btn small" type="submit"><%= tr('Guardar nota') %></button>
+          <%# A confirmação só aparece depois de o servidor travar uma nota com termos protegidos. %>
+          <% if (query.sensible === '1') { %>
+            <label class="check check-plain">
+              <input type="checkbox" name="confirmar_sensible" value="1">
+              <span class="small"><%= tr('Confirmo que esta nota no contiene datos protegidos o que son imprescindibles y legítimos para el puesto (queda registrado).') %></span>
+            </label>
+          <% } %>
+          <button class="btn" type="submit"><%= tr('Guardar nota') %></button>
         </form>
 
         <div class="spaced">
@@ -185,22 +187,52 @@
       </div>
 
       <div class="card o-estado">
-        <h2><%= tr('Estado') %></h2>
-        <form action="/panel/candidaturas/<%= a.id %>/estado" method="post">
+        <h2><%= tr('¿En qué punto está?') %></h2>
+        <p class="help help-lift"><%= tr('Toca una opción para cambiar el estado.') %></p>
+        <%
+          /* Botões de um toque em vez de lista + «Guardar»: menos passos e
+           * todas as opções à vista. «Reserva» só aparece com consentimento
+           * ativo (o servidor recusa-a de qualquer forma). */
+          var canReserve = consent && consent.future_opportunity_consent && !consent.future_withdrawn_at;
+        %>
+        <form action="/panel/candidaturas/<%= a.id %>/estado" method="post" class="status-picker">
           <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-          <div class="field">
-            <select name="status" aria-label="<%= tr('Estado de la candidatura') %>">
-              <% Object.keys(STATUSES).forEach(function(key) { %>
-                <option value="<%= key %>" <%= a.status === key ? 'selected' : '' %>><%= statusLabel(key) %></option>
-              <% }) %>
-            </select>
-          </div>
-          <button class="btn small block" type="submit"><%= tr('Guardar estado') %></button>
+          <% Object.keys(STATUSES).forEach(function(key) { %>
+            <% if (key === 'reserva' && !canReserve && a.status !== 'reserva') return; %>
+            <button class="status-opt <%= a.status === key ? 'is-current' : '' %>" type="submit" name="status" value="<%= key %>"<% if (a.status === key) { %> aria-current="true"<% } %>>
+              <span class="dot <%= (STATUSES[key] || {}).color || 'slate' %>"></span>
+              <span><%= statusLabel(key) %></span>
+              <% if (a.status === key) { %><%- icon('check') %><% } %>
+            </button>
+          <% }) %>
         </form>
-        <p class="help"><%= tr('«Reserva / Futuras oportunidades» solo está disponible si el candidato dio su consentimiento para ello.') %></p>
       </div>
 
-      <div class="card o-conservacion">
+      <%# Raramente usado: privacidade, histórico e eliminar ficam recolhidos. %>
+      <details class="card more-card o-mas">
+        <summary><%= tr('Más opciones') %> <span class="dim small"><%= tr('historial, privacidad y eliminar') %></span></summary>
+
+      <div class="sub-block">
+        <h2><%= tr('Protección de datos') %></h2>
+        <% if (consent) { %>
+          <div class="small">
+            <% if (consent.selection_basis === 'rgpd_6_1_b') { %><%= tr('Candidatura: medidas precontractuales (art. 6.1.b RGPD)') %>
+            <% } else if (consent.selection_basis === 'rgpd_6_1_a') { %><%= tr('Solo interés futuro: consentimiento (art. 6.1.a RGPD)') %>
+            <% } else { %><%= tr('Candidatura anterior a 2026-10 (registro histórico)') %><% } %>
+            <% if (consent.privacy_notice_version) { %><span class="dim tiny"> · <%= tr('aviso v{version}', { version: consent.privacy_notice_version }) %></span><% } %>
+          </div>
+          <div class="small">
+            <%= tr('Futuras oportunidades:') %>
+            <% if (consent.future_opportunity_consent && !consent.future_withdrawn_at) { %>
+              <strong><%= tr('Sí') %></strong> <span class="dim tiny"><%= tr('desde {date}', { date: fmtDate(consent.future_granted_at || consent.created_at) }) %></span>
+            <% } else if (consent.future_withdrawn_at) { %>
+              <strong><%= tr('Retirado') %></strong> <span class="dim tiny"><%= tr('el {date}', { date: fmtDate(consent.future_withdrawn_at) }) %></span>
+            <% } else { %><%= tr('No') %><% } %>
+          </div>
+        <% } else { %><p class="dim small flat">—</p><% } %>
+      </div>
+
+      <div class="sub-block o-conservacion">
         <h2><%= tr('Conservación de datos') %></h2>
         <% if (a.legal_hold) { %>
           <p class="small"><span class="badge amber"><%= tr('Bloqueo activo') %></span> <%= a.legal_hold_reason %></p>
@@ -238,13 +270,13 @@
         <% } %>
       </div>
 
-      <div class="card o-derechos">
+      <div class="sub-block o-derechos">
         <h2><%= tr('Derechos del candidato') %></h2>
         <p class="help help-lift"><%= tr('Para atender una solicitud de acceso o portabilidad, descarga todos sus datos en este establecimiento (el CV se descarga aparte).') %></p>
         <a class="btn secondary small" href="/panel/candidaturas/<%= a.id %>/exportar"><%= tr('Exportar datos (JSON)') %></a>
       </div>
 
-      <div class="card o-historial">
+      <div class="sub-block o-historial">
         <h2><%= tr('Historial') %></h2>
         <% if (history.length === 0) { %>
           <p class="dim small flat"><%= tr('Sin eventos todavía.') %></p>
@@ -284,7 +316,7 @@
         <% } %>
       </div>
 
-      <div class="card danger-zone o-perigo">
+      <div class="sub-block danger-zone o-perigo">
         <h2><%= tr('Zona peligrosa') %></h2>
         <p class="help help-lift"><%= tr('Eliminar la candidatura borra también su CV y sus notas de forma permanente.') %></p>
         <details>
@@ -311,9 +343,17 @@
           </div>
         </details>
       </div>
+      </details>
 
     </div>
   </div>
+
+  <%# Ao acabar de ver uma candidatura, o passo natural é abrir a seguinte. %>
+  <% if (next) { %>
+    <div class="next-bar">
+      <a class="btn lg block" href="/panel/candidaturas/<%= next.id %>"><%= tr(nextIsNew ? 'Ver la siguiente nueva' : 'Siguiente candidato') %> →</a>
+    </div>
+  <% } %>
 </main>
 
 <%- include('../partials/foot') %>

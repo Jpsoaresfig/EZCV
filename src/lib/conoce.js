@@ -99,7 +99,7 @@ const es = {
         icon: 'chart',
         title: 'Organizar el proceso',
         text: 'Marca en qué etapa está cada persona y sabrás siempre a quién llamar, a quién entrevistar y a quién guardar para más adelante.',
-        pipeline: ['Nuevo', 'Revisado', 'Contactar', 'Entrevista', 'Contratado']
+        pipeline: ['Nuevo', 'Visto', 'Por contactar', 'Entrevista', 'Contratado']
       },
       {
         icon: 'search',
@@ -297,7 +297,7 @@ const en = {
         icon: 'chart',
         title: 'Organise the process',
         text: 'Mark which stage each person is at, so you always know who to call, who to interview and who to keep for later.',
-        pipeline: ['New', 'Reviewed', 'To contact', 'Interview', 'Hired']
+        pipeline: ['New', 'Seen', 'To contact', 'Interview', 'Hired']
       },
       {
         icon: 'search',
@@ -495,7 +495,7 @@ const pt = {
         icon: 'chart',
         title: 'Organizar o processo',
         text: 'Marca em que etapa está cada pessoa e saberás sempre a quem ligar, quem entrevistar e quem guardar para mais tarde.',
-        pipeline: ['Novo', 'Revisto', 'Contactar', 'Entrevista', 'Contratado']
+        pipeline: ['Novo', 'Visto', 'Por contactar', 'Entrevista', 'Contratado']
       },
       {
         icon: 'search',

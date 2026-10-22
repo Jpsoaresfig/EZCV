@@ -19,7 +19,7 @@ const storage = require('../lib/storage');
 const { QR_OPTIONS } = require('../lib/qr');
 const { TERMS_VERSION, TERMS_CHANGES, operator, termsPending, recordAcceptance } = require('../lib/legal');
 const {
-  STATUSES, STATUS_KEYS, AVAILABILITIES, ESTABLISHMENT_TYPES,
+  STATUSES, STATUS_KEYS, STATUS_GROUPS, AVAILABILITIES, ESTABLISHMENT_TYPES,
   CONTRACT_TYPES, WORK_SCHEDULES, statusLabel
 } = require('../lib/statuses');
 
@@ -189,6 +189,7 @@ router.get('/panel/candidaturas', async (req, res) => {
 
   const q = clean(req.query.q, 80);
   const estado = STATUS_KEYS.includes(req.query.estado) ? req.query.estado : '';
+  const grupo = !estado && Object.prototype.hasOwnProperty.call(STATUS_GROUPS, req.query.grupo) ? req.query.grupo : '';
   const puesto = /^\d+$/.test(String(req.query.puesto || '')) ? String(req.query.puesto) : '';
   const disp = Object.prototype.hasOwnProperty.call(AVAILABILITIES, req.query.disp) ? String(req.query.disp) : '';
   const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(req.query.desde || '')) ? req.query.desde : '';
@@ -206,6 +207,7 @@ router.get('/panel/candidaturas', async (req, res) => {
   if (q) query = query.ilike('search_text', `%${escapeLike(q.toLowerCase())}%`);
 
   if (estado) query = query.eq('status', estado);
+  if (grupo) query = query.in('status', STATUS_GROUPS[grupo].statuses);
   if (puesto) query = query.eq('job_id', Number(puesto));
   if (disp) query = query.eq('availability', disp);
   if (desde) query = query.gte('applied_at', `${desde}T00:00:00`);
@@ -229,7 +231,8 @@ router.get('/panel/candidaturas', async (req, res) => {
   res.render('panel/applications', {
     rows,
     jobs,
-    filters: { q, estado, puesto, disp, desde, hasta, favs, orden: ascending ? 'antiguas' : 'recientes' },
+    groups: STATUS_GROUPS,
+    filters: { q, estado, grupo, puesto, disp, desde, hasta, favs, orden: ascending ? 'antiguas' : 'recientes' },
     totalFiltered: rows.length,
     pipeline,
     query: req.query
@@ -245,7 +248,27 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
 
   const rid = restaurantId(req);
 
-  const [extra, notes, cv, consent, history, markedRead] = await Promise.all([
+  /* Abrir a ficha de uma candidatura nova é vê-la: passa sozinha a «Visto»,
+   * para o dono não ter de mudar o estado à mão só para a tirar de «Nuevas».
+   * Corre antes das leituras para o histórico já mostrar a mudança. Na demo
+   * nada se grava. */
+  if (application.status === 'nuevo' && !res.locals.isDemo) {
+    const seen = await rpc('set_application_status', {
+      application_id: application.id,
+      restaurant_id: rid,
+      user_id: req.user.id,
+      status: 'revisado'
+    }, 'marcar como visto');
+    if (seen && seen.ok) application.status = 'revisado';
+  }
+
+  /* «Siguiente candidato»: primeiro a nova mais recente que falte ver; se não
+   * houver, a seguinte da lista (mais antiga que esta). */
+  const nextQuery = () => sb().from('application_list').select('id')
+    .eq('restaurant_id', rid).neq('id', application.id)
+    .order('applied_at', { ascending: false }).order('id', { ascending: false }).limit(1);
+
+  const [extra, notes, cv, consent, history, markedRead, nextNew, nextOlder] = await Promise.all([
     one(
       sb().from('applications')
         .select('legal_hold, legal_hold_reason, retention_until, closed_at')
@@ -291,7 +314,9 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
         .eq('status', 'unread')
         .select('id'),
       'marcar aviso como lido'
-    )
+    ),
+    one(nextQuery().eq('status', 'nuevo'), 'seguinte nova'),
+    one(nextQuery().lt('applied_at', application.applied_at), 'seguinte candidatura')
   ]);
 
   logSecurity('candidatura_vista', `app=${application.id}`, req.ip, { userId: req.user.id, restaurantId: rid });
@@ -312,6 +337,8 @@ router.get('/panel/candidaturas/:id', async (req, res) => {
     history: withAuthor(history),
     cv,
     consent,
+    next: nextNew || nextOlder || null,
+    nextIsNew: Boolean(nextNew),
     query: req.query
   });
 });
@@ -342,8 +369,8 @@ router.post('/panel/candidaturas/:id/estado', async (req, res) => {
 
   if (result && result.reason === 'no_consent') {
     return res.redirect(`/panel/candidaturas/${id}?err=` + encodeURIComponent(
-      'Solo se puede pasar a «Reserva» si el candidato ha dado su consentimiento para futuras oportunidades. ' +
-      'Sin él, al terminar el proceso los datos deben borrarse.'));
+      'Solo se puede marcar «Para el futuro» si el candidato aceptó que le guardes para otras vacantes. ' +
+      'Si no lo aceptó, sus datos se borran al terminar el proceso.'));
   }
   if (!result || !result.ok) return notFound(res);
 
@@ -402,7 +429,7 @@ router.post('/panel/candidaturas/:id/notas', rateLimit({
     logSecurity('nota_sensible_bloqueada', `app=${application.id}`, req.ip, {
       userId: req.user.id, restaurantId: restaurantId(req), metadata: { terms }
     });
-    return res.redirect(`/panel/candidaturas/${application.id}?err=` + encodeURIComponent(
+    return res.redirect(`/panel/candidaturas/${application.id}?sensible=1&err=` + encodeURIComponent(
       'La nota no se ha guardado: parece mencionar salud, religión, origen, edad, situación familiar u otra ' +
       'característica protegida. No registres esa información: es un dato especialmente protegido o puede ser ' +
       'discriminatorio. Si es imprescindible y legítimo para el puesto, reescribe la nota y marca la casilla de confirmación.'));

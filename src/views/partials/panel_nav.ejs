@@ -10,15 +10,16 @@ var navItems = [
   { href: '/panel/candidaturas',    icon: 'people', label: tr('Candidaturas'),  short: tr('Candidatos'), badge: true },
   { href: '/panel/vagas',           icon: 'jobs',   label: tr('Vacantes'),      short: tr('Vacantes') },
   { href: '/panel/notificaciones',  icon: 'bell',   label: tr('Avisos'),        short: tr('Avisos') },
-  { href: '/panel/derechos',        icon: 'shield', label: tr('Derechos RGPD'), short: tr('Derechos'), sideOnly: true },
-  { href: '/panel/privacidad',      icon: 'lock',   label: tr('Privacidad'),    short: tr('Privacidad'), sideOnly: true },
   { href: '/panel/restaurante',     icon: 'store',  label: tr('Mi negocio'),     short: tr('Mi negocio') },
-  { href: '/panel/configuracion',   icon: 'cog',    label: tr('Configuración'), short: tr('Ajustes') },
+  /* Derechos e Privacidad usam-se pouco: ficam só em Ajustes (e nos avisos,
+   * quando chega um pedido de direitos). */
+  { href: '/panel/configuracion',   icon: 'cog',    label: tr('Configuración'), short: tr('Ajustes'), also: ['/panel/derechos', '/panel/privacidad'] },
   { href: '/panel/reportar',        icon: 'chat',   label: tr('Reportar un problema'), short: tr('Reportar'), sideOnly: true }
 ];
 
 function isActive(item) {
-  return item.exact ? path === item.href : path.indexOf(item.href) === 0;
+  if (item.exact) return path === item.href;
+  return [item.href].concat(item.also || []).some(function(h) { return path.indexOf(h) === 0; });
 }
 
 var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCount : 0;
@@ -62,7 +63,7 @@ var unread = (typeof unreadCount !== 'undefined' && unreadCount > 0) ? unreadCou
 </header>
 
 <nav class="tabbar" aria-label="<%= tr('Navegación principal') %>">
-  <%# No telemóvel, Derechos e Privacidad estão em Ajustes (6 separadores no máximo). %>
+  <%# 6 separadores no máximo; os sideOnly ficam só na barra lateral. %>
   <% navItems.filter(function(item) { return !item.sideOnly; }).forEach(function(item) { %>
     <a class="<%= isActive(item) ? 'active' : '' %>" href="<%= item.href %>">
       <%- icon(item.icon) %>
